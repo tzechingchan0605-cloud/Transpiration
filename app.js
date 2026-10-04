@@ -570,25 +570,25 @@ function reportAnswer(title,answer,reference='',correct=null) {
 }
 function structureDiagram(scope='learning'){
   const prefix=`structure-${scope}-`,water=prefix+'water',vapour=prefix+'vapour';
-  const xylemFill='#fbebed',xylemStroke='#ba8195',evaporation='#7651a2',pull='#c77838';
+  const xylemFill='#fbebed',xylemStroke='#ba8195',evaporation='#c77838',pull='#218bb0';
   const text=(x,y,lines,size=17,colour='#31594b',weight=400)=>`<text x="${x}" y="${y}" fill="${colour}" font-size="${size}" font-weight="${weight}">${lines.map((line,i)=>`<tspan x="${x}" dy="${i?22:0}">${line}</tspan>`).join('')}</text>`;
-  const leader=d=>`<path d="${d}" fill="none" stroke="#849b90" stroke-width="1.4" stroke-linejoin="round"/>`;
-  const arrow=(d,gas=false)=>`<path class="movement-arrow" d="${d}" fill="none" stroke="${gas?pull:'#218bb0'}" stroke-width="2" ${gas?'stroke-dasharray="5 4"':''} marker-end="url(#${gas?vapour:water})"/>`;
+  const leader=(d,label='')=>`<path class="anatomy-leader" ${label?`data-label="${label}"`:''} d="${d}" fill="none" stroke="#849b90" stroke-width="1.4" stroke-linejoin="round"/>`;
+  const arrow=(d,gas=false,kind='')=>`<path class="movement-arrow" ${kind?`data-movement="${kind}"`:''} d="${d}" fill="none" stroke="${gas?evaporation:pull}" stroke-width="2" ${gas?'stroke-dasharray="5 4"':''} marker-end="url(#${gas?vapour:water})"/>`;
   const badge=(x,y,n,group)=>`<g class="process-marker" data-process="${group}-${n}"><circle cx="${x}" cy="${y}" r="12" fill="${group==='evaporation'?evaporation:pull}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y+5}" text-anchor="middle" font-size="14" font-weight="700" fill="white">${n}</text></g>`;
   const palisade=Array.from({length:16},(_,i)=>{
     const x=300+i*27.75;
     // Shared vertical walls keep the columnar cells tightly packed.
-    return `<g class="palisade-cell"><rect class="cell-wall" x="${x}" y="222" width="27.75" height="83" fill="#e5efd1" stroke="#85ab66" stroke-width="1.3"/><rect data-organelle="vacuole" x="${x+6}" y="230" width="15.75" height="63" rx="6" fill="#f8fcf4" stroke="#c7ddbc" stroke-width=".7"/>${[231,249,267,287].map(y=>`<ellipse cx="${x+3}" cy="${y}" rx="2" ry="2.7" fill="#639946"/><ellipse cx="${x+24.75}" cy="${y}" rx="2" ry="2.7" fill="#639946"/>`).join('')}<ellipse cx="${x+14}" cy="299" rx="3" ry="2.3" fill="#b6a0c6"/></g>`;
+    return `<g class="palisade-cell"><rect class="cell-wall" x="${x}" y="222" width="27.75" height="83" rx="5" fill="#e5efd1" stroke="#85ab66" stroke-width="1.3"/><rect data-organelle="vacuole" x="${x+6}" y="230" width="15.75" height="63" rx="6" fill="#f8fcf4" stroke="#c7ddbc" stroke-width=".7"/>${[231,249,267,287].map(y=>`<ellipse cx="${x+3}" cy="${y}" rx="2" ry="2.7" fill="#639946"/><ellipse cx="${x+24.75}" cy="${y}" rx="2" ry="2.7" fill="#639946"/>`).join('')}<ellipse cx="${x+14}" cy="299" rx="3" ry="2.3" fill="#b6a0c6"/></g>`;
   }).join('');
   // The central air space lies between these mesophyll cells, with a passage to the stoma.
-  const cells=[[325,331,23,17,-12],[345,397,27,21,12],[319,446,20,16,-12],[397,449,28,15,7],[464,431,22,17,-16],[487,332,24,17,-8],[521,379,23,24,0],[548,422,27,22,0],[564,342,30,20,0],[622,344,31,20,0],[665,383,23,30,0],[604,447,29,17,0],[675,432,28,19,0],[715,326,22,15,17],[717,365,20,13,-12],[715,454,19,12,8]];
+  const cells=[[325,331,23,17,-12],[345,397,27,21,12],[319,446,20,16,-12],[397,449,28,15,7],[464,431,22,17,-16],[487,332,24,17,-8],[521,379,23,24,0],[548,422,27,22,0],[564,342,30,20,0],[622,344,31,20,0],[665,383,23,30,0],[604,447,29,17,0],[675,439,28,18,0],[715,326,22,15,17],[717,365,20,13,-12],[715,454,19,12,8]];
   const spongy=cells.map(([x,y,rx,ry,angle])=>`<g class="spongy-cell" transform="rotate(${angle} ${x} ${y})"><ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#e7f0d3" stroke="#88ac69" stroke-width="1.6"/><ellipse data-organelle="vacuole" cx="${x}" cy="${y}" rx="${rx-7}" ry="${ry-5}" fill="#f8fcf4"/>${[0,1,2,3,4,5].map(i=>{const a=i*Math.PI/3;return `<ellipse cx="${x+(rx-4)*Math.cos(a)}" cy="${y+(ry-4)*Math.sin(a)}" rx="2.6" ry="2" fill="#639946"/>`;}).join('')}<circle cx="${x+rx-7}" cy="${y+4}" r="2.8" fill="#b6a0c6"/></g>`).join('');
   const filmArc=(x,y,rx,ry,start,end)=>{
     const point=a=>[x+(rx+1.5)*Math.cos(a*Math.PI/180),y+(ry+1.5)*Math.sin(a*Math.PI/180)].map(n=>n.toFixed(2)).join(' ');
     return `<path d="M${point(start)}A${rx+1.5} ${ry+1.5} 0 0 1 ${point(end)}" fill="none" stroke="#70bcd2" stroke-width="2.2"/>`;
   };
-  const waterFilm=[[564,342,30,20,25,140],[622,344,31,20,30,145],[521,379,23,24,-45,50],[665,383,23,30,125,235],[548,422,27,22,240,350],[604,447,29,17,210,325],[675,432,28,19,140,235]].map(args=>filmArc(...args)).join('');
-  const epidermisCell=(x,y,width=27.75)=>`<g class="epidermis-cell"><rect x="${x}" y="${y}" width="${width}" height="26" rx="3" fill="#e9f0df" stroke="#95b77c" stroke-width="1.2"/><rect data-organelle="vacuole" x="${x+3}" y="${y+3}" width="${width-6}" height="17" rx="4" fill="#f8fcf4" stroke="#c7ddbc" stroke-width=".7"/><circle cx="${x+width-6}" cy="${y+22}" r="2.2" fill="#b6a0c6"/></g>`;
+  const waterFilm=[[564,342,30,20,25,140],[622,344,31,20,30,145],[521,379,23,24,-45,50],[665,383,23,30,125,235],[548,422,27,22,240,350],[604,447,29,17,210,325],[675,439,28,18,140,235]].map(args=>filmArc(...args)).join('');
+  const epidermisCell=(x,y,width=27.75)=>`<g class="epidermis-cell"><rect class="cell-wall" x="${x}" y="${y}" width="${width}" height="26" rx="7" fill="#e9f0df" stroke="#95b77c" stroke-width="1.2"/><rect data-organelle="vacuole" x="${x+3}" y="${y+3}" width="${width-6}" height="17" rx="5" fill="#f8fcf4" stroke="#c7ddbc" stroke-width=".7"/><circle cx="${x+width-6}" cy="${y+22}" r="2.2" fill="#b6a0c6"/></g>`;
   const xylem=Array.from({length:4},(_,row)=>Array.from({length:6},(_,col)=>`<circle cx="${379+col*11+(row%2)*4}" cy="${321+row*11}" r="5" fill="${xylemFill}" stroke="${xylemStroke}" stroke-width="1.2"/>`).join('')).join('');
   const phloem=Array.from({length:3},(_,row)=>Array.from({length:7},(_,col)=>`<path d="M${374+col*11+(row%2)*4} ${367+row*10}h9l2 7-5 4-6-3Z" fill="#9ea2cf" stroke="#696d9a" stroke-width="1"/>`).join('')).join('');
   const processes=[
@@ -600,15 +600,15 @@ function structureDiagram(scope='learning'){
   ];
   return `<div class="structure-wrap"><svg xmlns="http://www.w3.org/2000/svg" class="structure-svg" viewBox="0 0 1080 810" role="img" aria-labelledby="${prefix}title ${prefix}desc">
     <title id="${prefix}title">葉的內部構造與蒸騰：水份如何沿木質導管進入葉，再以水汽形式散失</title>
-    <desc id="${prefix}desc">葉片局部立體橫切示意。柵狀葉肉細胞緊密排列；海綿葉肉細胞之間形成氣室，朝向氣室的細胞表面覆有水膜。上、下表皮及保衞細胞均畫有液泡，兩個保衞細胞之間保留沒有橫線的氣孔開口。維管束中木質部在上、韌皮部在下；莖和葉的木質導管均為粉紅色。藍色箭嘴表示水份運輸及滲透，橙色虛線箭嘴表示水汽移動與擴散。紫色數字對應經氣孔進行的蒸騰兩步，橙色數字對應蒸騰拉力的形成三步。</desc>
+    <desc id="${prefix}desc">葉片局部立體橫切示意。柵狀葉肉細胞緊密排列；海綿葉肉細胞之間形成氣室，朝向氣室的細胞表面覆有水膜。上、下表皮細胞及保衞細胞均畫有液泡，兩個保衞細胞之間保留沒有橫線的氣孔開口。維管束中木質部在上、韌皮部在下；莖和葉的木質導管均為粉紅色。藍色箭嘴表示水份運輸及滲透，橙色虛線箭嘴表示水汽移動與擴散。橙色數字對應經氣孔進行的蒸騰兩步，藍色數字對應蒸騰拉力的形成三步。</desc>
     <defs>
-      ${[[water,'#218bb0',8],[vapour,pull,8]].map(([id,fill,size])=>`<marker id="${id}" markerUnits="userSpaceOnUse" markerWidth="${size}" markerHeight="${size}" refX="${size-1}" refY="${size/2}" orient="auto"><path d="M0 0L${size} ${size/2}L0 ${size}Z" fill="${fill}"/></marker>`).join('')}
+      ${[[water,pull,8],[vapour,evaporation,8]].map(([id,fill,size])=>`<marker id="${id}" markerUnits="userSpaceOnUse" markerWidth="${size}" markerHeight="${size}" refX="${size}" refY="${size/2}" orient="auto"><path d="M0 0L${size} ${size/2}L0 ${size}Z" fill="${fill}"/></marker>`).join('')}
       <pattern id="${prefix}surface" width="42" height="28" patternUnits="userSpaceOnUse"><rect width="42" height="28" fill="#c4db98"/><path d="M0 7L13 0H31L42 9 34 25H14L0 17Z" fill="#cfe3aa" stroke="#90b465" stroke-width="1.3"/></pattern>
       <clipPath id="${prefix}bundle"><ellipse cx="406" cy="353" rx="48" ry="48"/></clipPath>
     </defs>
     <rect x="1" y="1" width="1078" height="808" rx="18" fill="#fbfdf9" stroke="#d8e8df"/>
     ${text(26,37,['葉的內部構造與蒸騰'],23,'#087b78',700)}
-    ${text(26,63,['紫色數字：經氣孔進行的蒸騰　｜　橙色數字：蒸騰拉力的形成'],15,'#688475')}
+    ${text(26,63,['橙色數字：經氣孔進行的蒸騰　｜　藍色數字：蒸騰拉力的形成'],15,'#688475')}
     <g aria-label="葉片、葉柄及葉脈示意">
       <path d="M54 174Q66 100 175 100Q185 166 54 174Z" fill="#8eb972" stroke="#587f48" stroke-width="2"/>
       <path d="M58 170L163 111M93 146L93 126M117 133L128 113M101 143L130 153M133 125L151 138" fill="none" stroke="#c1d395" stroke-width="1.6"/>
@@ -625,7 +625,7 @@ function structureDiagram(scope='learning'){
       <path d="M300 491V196H744V491H674M598 491H300" fill="none" stroke="#93b477" stroke-width="1.7"/>
       <path data-anatomy="air-space" d="M549 367Q579 370 601 366Q624 369 640 370Q639 390 642 408L649 435Q638 444 637 466Q627 449 628 435Q605 425 579 428Q571 404 552 403Q553 383 549 367Z" fill="#ecf8fc"/>
       <g data-anatomy="upper-epidermis">${Array.from({length:16},(_,i)=>epidermisCell(300+i*27.75,196)).join('')}</g>
-      <g data-anatomy="palisade-mesophyll">${palisade}</g>
+      <g data-anatomy="palisade-mesophyll"><rect x="300" y="222" width="444" height="83" fill="#e5efd1"/>${palisade}</g>
       <g data-anatomy="spongy-mesophyll">${spongy}</g>
       <ellipse data-anatomy="vascular-bundle" cx="406" cy="353" rx="54" ry="54" fill="#d5e5a8" stroke="#8ca966" stroke-width="2"/>
       <g clip-path="url(#${prefix}bundle)"><rect x="356" y="304" width="100" height="57" fill="#d9b4c4"/><rect x="356" y="362" width="100" height="45" fill="#bbbddb"/><g data-anatomy="xylem">${xylem}</g><g data-anatomy="phloem">${phloem}</g></g>
@@ -635,28 +635,28 @@ function structureDiagram(scope='learning'){
       <g data-anatomy="guard-cells">${[false,true].map(mirror=>`<g ${mirror?'transform="translate(1272 0) scale(-1 1)"':''}><path d="M619 465C601 455 589 475 600 489C608 499 621 498 627 489C615 487 611 479 619 473Z" fill="#b4d596" stroke="#688f55" stroke-width="1.7"/><path data-organelle="vacuole" d="M611 466C601 464 595 476 603 485C608 490 614 491 618 488C608 482 607 474 611 466Z" fill="#f8fcf4" stroke="#c7ddbc" stroke-width=".7"/>${[[601,467],[598,477],[603,489],[618,493]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx="2.2" ry="1.8" fill="#4d8b41"/>`).join('')}<circle cx="616" cy="469" r="2.2" fill="#b6a0c6"/></g>`).join('')}</g>
       <path data-anatomy="stoma" d="M627 466Q636 469 645 466V492Q636 489 627 492Z" fill="#fbfdf9" stroke="none"/>
     </g>
-    <g aria-label="莖內木質導管與水份上升"><rect data-anatomy="stem-xylem" x="109" y="322" width="45" height="180" rx="9" fill="${xylemFill}" stroke="${xylemStroke}" stroke-width="1.7"/><path d="M119 328V493M144 328V493" stroke="#dfbdca" stroke-width="1.3"/>${arrow('M130 487V435')}${arrow('M130 416V355')}${arrow('M146 348C224 347 279 363 383 341')}
+    <g aria-label="莖內木質導管與水份上升"><rect data-anatomy="stem-xylem" x="109" y="322" width="45" height="180" rx="9" fill="${xylemFill}" stroke="${xylemStroke}" stroke-width="1.7"/><path d="M119 328V493M144 328V493" stroke="#dfbdca" stroke-width="1.3"/>${arrow('M130 487V435')}${arrow('M130 416V355')}${arrow('M130 348C224 355 279 357 379 343',false,'stem-to-leaf')}
       ${text(27,297,['莖內的木質導管'],17,'#31594b',600)}${leader('M146 303L143 321')}
       ${text(24,518,['水份及已溶解的礦物質'],15,'#527768')}
     </g>
-    ${arrow('M445 336L476 332')}${arrow('M493 344L516 366')}${arrow('M531 396L544 413')}${arrow('M574 371C584 380 591 385 597 395',true)}${arrow('M611 409C628 422 637 438 637 461',true)}${arrow('M636 474V550',true)}
-    ${badge(580,385,1,'evaporation')}${badge(677,535,2,'evaporation')}${badge(554,451,1,'pull')}${badge(495,310,2,'pull')}${badge(338,379,3,'pull')}
-    ${text(26,250,['木質部（木質導管）'],17,'#89576b',600)}${leader('M210 245H253L384 323')}
-    ${text(307,541,['維管束'],16,'#527768',600)}${leader('M340 525L371 405')}
-    ${text(452,542,['韌皮部'],16,'#65678e',600)}${text(452,564,['轉運食物'],14,'#7a7d93')}${leader('M479 526L461 417L421 383')}
+    ${arrow('M438 332L477 332',false,'xylem-to-mesophyll')}${arrow('M493 344L516 366')}${arrow('M531 396L544 413')}${arrow('M570 362C573 370 576 376 581 382',true,'evaporation')}${arrow('M575 414C584 410 593 406 601 399',true,'evaporation')}${arrow('M611 409C628 422 637 438 637 461',true)}${arrow('M636 474V550',true)}
+    ${badge(607,380,1,'evaporation')}${badge(677,535,2,'evaporation')}${badge(504,435,1,'pull')}${badge(478,375,2,'pull')}${badge(262,412,3,'pull')}
+    ${text(26,250,['木質部（木質導管）'],17,'#89576b',600)}${leader('M210 245H265V312H349L379 321','xylem')}
+    ${text(193,394,['維管束'],16,'#527768',600)}${leader('M253 389H262V359H347L353 353','vascular-bundle')}
+    ${text(191,446,['韌皮部'],16,'#65678e',600)}${text(191,470,['轉運食物'],14,'#7a7d93')}${leader('M251 441H283V370H357L386 382','phloem')}
     ${text(837,130,['角質層'],17,'#31594b',600)}${text(837,150,['減少水份散失、保護葉片'],14,'#6f8775')}${leader('M828 127H812L751 187')}
-    ${text(837,193,['上表皮'],17,'#31594b',600)}${leader('M828 188H807L730 208')}
-    ${text(837,243,['柵狀葉肉'],17,'#31594b',600)}${text(837,265,['細胞呈柱狀，緊密排列'],14,'#6f8775')}${leader('M828 238H798L730 259')}
-    ${text(837,316,['海綿葉肉'],17,'#31594b',600)}${text(837,338,['細胞排列疏鬆，其間形成氣室'],14,'#6f8775')}${leader('M828 311H789L718 326')}
-    ${text(837,372,['水膜'],17,'#218bb0',600)}${leader('M828 367H790L640 389')}
-    ${text(837,412,['氣室（細胞之間）'],17,'#31594b',600)}${leader('M828 407H778L603 398')}
-    ${text(837,461,['下表皮'],17,'#31594b',600)}${leader('M828 456H779L723 478')}
-    ${text(837,514,['保衞細胞'],17,'#31594b',600)}${text(837,536,['控制氣孔開合；含葉綠體'],14,'#6f8775')}${leader('M828 509H771L668 482')}
-    ${text(742,575,['氣孔'],17,'#31594b',600)}${leader('M734 570H715V530L687 515L644 483')}
-    ${arrow('M24 589H57')}${text(67,594,['水份運輸／滲透'],15,'#218bb0')}${arrow('M282 589H315',true)}${text(324,594,['水汽移動／擴散'],15,'#b6753b')}
+    ${text(837,193,['上表皮細胞'],17,'#31594b',600)}${leader('M828 188H807L730 208','upper-epidermis')}
+    ${text(837,243,['柵狀葉肉細胞'],17,'#31594b',600)}${text(837,265,['細胞呈柱狀，緊密排列'],14,'#6f8775')}${leader('M828 238H798L730 259','palisade-mesophyll')}
+    ${text(837,316,['海綿葉肉細胞'],17,'#31594b',600)}${text(837,338,['細胞排列疏鬆，其間形成氣室'],14,'#6f8775')}${leader('M828 311H789L718 326','spongy-mesophyll')}
+    ${text(837,372,['水膜'],17,pull,600)}${leader('M828 367H779V347H658L650 355','water-film')}
+    ${text(837,412,['氣室（細胞之間）'],17,'#31594b',600)}${leader('M828 407H779V417H653L614 404','air-space')}
+    ${text(837,461,['下表皮細胞'],17,'#31594b',600)}${leader('M828 456H779L723 478','lower-epidermis')}
+    ${text(837,514,['保衞細胞'],17,'#31594b',600)}${text(837,536,['控制氣孔開合；含葉綠體'],14,'#6f8775')}${leader('M828 509H746L686 500L668 490','guard-cells')}
+    ${text(742,575,['氣孔'],17,'#31594b',600)}${leader('M734 570H715V530L687 515L642 496','stoma')}
+    ${arrow('M24 589H57')}${text(67,594,['水份運輸／滲透'],15,pull)}${arrow('M282 589H315',true)}${text(324,594,['水汽移動／擴散'],15,evaporation)}
     <g class="process-heading" data-process-group="evaporation"><rect x="20" y="620" width="412" height="34" rx="10" fill="${evaporation}"/>${text(130,643,['經氣孔進行的蒸騰'],18,'#fff',600)}</g>
     <g class="process-heading" data-process-group="pull"><rect x="450" y="620" width="610" height="34" rx="10" fill="${pull}"/>${text(683,643,['蒸騰拉力的形成'],18,'#fff',600)}</g>
-    ${processes.map(({group,n,x,width,lines})=>`<g class="process-card" data-process-group="${group}"><rect x="${x}" y="665" width="${width}" height="89" rx="12" fill="${group==='evaporation'?'#f8f5fc':'#fff8f1'}" stroke="${group==='evaporation'?'#c6b5df':'#e9c7a6'}"/>${badge(x+19,687,n,group)}${text(x+37,688,lines,14,'#4e625a')}</g>`).join('')}
+    ${processes.map(({group,n,x,width,lines})=>`<g class="process-card" data-process-group="${group}"><rect x="${x}" y="665" width="${width}" height="89" rx="12" fill="${group==='evaporation'?'#fff8f1':'#eff7fb'}" stroke="${group==='evaporation'?'#e9c7a6':'#badbe7'}"/>${badge(x+19,687,n,group)}${text(x+37,688,lines,14,'#4e625a')}</g>`).join('')}
     ${text(23,783,['局部放大示意，並非按比例。實驗中的西芹長柄實際是葉柄；本圖的莖部用作說明木質導管的運輸。'],14,'#6e897b')}
   </svg></div>`;
 }

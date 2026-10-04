@@ -68,7 +68,7 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   assert.match(await page.locator('#originalHypothesis').innerText(),/需要量度才能知道/);
   await page.locator('#saveReflection').click();assert.equal(await page.locator('#downloadPDF').isDisabled(),true);
   await page.evaluate(async()=>{window.print=()=>{window.printCalled=true;window.titleAtPrint=document.title;};await document.querySelector('#downloadPDF').onclick();});assert.equal(await page.evaluate(()=>!!window.printCalled),false);assert.match(await page.locator('#mechanismDiagram').innerText(),/木質導管/);
-  const anatomy=page.locator('#mechanismDiagram');for(const label of ['角質層','上表皮','柵狀葉肉','海綿葉肉','水膜','氣室','下表皮','保衞細胞','氣孔','維管束','木質部','韌皮部','蒸騰拉力'])assert((await anatomy.innerText()).includes(label));
+  const anatomy=page.locator('#mechanismDiagram');for(const label of ['角質層','上表皮細胞','柵狀葉肉細胞','海綿葉肉細胞','水膜','氣室','下表皮細胞','保衞細胞','氣孔','維管束','木質部','韌皮部','蒸騰拉力'])assert((await anatomy.innerText()).includes(label));
   assert.equal(await anatomy.locator('.process-card').count(),5);
   assert.equal(await anatomy.locator('.process-card[data-process-group=evaporation]').count(),2);assert.equal(await anatomy.locator('.process-card[data-process-group=pull]').count(),3);
   const processText=(await anatomy.locator('svg').textContent()).replace(/\s/g,'');
@@ -83,6 +83,45 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   assert.equal(await anatomy.locator('[data-anatomy=air-space]').count(),1);assert.equal(await anatomy.locator('[data-anatomy=water-film] ellipse').count(),0);assert.equal(await anatomy.locator('[data-anatomy=water-film] path').count(),7);
   assert.equal(await anatomy.locator('circle[fill="#dfa268"],[id$="zoom"]').count(),0);
   assert.equal(await anatomy.locator('marker').count(),2);assert.equal(await anatomy.locator('marker').evaluateAll(markers=>markers.every(marker=>marker.getAttribute('markerUnits')==='userSpaceOnUse'&&+marker.getAttribute('markerWidth')===8)),true);
+  assert.equal(await anatomy.locator('.cell-wall').evaluateAll(walls=>walls.every(wall=>+wall.getAttribute('rx')>=5)),true);
+  assert.equal(await anatomy.locator('svg').evaluate(svg=>{
+    const blue=svg.querySelector('marker[id$="water"] path').getAttribute('fill'),orange=svg.querySelector('marker[id$="vapour"] path').getAttribute('fill');
+    return blue!==orange&&['evaporation','pull'].every(group=>{
+      const colour=group==='evaporation'?orange:blue;
+      return svg.querySelector(`.process-heading[data-process-group=${group}] rect`).getAttribute('fill')===colour&&[...svg.querySelectorAll(`.process-marker[data-process^="${group}-"] circle`)].every(circle=>circle.getAttribute('fill')===colour);
+    });
+  }),true);
+  assert.equal(await anatomy.locator('[data-movement=stem-to-leaf]').evaluate(path=>{
+    const svg=path.ownerSVGElement,start=path.getPointAtLength(0),end=path.getPointAtLength(path.getTotalLength()),stem=svg.querySelector('[data-anatomy=stem-xylem]');
+    return stem.isPointInFill(start)&&!stem.isPointInStroke(start)&&[...svg.querySelectorAll('[data-anatomy=xylem] circle')].some(circle=>circle.isPointInFill(end)&&!circle.isPointInStroke(end));
+  }),true);
+  assert.equal(await anatomy.locator('marker').evaluateAll(markers=>markers.every(marker=>marker.getAttribute('refX')===marker.getAttribute('markerWidth'))),true);
+  assert.equal(await anatomy.locator('[data-movement=evaporation]').count(),2);
+  assert.equal(await anatomy.locator('[data-movement=evaporation]').evaluateAll(arrows=>arrows.every(arrow=>{
+    const svg=arrow.ownerSVGElement,start=arrow.getPointAtLength(0),end=arrow.getPointAtLength(arrow.getTotalLength());
+    return svg.querySelector('[data-anatomy=air-space]').isPointInFill(end)&&[...svg.querySelectorAll('[data-anatomy=water-film] path')].some(film=>{
+      for(let i=0,length=film.getTotalLength();i<=Math.ceil(length);i++){const p=film.getPointAtLength(length*i/Math.ceil(length));if(Math.hypot(start.x-p.x,start.y-p.y)<2)return true;}return false;
+    });
+  })),true);
+  // Numbered circles need visible clearance from cell walls, arrows and label lines.
+  assert.equal(await anatomy.locator('svg').evaluate(svg=>{
+    const model=svg.getCTM().inverse(),outlines=[...svg.querySelectorAll('path[stroke],rect[stroke],ellipse[stroke],circle[stroke]')].filter(el=>el.getAttribute('stroke')!=='none'&&!el.closest('.process-marker,.process-card,.process-heading,defs'));
+    return [...svg.querySelectorAll('.process-marker')].filter(el=>!el.closest('.process-card')).every(mark=>{
+      const circle=mark.querySelector('circle'),cx=+circle.getAttribute('cx'),cy=+circle.getAttribute('cy'),radius=+circle.getAttribute('r')+1;
+      return outlines.every(shape=>{
+        const length=shape.getTotalLength(),matrix=model.multiply(shape.getCTM()),clearance=radius+(+shape.getAttribute('stroke-width')||1)/2+1;
+        for(let i=0;i<=Math.ceil(length);i++){const p=shape.getPointAtLength(length*i/Math.ceil(length)).matrixTransform(matrix);if(Math.hypot(cx-p.x,cy-p.y)<clearance)return false;}return true;
+      });
+    });
+  }),true);
+  // Leaders may enter their named cell type, but must route around other cells.
+  assert.equal(await anatomy.locator('svg').evaluate(svg=>[...svg.querySelectorAll('.anatomy-leader[data-label]')].every(leader=>{
+    const cells=[...svg.querySelectorAll('.cell-wall,.spongy-cell>ellipse:first-child')].filter(cell=>cell.closest('[data-anatomy]').dataset.anatomy!==leader.dataset.label),length=leader.getTotalLength();
+    for(let i=0;i<=Math.ceil(length);i++){
+      const p=leader.getPointAtLength(length*i/Math.ceil(length));
+      if(cells.some(cell=>cell.isPointInFill(p.matrixTransform(cell.getCTM().inverse().multiply(svg.getCTM())))))return false;
+    }return true;
+  })),true);
   await anatomy.locator('svg').screenshot({path:'/tmp/vl2-leaf-desktop.png'});
 
   await page.locator('#reflection').fill('原始預測不獲支持，數據顯示較強光照下水跡上移較快。');assert.equal(await page.locator('#downloadPDF').isDisabled(),true);await page.locator('#saveReflection').click();assert.equal(await page.locator('#downloadPDF').isDisabled(),false);assert.equal(await page.locator('#reflection').isDisabled(),true);assert.equal(await page.locator('#saveReflection').isDisabled(),true);
