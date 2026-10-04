@@ -20,3 +20,7 @@
 @media print{.report-section h2,.report-card>.card-kicker{break-after:avoid}.report-card .report-answer>b{display:inline}.report-card td small{break-inside:avoid}}
 
 .experiment-timing-note{padding:12px 16px;border:1px solid #d9e7df;background:#f8fbf5;border-radius:10px;color:#527568;font-size:13px}.formula small{display:block;margin-top:8px;font-weight:400;font-size:12px}.calc-condition{display:block;margin-top:6px;font-size:12px;line-height:1.7;color:#527568}.calc-card .calc-distance{font-weight:600;color:var(--ink);font-size:12px}.calc-card .calc-readings{font-size:11px}.data-card thead th[colspan]{text-align:center}.data-card thead th[rowspan]{vertical-align:middle}
+
+/* Combined leaf anatomy and transpiration SVG, kept readable on small screens. */
+.structure-svg{min-width:900px}.structure-svg text{font-family:inherit}.structure-wrap{border:1px solid #d8e8df}.structure-svg .process-card{pointer-events:none}
+@media print{.report-section .structure-svg{min-width:0;max-height:145mm}.report-section .structure-wrap{border:0}.report-section .structure-wrap svg{max-height:145mm}}

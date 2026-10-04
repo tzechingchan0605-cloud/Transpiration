@@ -68,6 +68,14 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   assert.match(await page.locator('#originalHypothesis').innerText(),/需要量度才能知道/);
   await page.locator('#saveReflection').click();assert.equal(await page.locator('#downloadPDF').isDisabled(),true);
   await page.evaluate(async()=>{window.print=()=>{window.printCalled=true;window.titleAtPrint=document.title;};await document.querySelector('#downloadPDF').onclick();});assert.equal(await page.evaluate(()=>!!window.printCalled),false);assert.match(await page.locator('#mechanismDiagram').innerText(),/木質導管/);
+  const anatomy=page.locator('#mechanismDiagram');for(const label of ['角質層','上表皮','柵狀葉肉','海綿葉肉','水膜','氣室','下表皮','保衞細胞','氣孔','維管束','木質部','韌皮部','蒸騰拉力'])assert((await anatomy.innerText()).includes(label));
+  assert.equal(await anatomy.locator('.process-card').count(),5);
+  assert.equal(await anatomy.locator('[data-anatomy=xylem]').evaluate(el=>el.getBBox().y<el.ownerSVGElement.querySelector('[data-anatomy=phloem]').getBBox().y),true);
+  assert.equal(await anatomy.locator('[data-anatomy=upper-epidermis]').evaluate(el=>el.getBBox().y<el.ownerSVGElement.querySelector('[data-anatomy=palisade-mesophyll]').getBBox().y),true);
+  assert.equal(await anatomy.locator('[data-anatomy=guard-cells]').count(),1);assert.equal(await anatomy.locator('[data-anatomy=stoma]').count(),1);
+  assert.equal(await anatomy.locator('marker').count(),3);
+  await anatomy.locator('svg').screenshot({path:'/tmp/vl2-leaf-desktop.png'});
+
   await page.locator('#reflection').fill('原始預測不獲支持，數據顯示較強光照下水跡上移較快。');assert.equal(await page.locator('#downloadPDF').isDisabled(),true);await page.locator('#saveReflection').click();assert.equal(await page.locator('#downloadPDF').isDisabled(),false);assert.equal(await page.locator('#reflection').isDisabled(),true);assert.equal(await page.locator('#saveReflection').isDisabled(),true);
   assert.equal(await page.locator('#claim').isDisabled(),true);assert.equal(await page.locator('#claim').inputValue(),'increase');
   const record=await page.evaluate(()=>state);assert.match(record.initialDesign.form.controlPlan,/不帶葉/);assert.equal(record.measurements[10].values.B,'2.9');assert.notEqual(record.measurements[10].firstValues.B,'2.9');
@@ -89,7 +97,7 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   assert.deepEqual(buttonDialogs,['confirm']);assert.equal(await page.locator('#profileDialog').isVisible(),true);assert.equal(await page.locator('#observation').inputValue(),'');
   await login(page,'教師','教師',TEACHER);assert.equal(await page.locator('#teacherDialog').isVisible(),true);assert.equal(await page.locator('#teacherButton').isVisible(),true);
   assert.match(await page.locator('#teacherData').innerText(),/陳小明/);assert(!(await page.locator('#teacherData').innerText()).includes(TEACHER));
-  await page.locator('[data-view-record]').first().click();assert.match(await page.locator('#teacherReport').innerText(),/葉片有助水分向上運輸/);await page.screenshot({path:'/tmp/vl2-teacher.png'});
+  await page.locator('[data-view-record]').first().click();assert.equal(await page.evaluate(()=>{const ids=[...document.querySelectorAll('.structure-svg [id]')].map(e=>e.id);return new Set(ids).size===ids.length;}),true);assert.match(await page.locator('#teacherReport').innerText(),/葉片有助水分向上運輸/);await page.screenshot({path:'/tmp/vl2-teacher.png'});
   await page.evaluate(()=>{
     const perfect=structuredClone(storedRecords()[0]);
     perfect.assumptions=ASSUMPTIONS.filter(a=>a.valid).map(a=>a.id);

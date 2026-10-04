@@ -565,38 +565,86 @@ function reportAnswer(title,answer,reference='',correct=null) {
   return `<div class="report-answer" data-graded="${correct!==null}"><b>${esc(title)}</b>${answerMark(correct)}<p>${esc(answer||'未回答')}</p>${reference?`<div class="report-reference">${correct===null?'參考答案／說明':'參考答案'}：${esc(reference)}</div>`:''}</div>`;
 }
 function structureDiagram(scope='learning'){
-  const arrow=`structure-arrow-${scope}`;
-  const label=(x,y,text)=>`<text x="${x}" y="${y}" fill="#315f4e" font-size="14">${text}</text>`;
-  const leader=(path)=>`<path d="${path}" fill="none" stroke="#789683" stroke-width="1.3"/>`;
-  const cells=[[434,184,22,15],[493,167,24,14],[557,192,22,17],[629,177,25,15],[679,207,20,14],[463,229,23,15],[524,221,20,14],[594,233,24,15],[650,240,20,12]];
-  return `<div class="structure-wrap"><svg class="structure-svg" viewBox="0 0 920 430" role="img" aria-label="葉與莖的內部構造：木質導管、葉肉細胞、水膜、氣室、保衞細胞及氣孔，並標示水份運輸、蒸發及水汽擴散方向"><defs><marker id="${arrow}" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7Z" fill="#408eac"/></marker></defs><rect x="1" y="1" width="918" height="428" rx="14" fill="#f8fcf7" stroke="#d7e7d7"/>
-    ${label(25,32,'莖部縱切示意')}${label(374,32,'葉片橫切示意')}
-    <path d="M107 345V95Q148 72 191 95V345Z" fill="#dce9c0" stroke="#89a878" stroke-width="2"/>
-    <rect x="137" y="100" width="16" height="247" rx="5" fill="#b6dce5" stroke="#73a4af"/><rect x="159" y="100" width="16" height="247" rx="5" fill="#b6dce5" stroke="#73a4af"/>
-    <path d="M145 326V270M145 250V190M145 170V119" stroke="#408eac" stroke-width="3" marker-end="url(#${arrow})"/>
-    ${label(25,203,'木質導管')}${leader('M90 198H118L139 191')}${label(199,270,'水份向上運輸')}${leader('M202 275H181')}
-    <path d="M167 116C169 63 299 64 343 102L421 160" fill="none" stroke="#408eac" stroke-width="3" marker-end="url(#${arrow})"/>
-    ${label(229,67,'水份進入葉的木質導管')}
-    <path d="M384 94Q550 70 718 94V274Q550 291 384 274Z" fill="#eef4db" stroke="#9db481" stroke-width="1.5"/>
-    <path d="M384 94Q550 70 718 94V109Q550 91 384 109Z" fill="#b8cf90" stroke="#93ad70"/>
-    ${Array.from({length:11},(_,i)=>`<rect x="${393+i*28}" y="114" width="23" height="43" rx="9" fill="#aaca85" stroke="#82a966"/>`).join('')}
-    ${cells.map(([cx,cy,rx,ry])=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#c2dca4" stroke="#81ab66"/><ellipse cx="${cx}" cy="${cy}" rx="${rx+2}" ry="${ry+2}" fill="none" stroke="#72bdd0" stroke-width="2"/>`).join('')}
-    <ellipse cx="571" cy="174" rx="43" ry="19" fill="#dce9c9" stroke="#8cae72"/><rect x="548" y="160" width="24" height="12" rx="4" fill="#91c8da"/><rect x="548" y="176" width="24" height="10" rx="3" fill="#d6bc8b"/>
-    <path d="M390 275Q450 288 520 283M588 283Q650 288 712 275" stroke="#a4bd7e" stroke-width="13" fill="none"/>
-    <path d="M536 270C513 278 517 293 539 291L547 281Z" fill="#8fba73" stroke="#6d975d"/><path d="M574 270C597 278 593 293 571 291L563 281Z" fill="#8fba73" stroke="#6d975d"/>
-    <path d="M504 205L530 248M607 216L577 250M555 289V341" fill="none" stroke="#408eac" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#${arrow})"/>
-    <g fill="#80bccd"><circle cx="539" cy="242" r="3"/><circle cx="566" cy="252" r="3"/><circle cx="583" cy="237" r="3"/><circle cx="543" cy="318" r="3"/><circle cx="570" cy="329" r="3"/></g>
-    ${label(756,99,'上表皮')}${leader('M749 94H703')}
-    ${label(756,142,'葉肉細胞')}${leader('M749 138H711L685 143')}
-    ${label(756,185,'水膜')}${leader('M749 180H703L686 194')}
-    ${label(622,61,'葉的木質導管')}${leader('M632 66V74L562 160')}
-    ${label(756,227,'氣室')}${leader('M749 222H695L614 204')}
-    ${label(756,270,'下表皮')}${leader('M749 267H704')}
-    ${label(754,312,'保衞細胞')}${leader('M746 306H635L578 284')}
-    ${label(453,326,'氣孔')}${leader('M490 321L555 286')}
-    ${label(465,368,'水汽藉擴散離開葉')}${label(359,216,'蒸發')}${leader('M394 211L457 204')}
-    ${label(25,381,'一般植物：根 → 莖 → 葉')}
-    <text x="25" y="408" fill="#76917b" font-size="12">本圖為一般植物構造示意；實驗中的西芹長柄實際是葉柄。藍色實線：水份運輸；虛線：水汽散失。</text>
+  const prefix=`structure-${scope}-`,water=prefix+'water',vapour=prefix+'vapour';
+  const text=(x,y,lines,size=17,colour='#31594b',weight=400)=>`<text x="${x}" y="${y}" fill="${colour}" font-size="${size}" font-weight="${weight}">${lines.map((line,i)=>`<tspan x="${x}" dy="${i?22:0}">${line}</tspan>`).join('')}</text>`;
+  const leader=d=>`<path d="${d}" fill="none" stroke="#849b90" stroke-width="1.4" stroke-linejoin="round"/>`;
+  const arrow=(d,gas=false)=>`<path d="${d}" fill="none" stroke="${gas?'#c77838':'#218bb0'}" stroke-width="2.8" ${gas?'stroke-dasharray="5 4"':''} marker-end="url(#${gas?vapour:water})"/>`;
+  const badge=(x,y,n)=>`<g class="process-marker" data-process="${n}"><circle cx="${x}" cy="${y}" r="13" fill="#087b78" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y+5}" text-anchor="middle" font-size="15" font-weight="700" fill="white">${n}</text></g>`;
+  const palisade=Array.from({length:15},(_,i)=>{
+    const x=292+i*29;
+    return `<g><rect x="${x}" y="218" width="24" height="72" rx="10" fill="#e5efd1" stroke="#85ab66" stroke-width="1.7"/><rect x="${x+7}" y="227" width="10" height="51" rx="4" fill="#f5faf1"/>${[230,246,263,279].map(y=>`<ellipse cx="${x+4}" cy="${y}" rx="2.3" ry="3" fill="#639946"/><ellipse cx="${x+20}" cy="${y}" rx="2.3" ry="3" fill="#639946"/>`).join('')}<ellipse cx="${x+14}" cy="284" rx="3" ry="2.3" fill="#b6a0c6"/></g>`;
+  }).join('');
+  const cells=[[312,325,20,16,-18],[355,306,22,15,22],[482,309,26,19,-10],[520,334,25,18,18],[645,307,23,18,-10],[696,328,23,17,17],[306,375,22,16,25],[356,388,24,17,-22],[491,373,22,18,18],[555,380,24,18,-15],[698,386,23,17,15],[325,425,23,15,-10],[401,417,26,15,8],[463,426,24,15,-17],[529,427,23,13,7],[585,423,23,13,-9],[698,429,21,13,8]];
+  const spongy=cells.map(([x,y,rx,ry,angle])=>`<g transform="rotate(${angle} ${x} ${y})"><path d="M${x-rx} ${y-3}Q${x-rx-2} ${y-ry} ${x-3} ${y-ry}Q${x+rx} ${y-ry-3} ${x+rx} ${y+1}Q${x+rx+2} ${y+ry} ${x+3} ${y+ry}Q${x-rx} ${y+ry+3} ${x-rx} ${y-3}Z" fill="#e7f0d3" stroke="#88ac69" stroke-width="1.6"/><ellipse cx="${x}" cy="${y}" rx="${rx-8}" ry="${ry-5}" fill="#f8fcf4"/>${[0,1,2,3,4,5].map(i=>{const a=i*Math.PI/3;return `<ellipse cx="${x+(rx-4)*Math.cos(a)}" cy="${y+(ry-4)*Math.sin(a)}" rx="2.6" ry="2" fill="#639946"/>`;}).join('')}<circle cx="${x+rx-7}" cy="${y+4}" r="2.8" fill="#b6a0c6"/></g>`).join('');
+  const xylem=Array.from({length:4},(_,row)=>Array.from({length:6},(_,col)=>`<circle cx="${383+col*11+(row%2)*4}" cy="${303+row*11}" r="5" fill="#fbebed" stroke="#ba8195" stroke-width="1.2"/>`).join('')).join('');
+  const phloem=Array.from({length:3},(_,row)=>Array.from({length:7},(_,col)=>`<path d="M${378+col*11+(row%2)*4} ${349+row*10}h9l2 7-5 4-6-3Z" fill="#9ea2cf" stroke="#696d9a" stroke-width="1"/>`).join('')).join('');
+  const processes=[
+    ['水汽向外擴散','水汽經氣孔擴散離開葉，','水份因而散失。'],
+    ['水膜蒸發','水份從水膜蒸發成水汽，','進入海綿葉肉的氣室。'],
+    ['滲透補充水份','葉肉細胞水勢下降，','藉滲透從鄰近細胞吸水。'],
+    ['葉肉獲得水份','木質導管內的水份','進入葉肉細胞。'],
+    ['蒸騰拉力','牽引水份沿莖內的','木質導管向上運輸。']
+  ];
+  return `<div class="structure-wrap"><svg xmlns="http://www.w3.org/2000/svg" class="structure-svg" viewBox="0 0 1080 730" role="img" aria-labelledby="${prefix}title ${prefix}desc">
+    <title id="${prefix}title">葉的內部構造與蒸騰：水份如何沿木質導管進入葉，再以水汽形式散失</title>
+    <desc id="${prefix}desc">葉片局部立體橫切示意。上方依次為角質層、上表皮及柵狀葉肉；下方為含氣室的海綿葉肉與下表皮。維管束中木質部在上、韌皮部在下。下表皮上的兩個保衞細胞圍成氣孔。藍色實線箭嘴表示水份運輸及滲透，橙色虛線箭嘴表示水膜蒸發後的水汽移動與氣孔擴散。</desc>
+    <defs>
+      ${[[water,'#218bb0'],[vapour,'#c77838'],[prefix+'zoom','#96aaa0']].map(([id,fill])=>`<marker id="${id}" markerWidth="7" markerHeight="7" refX="6.2" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7Z" fill="${fill}"/></marker>`).join('')}
+      <pattern id="${prefix}surface" width="42" height="28" patternUnits="userSpaceOnUse"><rect width="42" height="28" fill="#c4db98"/><path d="M0 7L13 0H31L42 9 34 25H14L0 17Z" fill="#cfe3aa" stroke="#90b465" stroke-width="1.3"/></pattern>
+      <clipPath id="${prefix}bundle"><ellipse cx="410" cy="335" rx="48" ry="48"/></clipPath>
+    </defs>
+    <rect x="1" y="1" width="1078" height="728" rx="18" fill="#fbfdf9" stroke="#d8e8df"/>
+    ${text(26,37,['葉的內部構造與蒸騰'],23,'#087b78',700)}
+    ${text(26,63,['結合葉片橫切構造與水份補充過程；數字對應下方說明。'],15,'#688475')}
+    <g aria-label="葉片、葉柄及葉脈示意">
+      <path d="M54 174Q66 100 175 100Q185 166 54 174Z" fill="#8eb972" stroke="#587f48" stroke-width="2"/>
+      <path d="M58 170L163 111M93 146L93 126M117 133L128 113M101 143L130 153M133 125L151 138" fill="none" stroke="#c1d395" stroke-width="1.6"/>
+      <path d="M164 111L204 91" fill="none" stroke="#71935a" stroke-width="4" stroke-linecap="round"/>
+      ${text(32,112,['葉片'],15)}${leader('M68 109L92 116')}
+      ${text(211,96,['葉柄'],15)}${leader('M207 99L189 99')}
+      ${text(35,211,['葉脈（內含維管束）'],15)}${leader('M121 194L124 139')}
+      <path d="M173 157Q223 174 274 188" fill="none" stroke="#96aaa0" stroke-width="3" marker-end="url(#${prefix}zoom)"/>
+    </g>
+    <g aria-label="葉片局部橫切面">
+      <path d="M730 190L788 145V410L730 468Z" fill="#d6e6b3" stroke="#90ae71" stroke-width="1.6"/>
+      <path d="M285 190L343 145H788L730 190Z" fill="url(#${prefix}surface)" stroke="#93b477" stroke-width="1.8"/>
+      <path data-anatomy="cuticle" d="M285 185L343 140H788V145L730 195H285Z" fill="#bad4a3" fill-opacity=".55" stroke="#85a96b" stroke-width="1.2"/>
+      <path d="M285 194H730V468H285Z" fill="#f3f7e8" stroke="#93b477" stroke-width="1.7"/>
+      <g data-anatomy="upper-epidermis">${Array.from({length:15},(_,i)=>`<rect x="${291+i*29}" y="195" width="27" height="21" rx="7" fill="#e9f0df" stroke="#95b77c" stroke-width="1.4"/><circle cx="${303+i*29}" cy="210" r="2.5" fill="#b6a0c6"/>`).join('')}</g>
+      <g data-anatomy="palisade-mesophyll">${palisade}</g>
+      <g data-anatomy="spongy-mesophyll">${spongy}</g>
+      <ellipse cx="410" cy="335" rx="54" ry="54" fill="#d5e5a8" stroke="#8ca966" stroke-width="2"/>
+      <g clip-path="url(#${prefix}bundle)"><rect x="360" y="286" width="100" height="57" fill="#d9b4c4"/><rect x="360" y="344" width="100" height="45" fill="#bbbddb"/><g data-anatomy="xylem">${xylem}</g><g data-anatomy="phloem">${phloem}</g></g>
+      <ellipse cx="410" cy="335" rx="48" ry="48" fill="none" stroke="#9fb975" stroke-width="1.5"/>
+      <g data-anatomy="water-film"><ellipse cx="555" cy="380" rx="28" ry="22" transform="rotate(-15 555 380)" fill="none" stroke="#70bcd2" stroke-width="2.7"/><ellipse cx="645" cy="307" rx="26" ry="21" transform="rotate(-10 645 307)" fill="none" stroke="#70bcd2" stroke-width="2.7"/></g>
+      <g data-anatomy="lower-epidermis">${[291,320,349,378,407,436,465,494,523,552,581,672,701].map(x=>`<rect x="${x}" y="445" width="27" height="22" rx="7" fill="#e9f0df" stroke="#95b77c" stroke-width="1.4"/><circle cx="${x+12}" cy="459" r="2.5" fill="#b6a0c6"/>`).join('')}</g>
+      <g data-anatomy="guard-cells"><path d="M618 445C601 435 591 450 600 464C606 474 620 476 628 467C616 465 611 458 618 451Z" fill="#b4d596" stroke="#688f55" stroke-width="2"/><path d="M618 445C601 435 591 450 600 464C606 474 620 476 628 467C616 465 611 458 618 451Z" transform="translate(1274 0) scale(-1 1)" fill="#b4d596" stroke="#688f55" stroke-width="2"/>${[[605,448],[605,458],[615,468],[669,448],[669,458],[659,468]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx="2.5" ry="2" fill="#4d8b41"/>`).join('')}</g>
+      <path data-anatomy="stoma" d="M628 448Q637 451 646 448V467Q637 462 628 467Z" fill="#fff" stroke="#89a973" stroke-width="1"/>
+    </g>
+    <g aria-label="莖內木質導管與水份上升"><rect x="109" y="322" width="45" height="180" rx="9" fill="#ddeaf0" stroke="#86b6c5" stroke-width="2"/><path d="M119 328V493M144 328V493" stroke="#b5d4de" stroke-width="2"/>${arrow('M130 487V435')}${arrow('M130 416V355')}${arrow('M144 342C205 292 299 296 386 316')}
+      ${text(27,297,['莖內的木質導管'],17,'#31594b',600)}${leader('M146 303L143 321')}
+      ${text(24,518,['水份及已溶解的礦物質'],15,'#527768')}
+    </g>
+    ${arrow('M446 307L471 309')}${arrow('M494 315L520 332')}${arrow('M582 385L615 402',true)}${arrow('M630 417L637 447',true)}${arrow('M637 478V521',true)}
+    <g fill="#dfa268">${[[620,386],[658,386],[611,414],[660,424],[629,507],[654,516]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2.6"/>`).join('')}</g>
+    ${badge(471,281,4)}${badge(555,343,3)}${badge(605,374,2)}${badge(680,515,1)}${badge(173,451,5)}
+    ${text(189,345,['木質部（木質導管）'],16,'#89576b',600)}${leader('M339 341L389 321')}
+    ${text(193,405,['維管束'],16,'#527768',600)}${leader('M258 401L373 373')}
+    ${text(193,437,['韌皮部'],16,'#65678e',600)}${leader('M264 430L404 365')}
+    ${text(190,461,['轉運食物'],14,'#7a7d93')}
+    ${text(837,130,['角質層'],17,'#31594b',600)}${text(837,150,['減少水份散失、保護葉片'],14,'#6f8775')}${leader('M828 127H804L738 186')}
+    ${text(837,189,['上表皮'],17,'#31594b',600)}${leader('M828 184H795L718 203')}
+    ${text(837,235,['柵狀葉肉'],17,'#31594b',600)}${text(837,255,['細胞呈柱狀，含較多葉綠體'],14,'#6f8775')}${leader('M828 230H789L716 252')}
+    ${text(837,303,['海綿葉肉'],17,'#31594b',600)}${text(837,323,['細胞形狀不規則，排列疏鬆'],14,'#6f8775')}${leader('M828 298H790L699 328')}
+    ${text(837,363,['水膜'],17,'#218bb0',600)}${leader('M828 358H776L668 318')}
+    ${text(837,402,['氣室（細胞之間）'],17,'#31594b',600)}${leader('M828 397H773L656 398')}
+    ${text(837,450,['下表皮'],17,'#31594b',600)}${leader('M828 445H770L715 455')}
+    ${text(837,494,['保衞細胞'],17,'#31594b',600)}${text(837,514,['控制氣孔開合；含葉綠體'],14,'#6f8775')}${leader('M828 489H762L666 458')}
+    ${text(727,544,['氣孔'],17,'#31594b',600)}${leader('M719 539L686 533L637 463')}
+    ${text(485,548,['水汽藉擴散離開葉'],15,'#b6753b')}
+    ${arrow('M24 555H57')}${text(67,560,['水份運輸／滲透'],15,'#218bb0')}${arrow('M282 555H315',true)}${text(324,560,['蒸發後的水汽移動／擴散'],15,'#b6753b')}
+    ${processes.map(([title,line1,line2],i)=>{const x=20+i*211;return `<g class="process-card"><rect x="${x}" y="586" width="199" height="105" rx="12" fill="#f0f7f2" stroke="#d6e7dc"/>${badge(x+21,607,i+1)}${text(x+41,613,[title],16,'#087b78',600)}${text(x+12,645,[line1,line2],14,'#4e7062')}</g>`;}).join('')}
+    ${text(23,715,['局部放大示意，並非按比例。實驗中的西芹長柄實際是葉柄；本圖的莖部用作說明木質導管的運輸。'],14,'#6e897b')}
   </svg></div>`;
 }
 function renderReport(record) {
@@ -808,7 +856,7 @@ function renderTeacherDashboard(){
   $('#teacherData').innerHTML=records.length?records.map(r=>`<tr><td><strong>${esc(r.profile?.name||'—')}</strong><small>${esc(r.profile?.email||'—')}</small></td><td>${esc(r.profile?.classInfo||'—')}</td><td><span class="report-status ${reflectionComplete(r)?'complete':''}">${reflectionComplete(r)?'已完成':r.submitted?'待提交反思':`階段 ${r.phase}`}</span></td><td>${observationAccuracy(r)}</td><td>${formatDuration(Object.values(r.phaseDurations).reduce((a,b)=>a+b,0))}</td><td>${esc(dateText(r.savedAt))}</td><td><button class="small-button" data-view-record="${esc(r.id)}">查看紀錄</button></td></tr>`).join(''):'<tr><td colspan="7">這部瀏覽器暫無學生紀錄。</td></tr>';
   $$('[data-view-record]').forEach(button=>button.onclick=()=>{
     previewRecord=records.find(r=>r.id===button.dataset.viewRecord);
-    renderReport(previewRecord);$('#teacherReport').innerHTML=$('#printReport').innerHTML.replaceAll('structure-arrow-report','structure-arrow-teacher').replaceAll('celery-report-','celery-teacher-');
+    renderReport(previewRecord);$('#teacherReport').innerHTML=$('#printReport').innerHTML.replaceAll('structure-report-','structure-teacher-').replaceAll('celery-report-','celery-teacher-');
     $('#teacherDetail').hidden=false;$('#teacherDetail').scrollIntoView({block:'start',behavior:'smooth'});
   });
 }
