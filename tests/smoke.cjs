@@ -31,7 +31,7 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   await page.locator('#setupCanvas').scrollIntoViewIfNeeded();const cb=await page.locator('#setupCanvas').boundingBox();
   await page.mouse.move(cb.x+70,cb.y+70);await page.mouse.down();await page.mouse.move(cb.x+140,cb.y+130);await page.mouse.up();await page.locator('#saveSetup').click();
   await page.screenshot({path:'/tmp/vl2-design.png',fullPage:true});await page.locator('#designNext').click();
-  assert.equal(await page.locator('#initialReadingReminder').isVisible(),true);assert.equal(await page.locator('#timerButton').isDisabled(),true);assert.equal(await page.locator('[data-dy]').count(),0);
+  assert.equal(await page.locator('#initialReadingReminder').isVisible(),true);assert.match(await page.locator('.experiment-timing-note').innerText(),/不應為了量度而停止計時/);assert.match(await page.locator('.data-card thead').innerText(),/紅色水跡向上移動的距離（cm）/);assert.equal(await page.locator('#timerButton').isDisabled(),true);assert.equal(await page.locator('[data-dy]').count(),0);
   await page.locator('[data-ruler=A]').scrollIntoViewIfNeeded();const rb=await page.locator('[data-ruler=A]').boundingBox();
   await page.mouse.move(rb.x+15,rb.y+100);await page.mouse.down();await page.mouse.move(rb.x-25,rb.y+160);await page.mouse.up();
   assert.equal(await page.evaluate(()=>state.ruler.A.y),0);assert((await page.evaluate(()=>state.ruler.A.x))<0);
@@ -40,37 +40,45 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   for(const t of [0,10,20,30]){
    const m=await page.evaluate(()=>state.model);for(const id of ['A','B','C','D'])await page.locator(`[data-time="${t}"][data-measure="${id}"]`).fill(String(m[id][t/10]));
    if(t===0){await first.fill('0.05');await page.locator('#recordMeasurements').click();assert.equal(await page.locator('#timerButton').isDisabled(),true);await first.fill('0.0');}
-   await page.locator('#recordMeasurements').click();assert(Math.abs(await page.locator('.timer-bar').evaluate(el=>el.getBoundingClientRect().top))<50);
+   await page.locator('#recordMeasurements').click();if(t<30)assert(Math.abs(await page.locator('.timer-bar').evaluate(el=>el.getBoundingClientRect().top))<50);else assert((await page.locator('.timer-bar').evaluate(el=>el.getBoundingClientRect().top))<-50);
    assert.equal(await page.locator(`[data-time="${t}"][data-measure="A"]`).inputValue(),Number(m.A[t/10]).toFixed(1));
    if(t===10){await page.locator('[data-time="10"][data-measure="B"]').fill('2.9');assert.equal(await page.locator('#timerButton').isDisabled(),true);await page.locator('#recordMeasurements').click();}
    if(t<30){await page.locator('#timerButton').click();assert(Math.abs(await page.locator('#labBench').evaluate(el=>el.getBoundingClientRect().top))<50);await page.waitForFunction(time=>state.currentTime===time&&!state.running,t+10);for(const id of ['A','B','C','D'])await dye(page,'#specimen-'+id);}
   }
   await page.screenshot({path:'/tmp/vl2-experiment.png',fullPage:true});await page.locator('#experimentNext').click();
-  assert.equal(await page.locator('.formula,#evidence').count(),0);assert(!(await page.locator('#calculationGrid').innerText()).includes('÷'));assert.equal(await page.locator('.graph-settings select').count(),0);
+  assert.equal(await page.locator('#evidence').count(),0);assert.equal(await page.locator('#phase-4 .formula').count(),1);assert.match(await page.locator('#phase-4 .formula').innerText(),/平均上移速度.*÷.*所用時間/);assert.match(await page.locator('#phase-4 .card').first().innerText(),/小數點後兩位/);assert(!(await page.locator('#calculationGrid').innerText()).includes('÷'));assert.equal(await page.locator('.graph-settings select').count(),0);
   assert.equal(await page.locator('#studentGraph .graph-inline-legend').count(),0);assert.equal(await page.locator('.graph-legend').count(),1);assert.match(await page.locator('.graph-legend').innerText(),/裝置D（獨立比較點）/);
-  const rates=await page.evaluate(()=>Object.fromEntries(IDS.map(id=>[id,expectedRate(state,id).toFixed(3)])));rates.D='0.120';
+  const rates=await page.evaluate(()=>Object.fromEntries(IDS.map(id=>[id,expectedRate(state,id).toFixed(2)])));rates.D='0.12';
+  for(const id of ['A','B','C','D']){
+    const card=page.locator('.calc-card').filter({has:page.locator('#rate-'+id)});
+    const record=await page.evaluate(()=>state),end=record.measurements[30].values[id];
+    assert((await card.innerText()).includes(`30 分鐘 ${end} cm`));assert((await card.innerText()).includes(`光強度：${{A:1200,B:300,C:133,D:300}[id]} lux`));assert((await card.innerText()).includes(`距離＝${(+end-+record.measurements[0].values[id]).toFixed(1)} cm`));
+    assert.equal(await page.locator('#rate-'+id).getAttribute('step'),'0.01');
+  }
+  await page.locator('#rate-A').fill('0.383');await page.locator('#rate-A').blur();assert.equal(await page.locator('#rate-A').inputValue(),'0.38');
   for(const id of ['A','B','C','D'])await page.locator('#rate-'+id).fill(rates[id]);
   for(const[id,x]of Object.entries({A:1200,B:300,C:133,D:300})){await page.locator('#point-x-'+id).fill(String(x));await page.locator('#point-y-'+id).fill(rates[id]);await page.locator(`[data-plot=${id}]`).click();}
   await page.locator('#connectPoints').click();assert.match(await page.locator('#studentGraph .student-curve').getAttribute('d'),/C/);assert.equal(await page.locator('#studentGraph circle').count(),3);
   for(const[id,v]of Object.entries({claim:'increase',leafComparison:'faster',leafConclusion:'promotes',limitations:'indirect'}))await page.locator('#'+id).selectOption(v);
   await page.screenshot({path:'/tmp/vl2-analysis.png',fullPage:true});await page.locator('#submitInvestigation').click();await page.locator('#confirmSubmit').click();
-  assert.equal(await page.locator('#learningReveal').isVisible(),true);assert.equal(await page.locator('#rate-D').isDisabled(),true);assert.equal(await page.locator('#rate-D').inputValue(),'0.120');
+  assert.equal(await page.locator('#learningReveal').isVisible(),true);assert.equal(await page.locator('#rate-D').isDisabled(),true);assert.equal(await page.locator('#rate-D').inputValue(),'0.12');
   assert.equal(await page.locator('#feedbackSummary,#downloadJSON').count(),0);
   assert.equal(await page.locator('#downloadPDF').isDisabled(),true);
   assert.match(await page.locator('#originalHypothesis').innerText(),/將會減少/);
   assert.match(await page.locator('#originalHypothesis').innerText(),/需要量度才能知道/);
   await page.locator('#saveReflection').click();assert.equal(await page.locator('#downloadPDF').isDisabled(),true);
-  await page.evaluate(async()=>{window.print=()=>window.printCalled=true;await document.querySelector('#downloadPDF').onclick();});assert.equal(await page.evaluate(()=>!!window.printCalled),false);assert.match(await page.locator('#mechanismDiagram').innerText(),/木質導管/);
+  await page.evaluate(async()=>{window.print=()=>{window.printCalled=true;window.titleAtPrint=document.title;};await document.querySelector('#downloadPDF').onclick();});assert.equal(await page.evaluate(()=>!!window.printCalled),false);assert.match(await page.locator('#mechanismDiagram').innerText(),/木質導管/);
   await page.locator('#reflection').fill('原始預測不獲支持，數據顯示較強光照下水跡上移較快。');assert.equal(await page.locator('#downloadPDF').isDisabled(),true);await page.locator('#saveReflection').click();assert.equal(await page.locator('#downloadPDF').isDisabled(),false);assert.equal(await page.locator('#reflection').isDisabled(),true);assert.equal(await page.locator('#saveReflection').isDisabled(),true);
   assert.equal(await page.locator('#claim').isDisabled(),true);assert.equal(await page.locator('#claim').inputValue(),'increase');
   const record=await page.evaluate(()=>state);assert.match(record.initialDesign.form.controlPlan,/不帶葉/);assert.equal(record.measurements[10].values.B,'2.9');assert.notEqual(record.measurements[10].firstValues.B,'2.9');
-  await page.evaluate(()=>{window.print=()=>window.printCalled=true;});await page.locator('#downloadPDF').click();await page.waitForFunction(()=>window.printCalled);
-  const report=await page.locator('#printReport').innerText();for(const t of ['此探究的假設是什麼','葉面積','原始預測不獲支持','水膜','氣室','當光強度增加時'])assert(report.includes(t));assert(!report.includes('我的假設解釋'));assert(!report.includes('undefined'));assert(!report.includes('參考回饋'));assert(!report.includes('整體分數'));assert(!report.includes('新知識學習分數'));assert(!report.includes('SPS 總分'));
+  await page.evaluate(()=>{window.print=()=>{window.printCalled=true;window.titleAtPrint=document.title;};});await page.locator('#downloadPDF').click();await page.waitForFunction(()=>window.printCalled);
+  assert.equal(await page.evaluate(()=>window.titleAtPrint),'VL2_西芹的紅色水跡_S4X1-05_陳小明');
+  const report=await page.locator('#printReport').innerText();assert(!report.includes('描述可見變化，並把觀察與解釋分開'));assert(!report.includes('探究時的假說與理由'));assert(report.includes('不能代表葉片蒸發水分的速度，即蒸騰速率'));assert.match(await page.locator('#submitDialog').innerText(),/填寫並遞交學習反思/);for(const t of ['此探究的假設是什麼','葉面積','原始預測不獲支持','水膜','氣室','當光強度增加時'])assert(report.includes(t));assert(!report.includes('我的假設解釋'));assert(!report.includes('undefined'));assert(!report.includes('參考回饋'));assert(!report.includes('整體分數'));assert(!report.includes('新知識學習分數'));assert(!report.includes('SPS 總分'));
   assert.match(report,/✓/);assert.match(report,/✕/);
   for(const title of ['你的初步觀察','探究的對照組','原始假說理由','原始假說是否獲數據支持']){const card=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:title})}).first();assert.equal(await card.getAttribute('data-graded'),'false');assert.equal(await card.locator('.answer-mark').count(),0);assert.equal(await card.locator('.report-reference').count(),1);}
   const dCard=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:'裝置D · 平均上移速度'})});assert.equal(await dCard.locator('.incorrect').count(),1);
   const ivCard=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:'獨立變量'})});assert.equal(await ivCard.locator('.correct').count(),1);
-  await page.emulateMedia({media:'print'});await page.pdf({path:'/tmp/vl2-report.pdf',format:'A4',printBackground:true});await page.emulateMedia({media:'screen'});
+  await page.emulateMedia({media:'print'});await page.pdf({path:'/tmp/vl2-report.pdf',format:'A4',printBackground:true});await page.emulateMedia({media:'screen'});await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')));assert.equal(await page.title(),'西芹的紅色水跡｜探究實驗室');
   const parsed=await page.evaluate(()=>state);await fs.writeFile('/tmp/vl2-record.json',JSON.stringify(parsed));assert.equal(parsed.uiVersion,2);assert(parsed.reflectionSubmittedAt);
   const mobile=await context.newPage();await mobile.setViewportSize({width:390,height:844});await mobile.goto(LAB_URL);assert.equal(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   assert.equal(await mobile.locator('#profileDialog').isVisible(),true);await login(mobile,'教師','教師',TEACHER);await mobile.locator('[data-view-record]').first().click();await mobile.locator('#teacherReport .structure-wrap').screenshot({path:'/tmp/vl2-anatomy.png'});await mobile.screenshot({path:'/tmp/vl2-mobile.png',fullPage:true});await mobile.close();
@@ -86,10 +94,15 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
     const perfect=structuredClone(storedRecords()[0]);
     perfect.assumptions=ASSUMPTIONS.filter(a=>a.valid).map(a=>a.id);
     for(const t of [0,10,20,30])for(const id of IDS){perfect.measurements[t].values[id]=String(perfect.model[id][t/10]);}
-    for(const id of IDS){perfect.calculations[id]=expectedRate(perfect,id).toFixed(3);perfect.graph.points[id]={x:CONDITIONS[id].light,y:+perfect.calculations[id]};}
+    for(const id of IDS){perfect.calculations[id]=expectedRate(perfect,id).toFixed(2);perfect.graph.points[id]={x:CONDITIONS[id].light,y:+perfect.calculations[id]};}
     const score=scoringWorkbook([perfect]),row=score.sheet.rows[1];
     const get=id=>row[score.sheet.rows[0].findIndex(c=>c.value.startsWith(id))].value;
     for(const [heading,max] of [['觀察｜量尺',2],['分類｜獨立',1],['分類｜因變',1],['分類｜控制',2],['設計｜假設',1],['實作｜四輪',2],['推論｜平均',2],['推論｜四項',2],['溝通｜標點',2]])if(get(heading)!==max)throw new Error('Perfect score mismatch: '+heading);
+    const old=structuredClone(perfect);delete old.rateDecimals;
+    for(const id of IDS)old.calculations[id]=expectedRate(old,id).toFixed(3);
+    if(rateTolerance(old)!==.00051||rateTolerance(perfect)!==.0051)throw new Error('Legacy precision changed');
+    if(rateReference(old,'A')!==expectedRate(old,'A').toFixed(3)+' cm/min')throw new Error('Legacy rate formatting changed');
+    const oldScore=scoringWorkbook([old]);if(oldScore.sheet.rows[1][18].value!==2)throw new Error('Legacy correct calculations lost credit');
     const empty=freshState();const blank=scoringWorkbook([empty]);
     for(const cell of blank.sheet.rows[1])if(typeof cell.value==='number'&&cell.value!==0)throw new Error('Unanswered work must receive no automatic points');
   });
@@ -133,6 +146,6 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   await teacher.locator('#importRecords').setInputFiles('/tmp/vl2-record.json');await teacher.waitForFunction(()=>document.querySelector('#importStatus').textContent.includes('已處理 1'));assert.match(await teacher.locator('#teacherData').innerText(),/陳小明/);
   const legacy=structuredClone(parsed);legacy.id+='-legacy';delete legacy.uiVersion;legacy.form.evidence='先前版本的證據文字';delete legacy.form.leafComparison;legacy.variables.iv=['光照強度'];legacy.profile.name='舊版同學';await fs.writeFile('/tmp/vl2-legacy-import.json',JSON.stringify(legacy));
   await teacher.locator('#importRecords').setInputFiles('/tmp/vl2-legacy-import.json');await teacher.waitForFunction(()=>document.querySelector('#teacherData').textContent.includes('舊版同學'));assert.equal(await teacher.evaluate(()=>storedRecords().find(r=>r.profile.name==='舊版同學').form.evidence),'先前版本的證據文字');
-  assert.deepEqual(errors,[]);await other.close();console.log('PASS: revised student flow, one-decimal readings, 0.5 steps, horizontal ruler, equal dye, autoscroll, fixed axes, smooth curve, structured answers, anatomy, reflection submission gate, original hypothesis, inline PDF ticks/crosses and ungraded open answers, teacher login/switch/reload, completed/legacy/shared-email learner isolation and fresh login on every reload, cancel/accept beforeunload and old record retention, single graph legend, front-facing lamp, XLSX drawings, JSON import, old records, mobile.');
+  assert.deepEqual(errors,[]);await other.close();console.log('PASS: revised student flow, one-decimal readings, 0.5 steps, horizontal ruler, equal dye, autoscroll, fixed axes, smooth curve, general formula and recorded distances, two-decimal rates/score tolerance, print filename, structured answers, anatomy, reflection submission gate, original hypothesis, inline PDF ticks/crosses and ungraded open answers, teacher login/switch/reload, completed/legacy/shared-email learner isolation and fresh login on every reload, cancel/accept beforeunload and old record retention, single graph legend, front-facing lamp, XLSX drawings, JSON import, old records, mobile.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});

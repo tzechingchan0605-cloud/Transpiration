@@ -18,3 +18,5 @@
 @media print{.report-card{break-inside:auto;padding:12px}.report-answer,.report-scene,.report-graph,.setup-image,.structure-wrap{break-inside:avoid}.report-card tr{break-inside:avoid}.report-card thead{display:table-header-group}.report-cover{break-inside:avoid}.report-card .report-answer{font-size:10pt}.report-scene svg{max-height:65mm}}
 
 @media print{.report-section h2,.report-card>.card-kicker{break-after:avoid}.report-card .report-answer>b{display:inline}.report-card td small{break-inside:avoid}}
+
+.experiment-timing-note{padding:12px 16px;border:1px solid #d9e7df;background:#f8fbf5;border-radius:10px;color:#527568;font-size:13px}.formula small{display:block;margin-top:8px;font-weight:400;font-size:12px}.calc-condition{display:block;margin-top:6px;font-size:12px;line-height:1.7;color:#527568}.calc-card .calc-distance{font-weight:600;color:var(--ink);font-size:12px}.calc-card .calc-readings{font-size:11px}.data-card thead th[colspan]{text-align:center}.data-card thead th[rowspan]{vertical-align:middle}
