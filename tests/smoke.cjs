@@ -70,10 +70,19 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   await page.evaluate(async()=>{window.print=()=>{window.printCalled=true;window.titleAtPrint=document.title;};await document.querySelector('#downloadPDF').onclick();});assert.equal(await page.evaluate(()=>!!window.printCalled),false);assert.match(await page.locator('#mechanismDiagram').innerText(),/木質導管/);
   const anatomy=page.locator('#mechanismDiagram');for(const label of ['角質層','上表皮','柵狀葉肉','海綿葉肉','水膜','氣室','下表皮','保衞細胞','氣孔','維管束','木質部','韌皮部','蒸騰拉力'])assert((await anatomy.innerText()).includes(label));
   assert.equal(await anatomy.locator('.process-card').count(),5);
+  assert.equal(await anatomy.locator('.process-card[data-process-group=evaporation]').count(),2);assert.equal(await anatomy.locator('.process-card[data-process-group=pull]').count(),3);
+  const processText=(await anatomy.locator('svg').textContent()).replace(/\s/g,'');
+  for(const sentence of ['水份從葉肉細胞表面蒸發，並進入氣室中。','氣室內的水汽經氣孔擴散到大氣中。','水份從葉肉細胞散失，細胞的水勢因而下降。','葉肉細胞藉滲透從鄰近細胞吸收水份。','木質導管內的水被抽出，形成蒸騰拉力。'])assert(processText.includes(sentence));
   assert.equal(await anatomy.locator('[data-anatomy=xylem]').evaluate(el=>el.getBBox().y<el.ownerSVGElement.querySelector('[data-anatomy=phloem]').getBBox().y),true);
   assert.equal(await anatomy.locator('[data-anatomy=upper-epidermis]').evaluate(el=>el.getBBox().y<el.ownerSVGElement.querySelector('[data-anatomy=palisade-mesophyll]').getBBox().y),true);
   assert.equal(await anatomy.locator('[data-anatomy=guard-cells]').count(),1);assert.equal(await anatomy.locator('[data-anatomy=stoma]').count(),1);
-  assert.equal(await anatomy.locator('marker').count(),3);
+  for(const layer of ['upper-epidermis','lower-epidermis'])assert.equal(await anatomy.locator(`[data-anatomy=${layer}] .epidermis-cell`).evaluateAll(cells=>cells.every(cell=>cell.querySelector('[data-organelle=vacuole]'))),true);
+  assert.equal(await anatomy.locator('[data-anatomy=guard-cells] [data-organelle=vacuole]').count(),2);assert.equal(await anatomy.locator('[data-anatomy=stoma]').getAttribute('stroke'),'none');
+  assert.equal(await anatomy.locator('.palisade-cell .cell-wall').evaluateAll(cells=>cells.every((cell,i)=>!i||+cell.getAttribute('x')===+cells[i-1].getAttribute('x')+(+cells[i-1].getAttribute('width')))),true);
+  assert.equal(await anatomy.locator('[data-anatomy=stem-xylem]').evaluate(el=>{const leaf=el.ownerSVGElement.querySelector('[data-anatomy=xylem] circle');return ['fill','stroke'].every(attr=>el.getAttribute(attr)===leaf.getAttribute(attr));}),true);
+  assert.equal(await anatomy.locator('[data-anatomy=air-space]').count(),1);assert.equal(await anatomy.locator('[data-anatomy=water-film] ellipse').count(),0);assert.equal(await anatomy.locator('[data-anatomy=water-film] path').count(),7);
+  assert.equal(await anatomy.locator('circle[fill="#dfa268"],[id$="zoom"]').count(),0);
+  assert.equal(await anatomy.locator('marker').count(),2);assert.equal(await anatomy.locator('marker').evaluateAll(markers=>markers.every(marker=>marker.getAttribute('markerUnits')==='userSpaceOnUse'&&+marker.getAttribute('markerWidth')===8)),true);
   await anatomy.locator('svg').screenshot({path:'/tmp/vl2-leaf-desktop.png'});
 
   await page.locator('#reflection').fill('原始預測不獲支持，數據顯示較強光照下水跡上移較快。');assert.equal(await page.locator('#downloadPDF').isDisabled(),true);await page.locator('#saveReflection').click();assert.equal(await page.locator('#downloadPDF').isDisabled(),false);assert.equal(await page.locator('#reflection').isDisabled(),true);assert.equal(await page.locator('#saveReflection').isDisabled(),true);
