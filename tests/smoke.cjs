@@ -52,14 +52,23 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   for(const[id,v]of Object.entries({claim:'increase',leafComparison:'faster',leafConclusion:'promotes',limitations:'indirect'}))await page.locator('#'+id).selectOption(v);
   await page.screenshot({path:'/tmp/vl2-analysis.png',fullPage:true});await page.locator('#submitInvestigation').click();await page.locator('#confirmSubmit').click();
   assert.equal(await page.locator('#learningReveal').isVisible(),true);assert.equal(await page.locator('#rate-D').isDisabled(),true);assert.equal(await page.locator('#rate-D').inputValue(),'0.120');
-  assert.match(await page.locator('#feedbackSummary').innerText(),/不合理/);assert.match(await page.locator('#mechanismDiagram').innerText(),/木質導管/);
-  await page.locator('#reflection').fill('原始預測不獲支持，數據顯示較強光照下水跡上移較快。');await page.locator('#saveReflection').click();await page.reload();
+  assert.equal(await page.locator('#feedbackSummary,#downloadJSON').count(),0);
+  assert.equal(await page.locator('#downloadPDF').isDisabled(),true);
+  assert.match(await page.locator('#originalHypothesis').innerText(),/將會減少/);
+  assert.match(await page.locator('#originalHypothesis').innerText(),/需要量度才能知道/);
+  await page.locator('#saveReflection').click();assert.equal(await page.locator('#downloadPDF').isDisabled(),true);
+  await page.evaluate(async()=>{window.print=()=>window.printCalled=true;await document.querySelector('#downloadPDF').onclick();});assert.equal(await page.evaluate(()=>!!window.printCalled),false);assert.match(await page.locator('#mechanismDiagram').innerText(),/木質導管/);
+  await page.locator('#reflection').fill('原始預測不獲支持，數據顯示較強光照下水跡上移較快。');assert.equal(await page.locator('#downloadPDF').isDisabled(),true);await page.reload();assert.equal(await page.locator('#downloadPDF').isDisabled(),true);await page.locator('#saveReflection').click();await page.reload();assert.equal(await page.locator('#downloadPDF').isDisabled(),false);assert.equal(await page.locator('#reflection').isDisabled(),true);assert.equal(await page.locator('#saveReflection').isDisabled(),true);
   assert.equal(await page.locator('#claim').isDisabled(),true);assert.equal(await page.locator('#claim').inputValue(),'increase');
   const record=await page.evaluate(()=>state);assert.match(record.initialDesign.form.controlPlan,/不帶葉/);assert.equal(record.measurements[10].values.B,'2.9');assert.notEqual(record.measurements[10].firstValues.B,'2.9');
   await page.evaluate(()=>{window.print=()=>window.printCalled=true;});await page.locator('#downloadPDF').click();await page.waitForFunction(()=>window.printCalled);
-  const report=await page.locator('#printReport').innerText();for(const t of ['此探究的假設是什麼','葉面積','原始預測不獲支持','水膜','氣室','當光強度增加時'])assert(report.includes(t));assert(!report.includes('我的假設解釋'));assert(!report.includes('undefined'));
+  const report=await page.locator('#printReport').innerText();for(const t of ['此探究的假設是什麼','葉面積','原始預測不獲支持','水膜','氣室','當光強度增加時'])assert(report.includes(t));assert(!report.includes('我的假設解釋'));assert(!report.includes('undefined'));assert(!report.includes('參考回饋'));
+  assert.match(report,/✓/);assert.match(report,/✕/);
+  for(const title of ['你的初步觀察','探究的對照組','原始假說理由','原始假說是否獲數據支持']){const card=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:title})}).first();assert.equal(await card.getAttribute('data-graded'),'false');assert.equal(await card.locator('.answer-mark').count(),0);assert.equal(await card.locator('.report-reference').count(),1);}
+  const dCard=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:'裝置D · 平均上移速度'})});assert.equal(await dCard.locator('.incorrect').count(),1);
+  const ivCard=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:'獨立變量'})});assert.equal(await ivCard.locator('.correct').count(),1);
   await page.emulateMedia({media:'print'});await page.pdf({path:'/tmp/vl2-report.pdf',format:'A4',printBackground:true});await page.emulateMedia({media:'screen'});
-  const jd=page.waitForEvent('download');await page.locator('#downloadJSON').click();await(await jd).saveAs('/tmp/vl2-record.json');const parsed=JSON.parse(await fs.readFile('/tmp/vl2-record.json','utf8'));assert.equal(parsed.uiVersion,2);
+  const parsed=await page.evaluate(()=>state);await fs.writeFile('/tmp/vl2-record.json',JSON.stringify(parsed));assert.equal(parsed.uiVersion,2);assert(parsed.reflectionSubmittedAt);
   const mobile=await context.newPage();await mobile.setViewportSize({width:390,height:844});await mobile.goto(LAB_URL);assert.equal(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await mobile.locator('#mechanismDiagram').screenshot({path:'/tmp/vl2-anatomy.png'});await mobile.screenshot({path:'/tmp/vl2-mobile.png',fullPage:true});await mobile.close();
   await page.locator('#profileButton').click();await login(page,'教師','教師',TEACHER);assert.equal(await page.locator('#teacherDialog').isVisible(),true);assert.equal(await page.locator('#teacherButton').isVisible(),true);
@@ -73,6 +82,6 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   await teacher.locator('#importRecords').setInputFiles('/tmp/vl2-record.json');await teacher.waitForFunction(()=>document.querySelector('#importStatus').textContent.includes('已處理 1'));assert.match(await teacher.locator('#teacherData').innerText(),/陳小明/);
   const legacy=structuredClone(parsed);legacy.id+='-legacy';delete legacy.uiVersion;legacy.form.evidence='先前版本的證據文字';delete legacy.form.leafComparison;legacy.variables.iv=['光照強度'];legacy.profile.name='舊版同學';await fs.writeFile('/tmp/vl2-legacy-import.json',JSON.stringify(legacy));
   await teacher.locator('#importRecords').setInputFiles('/tmp/vl2-legacy-import.json');await teacher.waitForFunction(()=>document.querySelector('#teacherData').textContent.includes('舊版同學'));assert.equal(await teacher.evaluate(()=>storedRecords().find(r=>r.profile.name==='舊版同學').form.evidence),'先前版本的證據文字');
-  assert.deepEqual(errors,[]);await other.close();console.log('PASS: revised student flow, one-decimal readings, 0.5 steps, horizontal ruler, equal dye, autoscroll, fixed axes, smooth curve, structured answers, anatomy, PDF, teacher login/switch/reload, XLSX drawings, JSON import, old records, mobile.');
+  assert.deepEqual(errors,[]);await other.close();console.log('PASS: revised student flow, one-decimal readings, 0.5 steps, horizontal ruler, equal dye, autoscroll, fixed axes, smooth curve, structured answers, anatomy, reflection submission gate/reload, original hypothesis, inline PDF ticks/crosses and ungraded open answers, teacher login/switch/reload, XLSX drawings, JSON import, old records, mobile.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});
