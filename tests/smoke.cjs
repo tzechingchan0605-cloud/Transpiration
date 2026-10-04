@@ -62,7 +62,7 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   assert.equal(await page.locator('#claim').isDisabled(),true);assert.equal(await page.locator('#claim').inputValue(),'increase');
   const record=await page.evaluate(()=>state);assert.match(record.initialDesign.form.controlPlan,/不帶葉/);assert.equal(record.measurements[10].values.B,'2.9');assert.notEqual(record.measurements[10].firstValues.B,'2.9');
   await page.evaluate(()=>{window.print=()=>window.printCalled=true;});await page.locator('#downloadPDF').click();await page.waitForFunction(()=>window.printCalled);
-  const report=await page.locator('#printReport').innerText();for(const t of ['此探究的假設是什麼','葉面積','原始預測不獲支持','水膜','氣室','當光強度增加時'])assert(report.includes(t));assert(!report.includes('我的假設解釋'));assert(!report.includes('undefined'));assert(!report.includes('參考回饋'));
+  const report=await page.locator('#printReport').innerText();for(const t of ['此探究的假設是什麼','葉面積','原始預測不獲支持','水膜','氣室','當光強度增加時'])assert(report.includes(t));assert(!report.includes('我的假設解釋'));assert(!report.includes('undefined'));assert(!report.includes('參考回饋'));assert(!report.includes('整體分數'));assert(!report.includes('新知識學習分數'));assert(!report.includes('SPS 總分'));
   assert.match(report,/✓/);assert.match(report,/✕/);
   for(const title of ['你的初步觀察','探究的對照組','原始假說理由','原始假說是否獲數據支持']){const card=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:title})}).first();assert.equal(await card.getAttribute('data-graded'),'false');assert.equal(await card.locator('.answer-mark').count(),0);assert.equal(await card.locator('.report-reference').count(),1);}
   const dCard=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:'裝置D · 平均上移速度'})});assert.equal(await dCard.locator('.incorrect').count(),1);
@@ -74,8 +74,19 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   await page.locator('#profileButton').click();await login(page,'教師','教師',TEACHER);assert.equal(await page.locator('#teacherDialog').isVisible(),true);assert.equal(await page.locator('#teacherButton').isVisible(),true);
   assert.match(await page.locator('#teacherData').innerText(),/陳小明/);assert(!(await page.locator('#teacherData').innerText()).includes(TEACHER));
   await page.locator('[data-view-record]').first().click();assert.match(await page.locator('#teacherReport').innerText(),/葉片有助水分向上運輸/);await page.screenshot({path:'/tmp/vl2-teacher.png'});
+  await page.evaluate(()=>{
+    const perfect=structuredClone(storedRecords()[0]);
+    perfect.assumptions=ASSUMPTIONS.filter(a=>a.valid).map(a=>a.id);
+    for(const t of [0,10,20,30])for(const id of IDS){perfect.measurements[t].values[id]=String(perfect.model[id][t/10]);}
+    for(const id of IDS){perfect.calculations[id]=expectedRate(perfect,id).toFixed(3);perfect.graph.points[id]={x:CONDITIONS[id].light,y:+perfect.calculations[id]};}
+    const score=scoringWorkbook([perfect]),row=score.sheet.rows[1];
+    const get=id=>row[score.sheet.rows[0].findIndex(c=>c.value.startsWith(id))].value;
+    for(const [heading,max] of [['觀察｜量尺',2],['分類｜獨立',1],['分類｜因變',1],['分類｜控制',2],['設計｜假設',1],['實作｜四輪',2],['推論｜平均',2],['推論｜四項',2],['溝通｜標點',2]])if(get(heading)!==max)throw new Error('Perfect score mismatch: '+heading);
+    const empty=freshState();const blank=scoringWorkbook([empty]);
+    for(const cell of blank.sheet.rows[1])if(typeof cell.value==='number'&&cell.value!==0)throw new Error('Unanswered work must receive no automatic points');
+  });
   const xd=page.waitForEvent('download');await page.locator('#exportExcel').click();await(await xd).saveAs('/tmp/vl2-records.xlsx');
-  execFileSync('python',['-c',`from zipfile import ZipFile\nfrom xml.etree import ElementTree as ET\nfrom openpyxl import load_workbook\nwith ZipFile('/tmp/vl2-records.xlsx') as z:\n assert z.testzip() is None\n for n in z.namelist():\n  if n.endswith('.xml') or n.endswith('.rels'): ET.fromstring(z.read(n))\n assert any(n.startswith('xl/media/') for n in z.namelist())\nw=load_workbook('/tmp/vl2-records.xlsx')\nassert len(w.sheetnames)==4\nassert w['學生探究答案']['B2'].value=='陳小明'\nassert len(w['裝置設計圖']._images)==1\n`]);
+  execFileSync('python',['tests/excel_scores.py'],{stdio:'inherit'});
   await page.reload();assert.equal(await page.locator('#teacherDialog').isVisible(),true);await page.locator('#closeTeacher').click();await page.locator('#profileButton').click();await login(page,'另一位同學','S4X1-06','p013@example.edu.hk');
   assert.equal(await page.locator('#teacherButton').isVisible(),false);assert.equal(await page.locator('#phase-1').isVisible(),true);assert.equal(await page.locator('#observation').isDisabled(),false);assert.equal(await page.evaluate(()=>storedRecords().filter(r=>r.submitted).length),1);
   const other=await browser.newContext({viewport:{width:1280,height:900}}),teacher=await other.newPage();teacher.on('pageerror',e=>errors.push(e.message));await teacher.goto(LAB_URL);await login(teacher,'教師','教師',TEACHER);

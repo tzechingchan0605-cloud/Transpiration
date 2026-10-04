@@ -603,13 +603,38 @@ function renderReport(record) {
     <section class="report-section"><h2>02 · 設計探究</h2><div class="report-card"><p class="card-kicker">我的假說</p>${reportAnswer('實驗前的原始假說',hypothesisText(record),'此題沒有固定答案；假說應能透過改變光強度和量度水跡上移速度來測試。')}${reportAnswer('原始假說理由',initial.reason,'說明你預期光照與水分運輸有何關係；預測毋須猜中結果。')}${reportAnswer('探究時的假說與理由',`${PREDICTIONS[f.prediction]||'未回答'}；${f.reason}`,'以數據檢驗你的預測。')}</div><div class="report-card"><p class="card-kicker">我的公平測試設計</p>${variables}</div><div class="report-card"><p class="card-kicker">此探究的假設是什麼？</p>${assumptions}</div><div class="report-card">${reportAnswer('探究的對照組',f.controlPlan,'裝置D 不帶葉，與帶葉的裝置B 比較；兩者皆為 20 cm 光照距離，其餘條件相同，主要差別是葉片有無。')}${reportAnswer('我的實驗裝置設計',f.setupDescription,'材料：西芹 ×4、檯燈 ×4、紅色水杯 ×4、30 cm 尺子 ×4、剪刀 ×1、計時器 ×1。三株帶葉西芹的燈距為 10、20、30 cm；不帶葉組與其中一個帶葉組保持相同燈距。各浸入紅色水 2 cm。')}${setupImage}</div></section>
     <section class="report-section"><h2>03 · 進行探究與收集數據</h2><div class="report-card"><p>你的量度記錄（cm）</p><table><thead><tr><th>時間（min）</th>${IDS.map(id=>`<th>裝置${id} · ${CONDITIONS[id].leaves?'帶葉':'不帶葉'}<br>${CONDITIONS[id].distance} cm（光強度：${CONDITIONS[id].light} lux）</th>`).join('')}</tr></thead><tbody>${measurements}</tbody></table><p>讀數依模擬尺子判讀，容許 ±0.25 cm 的量度差異。</p><p>首次確認讀數：${[0,10,20,30].map(t=>`${t} min：${IDS.map(id=>`裝置${id}=${record.measurements[t]?.firstValues?.[id]??'—'}`).join('、')}`).join('；')}</p></div></section>
     <section class="report-section"><h2>04 · 分析與結論</h2><div class="report-card"><p class="card-kicker">計算平均上移速度</p><p>參考計算方法：平均上移速度＝（30 分鐘高度 − 0 分鐘高度）÷ 30 分鐘</p>${calculations}</div><div class="report-card"><p class="card-kicker">我的圖表：光照與紅色水跡上移速度</p><div class="report-graph"><svg viewBox="0 0 760 460" role="img" aria-label="學生圖表">${graphMarkup(record)}</svg></div>${points}<p>標點按你的計算檢核；計算是否正確另列於上方。曲線呈現三點之間的趨勢，並不能證明其間所有光強度的精確結果。</p></div><div class="report-card">${choice('claim','主張：光照與水跡上移速度有甚麼關係？','increase')}${choice('leafComparison','相同光照距離下，裝置B（帶葉）與裝置D（不帶葉）的速度比較',comparable?comparison:null,comparable?`按你計算的數值：裝置B ${(+b).toFixed(3)}、裝置D ${(+d).toFixed(3)} cm/min。${ANSWER_LABELS.leafComparison[comparison]}`:'先完成裝置B 和裝置D 的平均上移速度計算，再比較兩者。')}${choice('leafConclusion','帶葉與不帶葉的比較顯示葉片有何作用？','promotes')}${choice('limitations','這些數據還不能直接證明甚麼？','indirect')}</div></section>
-    <section class="report-section"><h2>學習重點：葉與莖的內部構造</h2><div class="report-card">${structureDiagram('report')}${$('.learning-points').outerHTML}</div></section><section class="report-section"><h2>學習反思</h2><div class="report-card">${reportAnswer('你的原始假說',hypothesisText(record))}${reportAnswer('原始假說是否獲數據支持？你會如何修訂原本的解釋？',f.reflection,'比較原始預測與量度結果，指出支持或不支持的數據，再修訂解釋。例如：若原先預測光強度增加會令水跡變慢，但帶葉組在較強光照下上移較快，則原始預測不獲支持；可修訂為光照通常促進氣孔開啟及蒸騰，並促進水分沿木質部向上運輸。水跡仍只是間接線索。')}</div></section><footer class="report-footer">✓／✕ 為有標準答案項目的檢核；開放題只附參考答案，不自動評分。這些檢核不等同 SPS 評分。學習重點參照課本第 11.1 節（頁 11-3 至 11-8）。水跡為教學模擬，不是直接蒸騰速率量度。紀錄識別碼：${esc(record.id)}</footer>`;
+    <section class="report-section"><h2>學習重點：葉與莖的內部構造</h2><div class="report-card">${structureDiagram('report')}${$('.learning-points').outerHTML}</div></section><section class="report-section"><h2>學習反思</h2><div class="report-card">${reportAnswer('你的原始假說',hypothesisText(record))}${reportAnswer('原始假說是否獲數據支持？請運用學習重點修訂或完善假說解釋，並連結你的數據。',f.reflection,'比較原始預測與量度結果，指出支持或不支持的數據，再修訂解釋。例如：若原先預測光強度增加會令水跡變慢，但帶葉組在較強光照下上移較快，則原始預測不獲支持；可修訂為光照通常促進氣孔開啟及蒸騰，並促進水分沿木質部向上運輸。水跡仍只是間接線索。')}</div></section><footer class="report-footer">✓／✕ 為有標準答案項目的檢核；開放題只附參考答案，不自動評分。這些檢核不等同 SPS 評分。學習重點參照課本第 11.1 節（頁 11-3 至 11-8）。水跡為教學模擬，不是直接蒸騰速率量度。紀錄識別碼：${esc(record.id)}</footer>`;
 }
 
 // Minimal OOXML writer: genuine .xlsx, UTF-8 inline strings, no external library.
 function xml(value){return String(value??'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));}
 function colName(index){let name='';for(let n=index+1;n;n=Math.floor((n-1)/26))name=String.fromCharCode(65+(n-1)%26)+name;return name;}
-function sheetXML(rows){return `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols><col min="1" max="${rows[0].length}" width="24" customWidth="1"/></cols><sheetData>${rows.map((row,r)=>`<row r="${r+1}">${row.map((value,c)=>`<c r="${colName(c)}${r+1}" t="inlineStr"><is><t xml:space="preserve">${xml(value)}</t></is></c>`).join('')}</row>`).join('')}</sheetData></worksheet>`;}
+const EXCEL_GROUPS=['identity','observing','classifying','designing','conducting','inferring','communicating','knowledge','score','reference'];
+const EXCEL_FILLS=['EEF1F4','E7F0FC','EEE8FA','FFF4D9','E7F3E8','FCEBDD','E1F3F6','FBE7EF','E5ECEF','F6F8F7'];
+const excelCell=(value,group='identity',mark=null)=>({value,group,mark});
+const excelFormula=(formula,group='score')=>({value:'',formula,group});
+function excelStyle(group,variant=0){return 1+Math.max(0,EXCEL_GROUPS.indexOf(group))*5+variant;}
+function excelStylesXML(){
+  const colours=['173E34','00834A','C03030','A46900','FFFFFF'];
+  const fonts=colours.map((colour,i)=>`<font><sz val="11"/><color rgb="FF${colour}"/><name val="Calibri"/>${i===4?'<b/>':''}</font>`).join('');
+  const fills='<fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'+EXCEL_FILLS.map(colour=>`<fill><patternFill patternType="solid"><fgColor rgb="FF${colour}"/><bgColor indexed="64"/></patternFill></fill>`).join('')+'<fill><patternFill patternType="solid"><fgColor rgb="FF087B78"/><bgColor indexed="64"/></patternFill></fill>';
+  const xfs='<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'+EXCEL_GROUPS.map((_,g)=>[0,1,2,3,4].map(v=>`<xf numFmtId="0" fontId="${v}" fillId="${v===4?12:g+2}" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>`).join('')).join('');
+  return `<?xml version="1.0"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="5">${fonts}</fonts><fills count="13">${fills}</fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="51">${xfs}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="3">${[1,2,3].map(i=>`<dxf><font><color rgb="FF${colours[i]}"/></font></dxf>`).join('')}</dxfs></styleSheet>`;
+}
+function sheetXML(sheet){
+  const rows=sheet.rows;
+  const cells=rows.map((row,r)=>`<row r="${r+1}">${row.map((raw,c)=>{
+    const cell=raw&&typeof raw==='object'?raw:excelCell(raw),value=cell.value??'';
+    const variant=r===0?4:cell.mark===true?1:cell.mark===false?2:cell.mark==='partial'?3:0;
+    const attrs=`r="${colName(c)}${r+1}" s="${excelStyle(cell.group,variant)}"`;
+    if(cell.formula)return `<c ${attrs}><f>${xml(cell.formula)}</f></c>`;
+    if(typeof value==='number'&&Number.isFinite(value))return `<c ${attrs}><v>${value}</v></c>`;
+    return `<c ${attrs} t="inlineStr"><is><t xml:space="preserve">${xml(value)}</t></is></c>`;
+  }).join('')}</row>`).join('');
+  const validation=sheet.validations?.length?`<dataValidations count="${sheet.validations.length}">${sheet.validations.map(v=>`<dataValidation type="whole" operator="between" allowBlank="1" showErrorMessage="1" errorTitle="分數超出範圍" error="請輸入 0 至 ${v.max} 的整數。" sqref="${v.range}"><formula1>0</formula1><formula2>${v.max}</formula2></dataValidation>`).join('')}</dataValidations>`:'';
+  const conditional=(sheet.conditional||[]).map((rule,i)=>`<conditionalFormatting sqref="${rule.cell}">${[0,1,2].map(v=>`<cfRule type="expression" dxfId="${v}" priority="${i*3+v+1}"><formula>${xml(rule.formulas[v])}</formula></cfRule>`).join('')}</conditionalFormatting>`).join('');
+  return `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane xSplit="2" ySplit="1" topLeftCell="C2" activePane="bottomRight" state="frozen"/></sheetView></sheetViews><cols><col min="1" max="${rows[0].length}" width="24" customWidth="1"/></cols><sheetData>${cells}</sheetData>${rows.length>1?`<autoFilter ref="A1:${colName(rows[0].length-1)}${rows.length}"/>`:''}${conditional}${validation}</worksheet>`;
+}
 const crcTable=Array.from({length:256},(_,n)=>{let c=n;for(let i=0;i<8;i++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;return c>>>0;});
 function crc32(bytes){let crc=0xffffffff;for(const b of bytes)crc=crcTable[(crc^b)&255]^(crc>>>8);return(crc^0xffffffff)>>>0;}
 function zipStore(files){
@@ -627,12 +652,13 @@ function zipStore(files){
 }
 function workbook(sheets,images=[]){
   const files={
-    '[Content_Types].xml':`<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`,
+    '[Content_Types].xml':`<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`,
     '_rels/.rels':'<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',
-    'xl/workbook.xml':`<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s,i)=>`<sheet name="${xml(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`,
-    'xl/_rels/workbook.xml.rels':`<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}</Relationships>`
+    'xl/workbook.xml':`<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s,i)=>`<sheet name="${xml(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets><calcPr calcId="191029" fullCalcOnLoad="1" forceFullCalc="1"/></workbook>`,
+    'xl/_rels/workbook.xml.rels':`<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`
   };
-  sheets.forEach((s,i)=>files[`xl/worksheets/sheet${i+1}.xml`]=sheetXML(s.rows));
+  files['xl/styles.xml']=excelStylesXML();
+  sheets.forEach((s,i)=>files[`xl/worksheets/sheet${i+1}.xml`]=sheetXML(s));
   if(images.length){
     files['[Content_Types].xml']=files['[Content_Types].xml'].replace('</Types>','<Default Extension="jpeg" ContentType="image/jpeg"/><Default Extension="png" ContentType="image/png"/><Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>');
     const last=sheets.length;
@@ -644,6 +670,58 @@ function workbook(sheets,images=[]){
   }
   return zipStore(files);
 }
+// Scores exist only in the teacher workbook. Open responses require teacher judgement.
+function scoringWorkbook(records){
+  const columns=[
+    ['id','紀錄識別碼','identity'],['name','姓名','identity'],['class','班別及學號','identity'],['status','完成狀態','identity'],
+    ['observation','觀察｜初步觀察・教師評分（0–2）','observing',2],['measure','觀察｜量尺讀數・自動（0–2）','observing'],['observing','SPS 觀察（0–4）','observing'],
+    ['iv','分類｜獨立變量・自動（0–1）','classifying'],['dv','分類｜因變量・自動（0–1）','classifying'],['cv','分類｜控制變量・自動（0–2）','classifying'],['classifying','SPS 分類（0–4）','classifying'],
+    ['hypothesis','設計｜可測試假說及理由・教師評分（0–2）','designing',2],['assumptions','設計｜假設選擇・自動（0–1）','designing'],['control','設計｜對照裝置・教師評分（0–1）','designing',1],['designing','SPS 設計探究（0–4）','designing'],
+    ['rounds','實作｜四輪完整量度・自動（0–2）','conducting'],['setup','實作｜裝置方案・教師評分（0–2）','conducting',2],['conducting','SPS 進行實驗（0–4）','conducting'],
+    ['rates','推論｜平均速度計算・自動（0–2）','inferring'],['conclusions','推論｜四項結論・自動（0–2）','inferring'],['inferring','SPS 推論（0–4）','inferring'],
+    ['graph','溝通｜標點及連線・自動（0–2）','communicating'],['communication','溝通｜書面表達・教師評分（0–2）','communicating',2],['communicating','SPS 溝通（0–4）','communicating'],['sps','SPS 總分（0–24）','score'],
+    ['evaporation','新知識｜蒸騰與氣孔・教師評分（0–2）','knowledge',2],['transport','新知識｜木質部及蒸騰拉力・教師評分（0–2）','knowledge',2],['light','新知識｜光強度影響・教師評分（0–2）','knowledge',2],['revision','新知識｜運用概念修訂原始解釋・教師評分（0–2）','knowledge',2],['knowledge','新知識學習分數（0–8）','knowledge'],['overall','整體分數（0–32）','score'],['marking','評分狀態','score']
+  ];
+  const col=Object.fromEntries(columns.map(([id],i)=>[id,colName(i)])),rows=[columns.map(([,label,group])=>excelCell(label,group))];
+  const round=n=>Math.round(n*100)/100;
+  records.forEach((r,index)=>{
+    const n=index+2,ref=id=>col[id]+n,vars=r.variables,readings=[0,10,20,30].flatMap(t=>IDS.map(id=>{const v=r.measurements[t]?.values?.[id];return r.measurements[t]?.confirmed&&v!==undefined&&v!==''&&Number.isFinite(+v)&&Math.abs(+v-r.model[id][t/10])<=.25;}));
+    const rateCorrect=IDS.map(id=>{const v=r.calculations[id];return v!==undefined&&v!==''&&Number.isFinite(+v)&&Number.isFinite(expectedRate(r,id))&&Math.abs(+v-expectedRate(r,id))<=.00051;});
+    const b=r.calculations.B,d=r.calculations.D,comparable=b!==undefined&&d!==undefined&&b!==''&&d!==''&&Number.isFinite(+b)&&Number.isFinite(+d);
+    const comparison=+b>+d+.0005?'faster':+b<+d-.0005?'slower':'same';
+    const conclusionCorrect=[r.form.claim==='increase',comparable&&r.form.leafComparison===comparison,r.form.leafConclusion==='promotes',r.form.limitations==='indirect'];
+    const pointCorrect=IDS.map(id=>{const p=r.graph.points[id],v=r.calculations[id];return p&&v!==undefined&&v!==''&&Number.isFinite(+v)&&p.x===CONDITIONS[id].light&&Math.abs(p.y-(+v))<.00051;});
+    const graphConnected=r.graph.connected&&['A','B','C'].every(id=>pointCorrect[IDS.indexOf(id)]);
+    const values={id:r.id,name:r.profile?.name,class:r.profile?.classInfo,status:reflectionComplete(r)?'已完成':r.submitted?'待提交反思':'進行中',measure:round(readings.filter(Boolean).length/16*2),iv:sameChoices(vars.iv,[VARIABLE_NAMES[0]])?1:0,dv:sameChoices(vars.dv,[VARIABLE_NAMES[1]])?1:0,cv:round(VARIABLE_NAMES.slice(2).filter(v=>vars.cv.includes(v)).length/5*2*(vars.cv.some(v=>!VARIABLE_NAMES.slice(2).includes(v))?0:1)),assumptions:sameChoices(r.assumptions,ASSUMPTIONS.filter(a=>a.valid).map(a=>a.id))?1:0,rounds:[0,10,20,30].filter(t=>r.measurements[t]?.confirmed&&IDS.every(id=>{const v=r.measurements[t].values?.[id];return v!==undefined&&v!==''&&Number.isFinite(+v)&&+v>=0&&+v<=16;})).length*.5,rates:rateCorrect.filter(Boolean).length*.5,conclusions:conclusionCorrect.filter(Boolean).length*.5,graph:round(pointCorrect.filter(Boolean).length*.375+(graphConnected?.5:0))};
+    const manual=columns.filter(c=>c[3]!==undefined).map(([id])=>ref(id));
+    const sum=(ids,required)=>`IF(COUNT(${required.map(ref).join(',')})=${required.length},ROUND(SUM(${ids.map(ref).join(',')}),2),"待評")`;
+    const formulas={observing:sum(['observation','measure'],['observation']),classifying:`SUM(${ref('iv')},${ref('dv')},${ref('cv')})`,designing:sum(['hypothesis','assumptions','control'],['hypothesis','control']),conducting:sum(['rounds','setup'],['setup']),inferring:`SUM(${ref('rates')},${ref('conclusions')})`,communicating:sum(['graph','communication'],['communication']),sps:`IF(COUNT(${['observing','classifying','designing','conducting','inferring','communicating'].map(ref).join(',')})=6,ROUND(SUM(${['observing','classifying','designing','conducting','inferring','communicating'].map(ref).join(',')}),2),"待評")`,knowledge:sum(['evaporation','transport','light','revision'],['evaporation','transport','light','revision']),overall:`IF(AND(COUNT(${ref('sps')},${ref('knowledge')})=2,${ref('status')}="已完成"),ROUND(SUM(${ref('sps')},${ref('knowledge')}),2),"待評／未完成")`,marking:`IF(AND(COUNT(${manual.join(',')})=${manual.length},${ref('status')}="已完成"),"評分完成","待教師評分／學生未完成")`};
+    rows.push(columns.map(([id,,group,max])=>formulas[id]?excelFormula(formulas[id],group):excelCell(max!==undefined?'':values[id],group)));
+  });
+  const validations=columns.flatMap(([id,,group,max])=>max===undefined?[]:[{range:`${col[id]}2:${col[id]}${records.length+1}`,max}]);
+  const rubric=[['類別／題目','最高分','評分方式','滿分準則','部分得分準則','零分準則']];
+  const add=(group,title,max,method,full,partial,zero)=>rubric.push([excelCell(title,group),max,method,full,partial,zero]);
+  add('observing','初步觀察',2,'教師填寫','描述紅色水跡沿長柄內部分區域向上延伸；能分開觀察與解釋。','1：提及紅色水跡或顏色改變，但缺少位置／方向。','未回答、無關或把未觀察到的機制當作直接觀察。');
+  add('observing','量尺讀數',2,'自動','16 個最後確認讀數全部與尺子模型參考值相差不超過 0.25 cm。','2 × 正確讀數數目 ÷ 16（保留兩位小數）。','沒有正確且已確認的讀數。');
+  add('classifying','變量分類',4,'自動','獨立：光強度（1）；因變量：紅色水跡上升高度／平均上移速度（1）；五項控制變量（2）。','控制變量：每項 0.4；誤選獨立／因變量作控制變量則該欄 0 分。','未回答或分類錯誤。');
+  add('designing','可測試假說及理由',2,'教師填寫','明確預測改變光強度後水跡速度如何改變，並給出與現象相關的理由；不要求預測結果正確。','1：假說可測試，但理由缺漏或不清晰。','沒有可測試的假說；只抄結論而無實驗前預測。');
+  add('designing','實驗假設選擇',1,'自動','只選溫度不改變、帶葉組總葉面積相同、濕度及氣流相同三項。','全組正確才給分；不另計部分分。','錯選、漏選或未作答。');
+  add('designing','對照裝置設計',1,'教師填寫','帶葉／不帶葉裝置使用相同燈距，其餘條件保持相同。','此項只給 0 或 1 分。','沒有控制葉片以外的因素，或未作答。');
+  add('conducting','四輪完整量度',2,'自動','0、10、20、30 min 各有四個有效、已確認讀數。','每輪 0.5；量度準確度另計於觀察，不重複計。','沒有完整確認的量度輪次。');
+  add('conducting','實驗裝置方案',2,'教師填寫','圖像／文字顯示四株、三種帶葉燈距及同距不帶葉對照、紅色水及量尺／時間量度安排。','1：方案基本可操作，但缺少一項主要安排。','不能操作、無關或未完成。');
+  add('inferring','平均上移速度計算',2,'自動','四組（30 min 高度 − 0 min 高度）÷ 30；每組正確 0.5。','依學生最後確認讀數計算，允許 0.00051 cm/min 捨入差異。','無正確計算；不使用模型高度取代學生讀數評算術。');
+  add('inferring','四項結論',2,'自動','光強度增加速度通常增加；B/D 比較與學生計算相符；葉片促進運輸；水跡為間接線索。','每個正確選項 0.5。B/D 資料不足不得分。','錯誤／未回答。');
+  add('communicating','圖表標點及連線',2,'自動','四點 X = 各組 lux、Y = 學生自己計算速度（每點 0.375）；正確 A/B/C 三點已連線（0.5）。','以未四捨五入的點數計分再保留兩位小數；不把 D 連入帶葉曲線。','無正確標點或連線。計算錯誤另計於推論，圖表以其計算檢核。');
+  add('communicating','書面表達',2,'教師填寫','觀察、裝置方案及反思能清楚傳達想法，數據／裝置名稱／單位使用清晰；評表達而非概念正確性。','1：可理解，但描述含糊或缺乏必要標示。','無法理解或未提供可評的表達。');
+  add('knowledge','學習反思：蒸騰與氣孔',2,'教師填寫','修訂解釋中正確說明葉肉細胞表面水膜蒸發，水汽經氣孔擴散離開葉。','1：正確提及葉片蒸發／氣孔散失水汽，但機制不完整。','未用此概念或有核心錯誤。');
+  add('knowledge','學習反思：木質部及蒸騰拉力',2,'教師填寫','修訂解釋中連結蒸騰產生蒸騰拉力，使水份沿木質導管向上運輸。','1：正確提及木質部運輸或蒸騰拉力，但沒有連結。','未用此概念或有核心錯誤。');
+  add('knowledge','學習反思：光強度影響',2,'教師填寫','修訂解釋中連結較強光照通常促進氣孔開啟、蒸騰及水分向上運輸，避免稱水跡速度就是蒸騰速率。','1：正確描述較強光照與較快水跡的關係，但沒有機制。','關係相反、直接等同蒸騰速率或未運用概念。');
+  add('knowledge','學習反思：運用概念修訂原始解釋',2,'教師填寫','指出原始假說是否獲自己數據支持，以數據及學習重點修訂／完善解釋；原始假說正確也可得滿分。','1：有判斷或修訂，但欠缺數據／概念連結。','只抄學習重點，未檢驗原始假說，或未提交反思。');
+  add('score','配分與完成條件',32,'公式彙總','六項 SPS 各 4 分，共 24；新知識四項各 2，共 8；整體 32。教師填完九個評分格及學生完成反思，整體分數才顯示。','人工評分格空白＝待評，與填 0 分不同。公式由 Excel 開啟時重算；教師在此檔填分後請保存。','新下載 Excel 不會讀取之前檔案內的人工分數；分數只存於教師保存的 Excel。');
+  add('reference','色彩與研究使用',0,'說明','底色區分 SPS 類別及新知識；綠字正確／滿分，紅字錯誤／零分，橙字部分得分，未評中性色。','人工答案在填分後依公式變色。PDF 不顯示任何分數；活動紀錄不是 SPS 分數。','本 rubric 為 VL2 初稿；正式縱向比較前需對四個模組統一準則、配分及評分者校準。');
+  return {sheet:{name:'教師評分',rows,validations},rubric:{name:'評分準則',rows:rubric},col};
+}
+
 function exportExcel(){
   if(!isTeacher())return;
   save();const records=storedRecords();
@@ -663,7 +741,35 @@ function exportExcel(){
     const match=/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.exec(r.setup.image||'');
     if(match)images.push({row:designs.length-1,data:r.setup.image,ext:match[1]});
   });
-  download(workbook([{name:'學生探究答案',rows},{name:'量度計算與圖點',rows:data},{name:'操作事件紀錄',rows:events},{name:'裝置設計圖',rows:designs}],images),'VL2_蒸騰探究_全班學習紀錄.xlsx');
+  const scoring=scoringWorkbook(records),answerGroups=headings.map((_,c)=>c<7?'identity':c===7?'observing':c<12?'designing':c<18?'classifying':c<23?'designing':c<25?'communicating':c<32?'inferring':c===32?'knowledge':'identity');
+  const styledAnswers=rows.map((row,index)=>row.map((value,c)=>{
+    if(!index)return excelCell(value,answerGroups[c]);
+    const r=records[index-1],v=r.variables,b=r.calculations.B,d=r.calculations.D;
+    const comparable=b!==undefined&&d!==undefined&&b!==''&&d!==''&&Number.isFinite(+b)&&Number.isFinite(+d),comparison=+b>+d+.0005?'faster':+b<+d-.0005?'slower':'same';
+    const checks={12:v.iv.length?sameChoices(v.iv,[VARIABLE_NAMES[0]]):null,14:v.dv.length?sameChoices(v.dv,[VARIABLE_NAMES[1]]):null,16:v.cv.length?sameChoices(v.cv,VARIABLE_NAMES.slice(2)):null,18:r.assumptions.length?sameChoices(r.assumptions,ASSUMPTIONS.filter(a=>a.valid).map(a=>a.id)):null,25:r.form.claim?r.form.claim==='increase':null,27:r.form.leafComparison&&comparable?r.form.leafComparison===comparison:null,28:r.form.leafConclusion?r.form.leafConclusion==='promotes':null,30:r.form.limitations?r.form.limitations==='indirect':null};
+    return excelCell(value,answerGroups[c],checks[c]??null);
+  }));
+  const styledData=data.map((row,index)=>row.map((value,c)=>{
+    const group=c<7?'identity':c<10?'observing':c<12?'inferring':'communicating';
+    if(!index||![7,8,10,12,13].includes(c)||value==='')return excelCell(value,group);
+    const r=records[Math.floor((index-1)/16)],id=IDS[(index-1)%4],t=Math.floor(((index-1)%16)/4)*10;
+    let correct=null;
+    if(c===7||c===8)correct=Number.isFinite(+value)&&Math.abs(+value-r.model[id][t/10])<=.25;
+    if(c===10&&Number.isFinite(expectedRate(r,id)))correct=Math.abs(+value-expectedRate(r,id))<=.00051;
+    if(c===12)correct=+value===CONDITIONS[id].light;
+    if(c===13&&r.calculations[id]!==undefined&&r.calculations[id]!=='')correct=Math.abs(+value-(+r.calculations[id]))<.00051;
+    return excelCell(value,group,correct);
+  }));
+  const conditional=[];
+  const colourRule=(cell,score,max)=>({cell,formulas:[`AND(ISNUMBER(${score}),${score}=${max})`,`AND(ISNUMBER(${score}),${score}=0)`,`AND(ISNUMBER(${score}),${score}>0,${score}<${max})`]});
+  records.forEach((r,i)=>{
+    const row=i+2,ref=id=>`INDIRECT("'教師評分'!${scoring.col[id]}${row}")`;
+    [[7,'observation',2],[8,'hypothesis',2],[9,'hypothesis',2],[10,'hypothesis',2],[11,'hypothesis',2],[20,'control',1],[22,'setup',2],[32,'knowledge',8]].forEach(([c,key,max])=>conditional.push(colourRule(colName(c)+row,ref(key),max)));
+    const maxById={observation:2,measure:2,observing:4,iv:1,dv:1,cv:2,classifying:4,hypothesis:2,assumptions:1,control:1,designing:4,rounds:2,setup:2,conducting:4,rates:2,conclusions:2,inferring:4,graph:2,communication:2,communicating:4,sps:24,evaporation:2,transport:2,light:2,revision:2,knowledge:8,overall:32};
+    scoring.sheet.conditional??=[];
+    Object.entries(maxById).forEach(([key,max])=>{const cell=scoring.col[key]+row;scoring.sheet.conditional.push(colourRule(cell,cell,max));});
+  });
+  download(workbook([{name:'學生探究答案',rows:styledAnswers,conditional},{name:'量度計算與圖點',rows:styledData},scoring.sheet,scoring.rubric,{name:'操作事件紀錄',rows:events},{name:'裝置設計圖',rows:designs}],images),'VL2_蒸騰探究_全班學習紀錄.xlsx');
 }
 function formatDuration(seconds){const value=Math.round(seconds);return`${Math.floor(value/60)} 分 ${value%60} 秒`;}
 function observationAccuracy(record){
