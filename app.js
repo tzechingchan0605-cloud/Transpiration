@@ -45,6 +45,14 @@ function upgradeRecord(record){
 }
 function storedRecords(){return readStored(RECORDS_KEY,[]).map(upgradeRecord).filter(isRecord).filter(r=>!isTeacher(r.profile));}
 
+function sameLearner(a,b) {
+  return !!a?.email && !!b?.email && a.email.trim().toLowerCase()===b.email.trim().toLowerCase() &&
+    a.name?.trim()===b.name?.trim() && a.classInfo?.trim().toUpperCase()===b.classInfo?.trim().toUpperCase();
+}
+function unfinishedRecord(profile) {
+  return storedRecords().filter(r=>!r.submitted&&sameLearner(r.profile,profile))
+    .sort((a,b)=>(Date.parse(b.savedAt)||0)-(Date.parse(a.savedAt)||0))[0];
+}
 function freshState(profile = null) {
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
   let n = seed;
@@ -75,6 +83,10 @@ function readStored(key, fallback) {
 let state = upgradeRecord(readStored(CURRENT_KEY, null));
 if (!isRecord(state)) state = freshState();
 let activeProfile=readStored(PROFILE_KEY,state.profile);
+// A saved login must never display a different learner's current record.
+if(activeProfile?.email&&!isTeacher(activeProfile)&&!sameLearner(state.profile,activeProfile)) {
+  state=unfinishedRecord(activeProfile)||freshState(activeProfile);
+}
 state.running = false; // A restored task resumes at its last completed measurement time.
 let activeSince = Date.now();
 let saveTimer;
@@ -190,7 +202,7 @@ function renderEquipment() {
   const material=(name,count,art)=>`<figure class="equipment"><svg viewBox="0 0 100 100" role="img" aria-label="${name}">${art}</svg><figcaption>${name} ×${count}</figcaption></figure>`;
   $('#equipmentBank').innerHTML=[
     material('西芹',4,'<path d="M47 89L45 36h10l4 53Z" fill="#b7cb8c" stroke="#6d9559"/><g fill="#78a76b" stroke="#57814f"><path d="M47 38C12 29 18 5 35 16C41 4 54 15 49 23Z"/><path d="M52 40C85 37 92 13 74 16C68 3 55 15 59 25Z"/></g>'),
-    material('檯燈',4,'<path d="M30 85h40M49 84V51L68 28" fill="none" stroke="#7f9a93" stroke-width="5" stroke-linecap="round"/><path d="M53 16L82 38 88 11Z" fill="#edca82" stroke="#ba9e68" stroke-width="2"/><path d="M68 28L82 56 46 47Z" fill="#f7dba555"/>'),
+    material('檯燈',4,'<path d="M20 85h40M39 84V51L53 29" fill="none" stroke="#7f9a93" stroke-width="5" stroke-linecap="round"/><path class="lamp-beam" d="M69 12L98 3V65L61 40Z" fill="#f7dba555"/><path d="M40 22L61 40 69 12Z" fill="#edca82" stroke="#ba9e68" stroke-width="2"/>'),
     material('紅色水杯',4,'<path d="M20 22L28 85Q50 93 72 85L80 22" fill="#eff7f6" stroke="#9abdb5" stroke-width="3"/><path d="M24 43L29 82Q50 90 71 82L76 43Z" fill="#d96f8066"/><ellipse cx="50" cy="43" rx="26" ry="5" fill="#d66a7c66" stroke="#c86e7d"/>'),
     material('30 cm 尺子',4,'<g transform="rotate(-25 50 50)"><rect x="8" y="35" width="84" height="30" rx="3" fill="#f6e8ba" stroke="#c8b582"/>'+Array.from({length:16},(_,i)=>`<path d="M${12+i*5} 35v${i%5===0?14:7}" stroke="#927d4a"/>`).join('')+'<text x="50" y="59" text-anchor="middle" fill="#8d774a" font-size="9">30 cm</text></g>'),
     material('剪刀',1,'<path d="M38 56L77 17M61 58L24 18" stroke="#9eaeb0" stroke-width="7" stroke-linecap="round"/><circle cx="49" cy="47" r="4" fill="#788c8d"/><ellipse cx="31" cy="73" rx="13" ry="17" fill="none" stroke="#087b78" stroke-width="7"/><ellipse cx="69" cy="73" rx="13" ry="17" fill="none" stroke="#087b78" stroke-width="7"/>'),
@@ -218,7 +230,8 @@ function initCanvas() {
   ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.lineCap='round';ctx.lineJoin='round';
   if(state.setup.image && /^data:image\/(jpeg|png|webp);base64,/.test(state.setup.image)) {
-    const image=new Image();image.onload=()=>ctx.drawImage(image,0,0,canvas.width,canvas.height);image.src=state.setup.image;
+    const recordId=state.id,image=new Image();
+    image.onload=()=>{if(state.id===recordId)ctx.drawImage(image,0,0,canvas.width,canvas.height);};image.src=state.setup.image;
   }
   let drawing=false;
   const point=event=>{const box=canvas.getBoundingClientRect();return{x:(event.clientX-box.left)*canvas.width/box.width,y:(event.clientY-box.top)*canvas.height/box.height};};
@@ -456,7 +469,7 @@ function smoothCurve(points,x,y){
   for(let i=0;i<2;i++)path+=` C${x(points[i].x+h[i]/3)},${y(points[i].y+m[i]*h[i]/3)} ${x(points[i+1].x-h[i]/3)},${y(points[i+1].y-m[i+1]*h[i]/3)} ${x(points[i+1].x)},${y(points[i+1].y)}`;
   return path;
 }
-function graphMarkup(record) {
+function graphMarkup(record,withLegend=true) {
   const form=record.form,maxX=graphXMax(form),maxY=+form.graphMax||.5;
   const left=90,right=677,top=27,bottom=362;
   const x=value=>left+value/maxX*(right-left),y=value=>bottom-value/maxY*(bottom-top);
@@ -478,10 +491,10 @@ function graphMarkup(record) {
     marks+=bare?`<path d="M${px} ${py-7}l7 7-7 7-7-7Z" fill="${colour}" stroke="white" stroke-width="2"/>`:`<circle cx="${px}" cy="${py}" r="6" fill="${colour}" stroke="white" stroke-width="2"/>`;
     marks+=`<text x="${px+10}" y="${py-9}" font-size="13" font-weight="700" fill="${colour}">裝置${id}</text>`;
   });
-  return `<title>學生繪製的光照與紅色水跡平均上移速度圖</title>${grid}<path d="M${left} ${top}V${bottom}H${right}" fill="none" stroke="#8ba28a" stroke-width="1.5"/>${marks}<text x="380" y="${bottom+58}" text-anchor="middle" fill="#4d715a" font-size="14">${xLabels[form.xAxis]||'請選擇X軸'}</text><text transform="translate(25 195) rotate(-90)" text-anchor="middle" fill="#4d715a" font-size="13">${yLabels[form.yAxis]||'請選擇Y軸'}</text><text x="380" y="449" text-anchor="middle" fill="#829680" font-size="11">● 帶葉組裝置A、裝置B、裝置C　◆ 不帶葉組裝置D（獨立比較點）</text>`;
+  return `<title>學生繪製的光照與紅色水跡平均上移速度圖</title>${grid}<path d="M${left} ${top}V${bottom}H${right}" fill="none" stroke="#8ba28a" stroke-width="1.5"/>${marks}<text x="380" y="${bottom+58}" text-anchor="middle" fill="#4d715a" font-size="14">${xLabels[form.xAxis]||'請選擇X軸'}</text><text transform="translate(25 195) rotate(-90)" text-anchor="middle" fill="#4d715a" font-size="13">${yLabels[form.yAxis]||'請選擇Y軸'}</text>${withLegend?'<text class="graph-inline-legend" x="380" y="449" text-anchor="middle" fill="#829680" font-size="11">● 帶葉組：裝置A、裝置B、裝置C　◆ 不帶葉組：裝置D（獨立比較點）</text>':''}`;
 }
 function renderGraph() {
-  readForm();$('#studentGraph').innerHTML=graphMarkup(state);
+  readForm();$('#studentGraph').innerHTML=graphMarkup(state,false);
   $('#graphStatus').textContent=`已標示 ${Object.keys(state.graph.points).length} / 4 個裝置${state.graph.connected?'；帶葉組已連線':''}。`;
 }
 function conclusionMissing() {
@@ -812,9 +825,10 @@ function init() {
   renderEquipment();
   $('#mechanismDiagram').innerHTML=structureDiagram();
   renderVariables();initCanvas();renderBench();renderMeasurements();renderCalculations();renderPoints();renderGraph();
-  if(state.setup.saved)$('#setupStatus').textContent='✓ 裝置設計已儲存';
+  $('#setupStatus').textContent=state.setup.saved?'✓ 裝置設計已儲存':'';
+  $$('[data-tool]').forEach(button=>{button.classList.toggle('selected',button.dataset.tool===drawingTool);button.setAttribute('aria-pressed',String(button.dataset.tool===drawingTool));});
   $$('.phase').forEach(el=>el.hidden=el.id!==`phase-${state.phase}`);
-  $$('.step').forEach(el=>{el.disabled=+el.dataset.phase>state.unlocked;el.classList.toggle('active',+el.dataset.phase===state.phase);if(+el.dataset.phase===state.phase)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});
+  $$('.step').forEach(el=>{el.disabled=+el.dataset.phase>state.unlocked;el.classList.toggle('active',+el.dataset.phase===state.phase);el.classList.toggle('done',+el.dataset.phase<state.phase);if(+el.dataset.phase===state.phase)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});
   applyLock();
   $('#profileName').value=activeProfile?.name||state.profile?.name||'';
   $('#profileClass').value=activeProfile?.classInfo||state.profile?.classInfo||'';
@@ -844,11 +858,12 @@ $('#profileForm').onsubmit=event=>{
   if(!classInfo||!email)return;
   clearInterval(timerHandle);state.running=false;save();clearTimeout(saveTimer);const profile={name,classInfo,email};
   if(!isTeacher(profile)){
-    if(state.profile?.email!==email){
-      const previous=storedRecords().filter(r=>r.profile?.email===email).sort((a,b)=>Date.parse(b.savedAt)-Date.parse(a.savedAt))[0];
-      if(previous)state=previous;
-      else if(!state.profile||state.profile.email)state=freshState(profile);
+    // Resume only this learner's unfinished work. A completed record remains
+    // available to teachers; an explicit new login starts an editable attempt.
+    if(!sameLearner(state.profile,profile)||state.submitted) {
+      state=unfinishedRecord(profile)||freshState(profile);
     }
+    drawingChanged=false;drawingTool='pencil';
     state.profile=profile;
   }
   activeProfile=profile;activeSince=Date.now();

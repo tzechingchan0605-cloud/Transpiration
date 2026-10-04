@@ -20,6 +20,7 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   await page.locator('#designNext').click();assert.equal(await page.locator('#phase-2').isVisible(),true);
   assert.equal(await page.locator('#assumptionReason,#controlNeed,#saveControl,#controlScaffold,[data-lamp]').count(),0);
   assert.equal(await page.locator('#equipmentBank .equipment').count(),6);
+  assert.equal(await page.locator('#equipmentBank .lamp-beam').getAttribute('d'),'M69 12L98 3V65L61 40Z');await page.locator('#equipmentBank').screenshot({path:'/tmp/vl2-materials.png'});
   const materials=await page.locator('#equipmentBank').innerText();for(const t of ['西芹 ×4','檯燈 ×4','紅色水杯 ×4','30 cm 尺子 ×4','剪刀 ×1','計時器 ×1'])assert(materials.includes(t));
   await page.locator('#prediction').selectOption('decrease');await page.locator('#reason').fill('我預測強光可能令水跡變慢，需要量度才能知道。');
   await page.locator('[data-group=iv]').first().click();await page.locator('[data-group=dv]').nth(1).click();for(let i=2;i<7;i++)await page.locator('[data-group=cv]').nth(i).click();
@@ -45,6 +46,7 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   }
   await page.screenshot({path:'/tmp/vl2-experiment.png',fullPage:true});await page.locator('#experimentNext').click();
   assert.equal(await page.locator('.formula,#evidence').count(),0);assert(!(await page.locator('#calculationGrid').innerText()).includes('÷'));assert.equal(await page.locator('.graph-settings select').count(),0);
+  assert.equal(await page.locator('#studentGraph .graph-inline-legend').count(),0);assert.equal(await page.locator('.graph-legend').count(),1);assert.match(await page.locator('.graph-legend').innerText(),/裝置D（獨立比較點）/);
   const rates=await page.evaluate(()=>Object.fromEntries(IDS.map(id=>[id,expectedRate(state,id).toFixed(3)])));rates.D='0.120';
   for(const id of ['A','B','C','D'])await page.locator('#rate-'+id).fill(rates[id]);
   for(const[id,x]of Object.entries({A:1200,B:300,C:133,D:300})){await page.locator('#point-x-'+id).fill(String(x));await page.locator('#point-y-'+id).fill(rates[id]);await page.locator(`[data-plot=${id}]`).click();}
@@ -89,10 +91,33 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   execFileSync('python',['tests/excel_scores.py'],{stdio:'inherit'});
   await page.reload();assert.equal(await page.locator('#teacherDialog').isVisible(),true);await page.locator('#closeTeacher').click();await page.locator('#profileButton').click();await login(page,'另一位同學','S4X1-06','p013@example.edu.hk');
   assert.equal(await page.locator('#teacherButton').isVisible(),false);assert.equal(await page.locator('#phase-1').isVisible(),true);assert.equal(await page.locator('#observation').isDisabled(),false);assert.equal(await page.evaluate(()=>storedRecords().filter(r=>r.submitted).length),1);
+  // A shared email does not identify two students as the same learner.
+  await page.locator('#observation').fill('第二位學生自己的初步觀察');await page.locator('#orientationNext').click();
+  const secondId=await page.evaluate(()=>state.id);
+  await page.locator('#profileButton').click();await login(page,'共用電郵另一位','S4X1-07','p013@example.edu.hk');
+  assert.equal(await page.locator('#phase-1').isVisible(),true);assert.equal(await page.locator('#observation').inputValue(),'');assert.equal(await page.locator('#observation').isDisabled(),false);assert.notEqual(await page.evaluate(()=>state.id),secondId);
+  await page.locator('#profileButton').click();await login(page,'另一位同學','S4X1-06','p013@example.edu.hk');
+  assert.equal(await page.evaluate(()=>state.id),secondId);assert.equal(await page.locator('#phase-2').isVisible(),true);assert.equal(await page.locator('#observation').inputValue(),'第二位學生自己的初步觀察');assert.equal(await page.locator('#prediction').isDisabled(),false);
+  // Explicit login after completing an attempt creates an editable attempt;
+  // reloading the completed attempt earlier still preserved its own PDF.
+  await page.locator('#profileButton').click();await login(page,'陳小明','S4X1-05','p012@example.edu.hk');
+  assert.notEqual(await page.evaluate(()=>state.id),record.id);assert.equal(await page.locator('.step.done').count(),0);assert.equal(await page.locator('#phase-1').isVisible(),true);assert.equal(await page.locator('#observation').isDisabled(),false);assert.equal(await page.locator('#observation').inputValue(),'');
+  assert.equal(await page.evaluate(id=>storedRecords().find(r=>r.id===id).submitted,record.id),true);
+  await page.locator('#observation').fill('重新登入後可開始新探究');await page.locator('#orientationNext').click();assert.equal(await page.locator('#phase-2').isVisible(),true);
+  // Legacy records with no email must not transfer answers to a new profile.
+  const legacyContext=await browser.newContext(),legacyPage=await legacyContext.newPage();legacyPage.on('pageerror',e=>errors.push(e.message));
+  const noEmail=structuredClone(parsed);delete noEmail.profile.email;
+  await legacyContext.addInitScript(r=>{localStorage.setItem('transpirationLab.current.v1',JSON.stringify(r));localStorage.setItem('transpirationLab.records.v1',JSON.stringify([r]));localStorage.removeItem('transpirationLab.profile.v1');},noEmail);
+  await legacyPage.goto(LAB_URL);await login(legacyPage,'新學生','S4X2-01','new@example.edu.hk');
+  assert.equal(await legacyPage.locator('#observation').inputValue(),'');assert.equal(await legacyPage.locator('#observation').isDisabled(),false);assert.notEqual(await legacyPage.evaluate(()=>state.id),parsed.id);assert.equal(await legacyPage.evaluate(()=>storedRecords().some(r=>r.submitted)),true);await legacyContext.close();
+  // A stale active profile/current-record mismatch also recovers on page load.
+  const staleContext=await browser.newContext(),stalePage=await staleContext.newPage();stalePage.on('pageerror',e=>errors.push(e.message));
+  await staleContext.addInitScript(r=>{localStorage.setItem('transpirationLab.current.v1',JSON.stringify(r));localStorage.setItem('transpirationLab.records.v1',JSON.stringify([r]));localStorage.setItem('transpirationLab.profile.v1',JSON.stringify({name:'另一位學生',classInfo:'S4X2-02',email:'other@example.edu.hk'}));},parsed);
+  await stalePage.goto(LAB_URL);assert.equal(await stalePage.locator('#observation').inputValue(),'');assert.equal(await stalePage.locator('#observation').isDisabled(),false);assert.equal(await stalePage.evaluate(()=>state.profile.email),'other@example.edu.hk');await staleContext.close();
   const other=await browser.newContext({viewport:{width:1280,height:900}}),teacher=await other.newPage();teacher.on('pageerror',e=>errors.push(e.message));await teacher.goto(LAB_URL);await login(teacher,'教師','教師',TEACHER);
   await teacher.locator('#importRecords').setInputFiles('/tmp/vl2-record.json');await teacher.waitForFunction(()=>document.querySelector('#importStatus').textContent.includes('已處理 1'));assert.match(await teacher.locator('#teacherData').innerText(),/陳小明/);
   const legacy=structuredClone(parsed);legacy.id+='-legacy';delete legacy.uiVersion;legacy.form.evidence='先前版本的證據文字';delete legacy.form.leafComparison;legacy.variables.iv=['光照強度'];legacy.profile.name='舊版同學';await fs.writeFile('/tmp/vl2-legacy-import.json',JSON.stringify(legacy));
   await teacher.locator('#importRecords').setInputFiles('/tmp/vl2-legacy-import.json');await teacher.waitForFunction(()=>document.querySelector('#teacherData').textContent.includes('舊版同學'));assert.equal(await teacher.evaluate(()=>storedRecords().find(r=>r.profile.name==='舊版同學').form.evidence),'先前版本的證據文字');
-  assert.deepEqual(errors,[]);await other.close();console.log('PASS: revised student flow, one-decimal readings, 0.5 steps, horizontal ruler, equal dye, autoscroll, fixed axes, smooth curve, structured answers, anatomy, reflection submission gate/reload, original hypothesis, inline PDF ticks/crosses and ungraded open answers, teacher login/switch/reload, XLSX drawings, JSON import, old records, mobile.');
+  assert.deepEqual(errors,[]);await other.close();console.log('PASS: revised student flow, one-decimal readings, 0.5 steps, horizontal ruler, equal dye, autoscroll, fixed axes, smooth curve, structured answers, anatomy, reflection submission gate/reload, original hypothesis, inline PDF ticks/crosses and ungraded open answers, teacher login/switch/reload, completed/legacy/shared-email learner isolation and own unfinished resume, single graph legend, front-facing lamp, XLSX drawings, JSON import, old records, mobile.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});
