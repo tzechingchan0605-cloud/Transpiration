@@ -554,9 +554,13 @@ function updateReflection() {
   $('#originalHypothesis').innerHTML=`<strong>你的原始假說</strong><p>${esc(hypothesisText(state))}</p><p>原始理由：${esc(original.reason||'未回答')}</p>`;
   $('#reflection').disabled=complete;
   $('#saveReflection').disabled=!state.submitted||complete;
-  $('#saveReflection').textContent=complete?'✓ 學習反思已提交':'儲存並提交學習反思';
+  $('#saveReflection').textContent=isTeacher()?(complete?'✓ 已完成反思示範':'完成反思示範'):(complete?'✓ 學習反思已提交':'儲存並提交學習反思');
   $('#downloadPDF').disabled=!complete;
-  $('#reflectionStatus').textContent=complete?'學習反思已儲存並提交，可以下載學習紀錄 PDF。':'提交學習反思後，便可下載學習紀錄 PDF。';
+  $('.complete-bar').hidden=false;
+  $('.complete-bar strong').textContent=isTeacher()?'本次示範已完成':'本次探究已遞交';
+  $('.complete-bar p').textContent=isTeacher()?'可下載示範 PDF；教師操作不會儲存至學生紀錄或 Excel。':'原始答案、量度、計算及圖表已儲存在這部瀏覽器。';
+  $('#downloadPDF').textContent=isTeacher()?'列印／儲存示範 PDF':'列印／儲存學習紀錄 PDF';
+  $('#reflectionStatus').textContent=isTeacher()?(complete?'反思示範已完成，可以下載示範 PDF；不會儲存至學生紀錄或 Excel。':'完成反思示範後可下載 PDF；示範操作不會儲存至學生紀錄或 Excel。'):complete?'學習反思已儲存並提交，可以下載學習紀錄 PDF。':'提交學習反思後，便可下載學習紀錄 PDF。';
 }
 function answerMark(correct) {
   return correct===null?'':`<span class="answer-mark ${correct?'correct':'incorrect'}" aria-label="${correct?'正確':'錯誤'}">${correct?'✓':'✕'}</span>`;
@@ -861,9 +865,9 @@ function renderTeacherDashboard(){
   });
 }
 function refreshProfileUI(){
-  $('#studentName').textContent=isTeacher()?'教師':activeProfile?.name||'同學';
+  $('#studentName').textContent=isTeacher()?'教師示範':activeProfile?.name||'同學';
   $('.avatar').textContent=isTeacher()?'師':activeProfile?.name?.[0]||'同';
-  $('#teacherButton').hidden=!isTeacher();$('main').inert=!activeProfile?.email||isTeacher();
+  $('#teacherButton').hidden=!isTeacher();$('main').inert=!activeProfile?.email;
 }
 function reportFilename(record){
   const safe=value=>String(value||'未填寫').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'_').trim();
@@ -922,11 +926,8 @@ $('#profileForm').onsubmit=event=>{
   const classInfo=$('#profileClass').value.trim(),email=$('#profileEmail').value.trim().toLowerCase();
   if(!classInfo||!email)return;
   clearInterval(timerHandle);state.running=false;save();clearTimeout(saveTimer);const profile={name,classInfo,email};
-  if(!isTeacher(profile)){
-    state=freshState(profile);
-    drawingChanged=false;drawingTool='pencil';
-    state.profile=profile;
-  }
+  state=freshState(profile);
+  drawingChanged=false;drawingTool='pencil';
   activeProfile=profile;activeSince=Date.now();
   try{localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));}catch{toast('未能保存學習者資料。');}
   $('#profileDialog').close();init();log('profile_saved');save();
@@ -968,20 +969,21 @@ $('#saveReflection').onclick=()=>{
   if(!$('#reflection').value.trim()){incomplete('請先寫下你的學習反思。','#reflection');return;}
   readForm();state.reflectionSubmittedAt=new Date().toISOString();
   log('reflection_submitted',{value:state.form.reflection});save();updateReflection();
-  toast('學習反思已儲存並提交，可以下載學習紀錄 PDF。');
+  toast(isTeacher()?'反思示範已完成，可以下載 PDF；不會儲存至學生紀錄或 Excel。':'學習反思已儲存並提交，可以下載學習紀錄 PDF。');
 };
 $('#downloadPDF').onclick=async()=>{
   if(!reflectionComplete()){toast('請先儲存並提交學習反思，才可下載學習紀錄 PDF。');return;}
   save();log('pdf_print_requested');save();await printRecord(state);
 };
 $('#newInvestigation').onclick=()=>{
-  if(!confirm('開始新的探究？本次紀錄會保留於本機，教師儀表板可查看。未遞交的答案亦會保存。'))return;
+  if(!confirm(isTeacher()?'重新開始教師示範？重新載入後需再次登入，示範操作不會保存。':'開始新的探究？本次紀錄會保留於本機，教師儀表板可查看。未遞交的答案亦會保存。'))return;
   save();clearInterval(timerHandle);clearTimeout(saveTimer);
   allowUnload=true; // The button already obtained confirmation.
   location.reload();
 };
 $('#teacherButton').onclick=()=>{if(!isTeacher())return;renderTeacherDashboard();$('#teacherDialog').showModal();};
-$('#closeTeacher').onclick=()=>$('#teacherDialog').close();$('#exportExcel').onclick=exportExcel;
+$('#closeTeacher').onclick=()=>$('#teacherDialog').close();
+$('#teacherDemo').onclick=()=>{if(!isTeacher())return;$('#teacherDialog').close();phase(state.phase);toast('教師示範模式：可以進行完整探究，操作不會加入學生紀錄。');};$('#exportExcel').onclick=exportExcel;
 $('#teacherPDF').onclick=()=>{if(isTeacher()&&previewRecord)return printRecord(previewRecord);};
 $('#importRecords').onchange=async event=>{
   if(!isTeacher())return;
