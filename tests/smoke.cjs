@@ -1,120 +1,78 @@
-const {chromium} = require('playwright');
-const assert = require('node:assert/strict');
-const fs = require('node:fs/promises');
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+const fs=require('node:fs/promises');
 const {execFileSync}=require('node:child_process');
-
+const LAB_URL=process.env.LAB_URL||'http://127.0.0.1:8000';
+const TEACHER='tzechingchan0605@gmail.com';
+async function login(p,name,cl,email){for(const[id,v]of Object.entries({profileName:name,profileClass:cl,profileEmail:email}))await p.locator('#'+id).fill(v);await p.locator('#profileForm button[type=submit]').click();}
+async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(svg=>{const c=[...svg.querySelectorAll('.dye-column')];return c.length===2&&['y','height','fill','width'].every(a=>c[0].getAttribute(a)===c[1].getAttribute(a));}),true);}
 (async()=>{
-  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
-  const context=await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true,reducedMotion:'reduce'});
-  const page=await context.newPage();const errors=[];
-  page.on('pageerror',e=>errors.push(e.message));
-  try{
-    await page.goto('http://127.0.0.1:8000');
-    await page.locator('#profileName').fill('P012');await page.locator('#profileClass').fill('S4X1');
-    await page.locator('#profileForm button[type=submit]').click();
-    await page.screenshot({path:'/tmp/vl2-orientation.png',fullPage:true});
-    await page.locator('#orientationNext').click();
-    assert.equal(await page.locator('#phase-1').isVisible(),true,'empty observation must block progress');
-    await page.locator('#observation').fill('西芹長柄內出現向上延伸的紅色水跡。');
-    await page.locator('#orientationNext').click();
-    await page.locator('#designNext').click();
-    assert.equal(await page.locator('#phase-2').isVisible(),true,'incomplete design must block progress');
-    await page.locator('#prediction').selectOption('decrease');
-    await page.locator('#reason').fill('我預測強光可能令水跡變慢，需要量度才能知道。');
-    await page.locator('[data-group=iv]').first().click();
-    await page.locator('[data-group=dv]').nth(1).click();
-    for(let i=2;i<7;i++)await page.locator('[data-group=cv]').nth(i).click();
-    await page.locator('#assumptionChoices input[value=temperature]').check();
-    await page.locator('#assumptionChoices input[value=equalArea]').check();
-    await page.locator('#assumptionChoices input[value=areaIrrelevant]').check();
-    await page.locator('#assumptionReason').fill('若溫度不同，就不能確定差異由光照造成。');
-    await page.locator('#controlNeed').fill('需要對照，以比較葉片有無。');
-    await page.locator('#controlPlan').fill('先用相同光照比較一株帶葉和一株無葉西芹。');
-    await page.locator('#saveControl').click();
-    await page.locator('#controlPlan').fill('修訂後：無葉西芹放在 20 cm，与 B 比較。');
-    await page.locator('#controlPair').selectOption('B');
-    await page.locator('#controlConstants').fill('燈距、濕度、氣流、溫度、西芹長柄粗幼相同。');
-    await page.locator('#setupDescription').fill('四個裝置：A 帶葉10cm，B 帶葉20cm，C 帶葉30cm，D 無葉20cm。浸入紅色水2cm，尺子0對準水面。');
-    await page.locator('#saveSetup').click();await page.locator('#designNext').click();
-    assert.equal(await page.locator('#phase-3').isVisible(),true);
-    assert.equal(await page.locator('#timerButton').isDisabled(),true);
-    assert.equal(await page.locator('#experimentNext').isDisabled(),true);
-    await page.locator('[data-align=A]').click();
-    assert.match(await page.locator('[data-ruler=A]').getAttribute('transform'),/-30,0/);
-    for(const time of [0,10,20,30]){
-      const model=await page.evaluate(()=>state.model);
-      for(const id of ['A','B','C','D'])await page.locator(`[data-time="${time}"][data-measure="${id}"]`).fill(String(model[id][time/10]));
-      await page.locator('#recordMeasurements').click();
-      if(time===10){
-        const input=page.locator('[data-time="10"][data-measure="B"]');
-        await input.fill('2.9');assert.equal(await page.locator('#timerButton').isDisabled(),true);
-        await page.locator('#recordMeasurements').click();
-      }
-      if(time<30){
-        await page.locator('#timerButton').click();
-        await page.waitForFunction(t=>state.currentTime===t&&!state.running,time+10);
-      }
-    }
-    await page.screenshot({path:'/tmp/vl2-experiment.png',fullPage:true});
-    await page.locator('#experimentNext').click();
-    const rates=await page.evaluate(()=>Object.fromEntries(IDS.map(id=>[id,expectedRate(state,id).toFixed(3)])));
-    rates.D='0.120'; // Deliberately wrong: the platform must preserve it, then explain it after submission.
-    for(const id of ['A','B','C','D'])await page.locator('#rate-'+id).fill(rates[id]);
-    await page.locator('#xAxis').selectOption('light');await page.locator('#yAxis').selectOption('rate');
-    for(const[id,x]of Object.entries({A:1200,B:300,C:133,D:300})){
-      await page.locator('#point-x-'+id).fill(String(x));await page.locator('#point-y-'+id).fill(rates[id]);
-      await page.locator(`[data-plot=${id}]`).click();
-    }
-    await page.locator('#connectPoints').click();
-    assert.equal(await page.locator('#studentGraph polyline').count(),1);
-    assert.equal(await page.locator('#studentGraph circle').count(),3,'D must not be a leafy series point');
-    for(const[id,text]of Object.entries({claim:'光照較強的裝置水跡上移較快。',evidence:`A 1200 lux 是 ${rates.A} cm/min，C 133 lux 是 ${rates.C} cm/min。`,leafConclusion:'B 與 D 在相同光照下結果不同，支持葉片參與水分運輸。',limitations:'染料上移不是直接水分散失量，亦不能單獨證明氣孔作用。'}))await page.locator('#'+id).fill(text);
-    await page.screenshot({path:'/tmp/vl2-analysis.png',fullPage:true});
-    await page.locator('#submitInvestigation').click();await page.locator('#confirmSubmit').click();
-    assert.equal(await page.locator('#learningReveal').isVisible(),true);
-    assert.equal(await page.locator('#rate-D').isDisabled(),true);
-    assert.equal(await page.locator('#rate-D').inputValue(),'0.120','incorrect calculation must be preserved');
-    assert.equal(await page.locator('#reason').inputValue(),'我預測強光可能令水跡變慢，需要量度才能知道。');
-    assert.match(await page.locator('#feedbackSummary').innerText(),/不合理/);
-    await page.locator('#reflection').fill('原始預測不獲支持，數據顯示較強光照下水跡上移較快。');await page.locator('#saveReflection').click();
-    await page.reload();
-    assert.equal(await page.locator('#learningReveal').isVisible(),true,'submission must survive reload');
-    assert.equal(await page.locator('#rate-D').isDisabled(),true);
-    assert.match(await page.locator('#reflection').inputValue(),/原始預測/);
-    const record=await page.evaluate(()=>state);
-    assert.equal(record.initialControl.plan,'先用相同光照比較一株帶葉和一株無葉西芹。');
-    assert.equal(record.measurements[10].values.B,'2.9');
-    assert.notEqual(record.measurements[10].firstValues.B,'2.9');
-    await page.evaluate(()=>{window.print=()=>window.printCalled=true;});
-    await page.locator('#downloadPDF').click();await page.waitForFunction(()=>window.printCalled);
-    const report=await page.locator('#printReport').innerText();
-    assert.match(report,/此探究的假設是什麼/);assert.match(report,/我的假設解釋/);assert.match(report,/葉面積/);
-    assert.match(report,/原始預測不獲支持/);assert(!report.includes('undefined'));
-    await page.emulateMedia({media:'print'});
-    await page.pdf({path:'/tmp/vl2-report.pdf',format:'A4',printBackground:true});
-    await page.emulateMedia({media:'screen'});
-    const jsonDownload=page.waitForEvent('download');await page.locator('#downloadJSON').click();
-    const jsonFile=await jsonDownload;await jsonFile.saveAs('/tmp/vl2-record.json');
-    const parsed=JSON.parse(await fs.readFile('/tmp/vl2-record.json','utf8'));assert.equal(parsed.submitted,true);
-    await page.locator('#recordsButton').click();
-    const excelDownload=page.waitForEvent('download');await page.locator('#exportExcel').click();
-    await(await excelDownload).saveAs('/tmp/vl2-records.xlsx');
-    execFileSync('python',['-c',`from zipfile import ZipFile\nfrom xml.etree import ElementTree as ET\nwith ZipFile('/tmp/vl2-records.xlsx') as z:\n assert z.testzip() is None\n for n in z.namelist(): ET.fromstring(z.read(n))\n assert len([n for n in z.namelist() if n.startswith('xl/worksheets/')])==3\n`]);
-    await page.locator('#closeRecords').click();
-    // Phone layout and touch alternative.
-    const mobile=await context.newPage();await mobile.setViewportSize({width:390,height:844});await mobile.goto('http://127.0.0.1:8000');
-    await mobile.screenshot({path:'/tmp/vl2-mobile.png',fullPage:true});
-    assert.equal(await mobile.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true,'mobile page must not overflow horizontally');
-    await mobile.locator('[data-phase="3"]').click();assert.equal(await mobile.locator('[data-align=D]').isDisabled(),true);
-    // Import from another device and ensure a real record is visible.
-    const other=await browser.newContext({viewport:{width:1280,height:900}});const teacher=await other.newPage();
-    await teacher.goto('http://127.0.0.1:8000');await teacher.locator('#profileName').fill('資料整理');await teacher.locator('#profileForm button[type=submit]').click();
-    await teacher.locator('#recordsButton').click();await teacher.locator('#importRecords').setInputFiles('/tmp/vl2-record.json');
-    await teacher.waitForFunction(()=>document.querySelector('#importStatus').textContent.includes('已處理 1'));
-    assert.match(await teacher.locator('#recordsBody').innerText(),/P012/);
-    assert.deepEqual(errors,[],'no browser errors');
-    console.log('PASS: full inquiry, gates, measurements/revisions, graph, locked submission, reload, PDF, JSON, XLSX, import and mobile layout.');
-    console.log('Artifacts: /tmp/vl2-orientation.png, /tmp/vl2-experiment.png, /tmp/vl2-analysis.png, /tmp/vl2-mobile.png, /tmp/vl2-report.pdf, /tmp/vl2-records.xlsx');
-    await other.close();
-  }finally{await browser.close();}
-})().catch(error=>{console.error(error);process.exit(1);});
+ const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
+ const context=await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true,reducedMotion:'reduce'});
+ const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ try{
+  await page.goto(LAB_URL);await page.screenshot({path:'/tmp/vl2-profile.png'});
+  await login(page,'陳小明','S4X1-05','p012@example.edu.hk');
+  assert.equal(await page.locator('#teacherButton').isVisible(),false);
+  assert(!(await page.locator('.prompt-card').innerText()).includes('發現葉柄內逐漸出現向上延伸'));await dye(page,'#sceneAfter svg');
+  await page.locator('#orientationNext').click();assert.equal(await page.locator('#phase-1').isVisible(),true);
+  await page.locator('#observation').fill('西芹長柄內出現向上延伸的紅色水跡。');await page.locator('#orientationNext').click();
+  await page.locator('#designNext').click();assert.equal(await page.locator('#phase-2').isVisible(),true);
+  assert.equal(await page.locator('#assumptionReason,#controlNeed,#saveControl,#controlScaffold,[data-lamp]').count(),0);
+  assert.equal(await page.locator('#equipmentBank .equipment').count(),6);
+  const materials=await page.locator('#equipmentBank').innerText();for(const t of ['西芹 ×4','檯燈 ×4','紅色水杯 ×4','30 cm 尺子 ×4','剪刀 ×1','計時器 ×1'])assert(materials.includes(t));
+  await page.locator('#prediction').selectOption('decrease');await page.locator('#reason').fill('我預測強光可能令水跡變慢，需要量度才能知道。');
+  await page.locator('[data-group=iv]').first().click();await page.locator('[data-group=dv]').nth(1).click();for(let i=2;i<7;i++)await page.locator('[data-group=cv]').nth(i).click();
+  for(const v of ['temperature','equalArea','areaIrrelevant'])await page.locator(`#assumptionChoices input[value=${v}]`).check();
+  await page.locator('#controlPlan').fill('不帶葉西芹放在 20 cm，與裝置B 比較，其他條件相同。');
+  await page.locator('#setupDescription').fill('裝置A帶葉10cm、裝置B帶葉20cm、裝置C帶葉30cm、裝置D無葉20cm，各浸入紅色水2cm。');
+  await page.locator('#setupCanvas').scrollIntoViewIfNeeded();const cb=await page.locator('#setupCanvas').boundingBox();
+  await page.mouse.move(cb.x+70,cb.y+70);await page.mouse.down();await page.mouse.move(cb.x+140,cb.y+130);await page.mouse.up();await page.locator('#saveSetup').click();
+  await page.screenshot({path:'/tmp/vl2-design.png',fullPage:true});await page.locator('#designNext').click();
+  assert.equal(await page.locator('#initialReadingReminder').isVisible(),true);assert.equal(await page.locator('#timerButton').isDisabled(),true);assert.equal(await page.locator('[data-dy]').count(),0);
+  await page.locator('[data-ruler=A]').scrollIntoViewIfNeeded();const rb=await page.locator('[data-ruler=A]').boundingBox();
+  await page.mouse.move(rb.x+15,rb.y+100);await page.mouse.down();await page.mouse.move(rb.x-25,rb.y+160);await page.mouse.up();
+  assert.equal(await page.evaluate(()=>state.ruler.A.y),0);assert((await page.evaluate(()=>state.ruler.A.x))<0);
+  const first=page.locator('[data-time="0"][data-measure="A"]');await first.fill('0.0');await first.press('ArrowUp');assert.equal(await first.inputValue(),'0.5');await first.press('ArrowDown');assert.equal(await first.inputValue(),'0.0');
+  await page.locator('[data-adjust-time="0"][data-adjust-id=A][data-amount="0.5"]').click();assert.equal(await first.inputValue(),'0.5');await page.locator('[data-adjust-time="0"][data-adjust-id=A][data-amount="-0.5"]').click();assert.equal(await first.inputValue(),'0.0');
+  for(const t of [0,10,20,30]){
+   const m=await page.evaluate(()=>state.model);for(const id of ['A','B','C','D'])await page.locator(`[data-time="${t}"][data-measure="${id}"]`).fill(String(m[id][t/10]));
+   if(t===0){await first.fill('0.05');await page.locator('#recordMeasurements').click();assert.equal(await page.locator('#timerButton').isDisabled(),true);await first.fill('0.0');}
+   await page.locator('#recordMeasurements').click();assert(Math.abs(await page.locator('.timer-bar').evaluate(el=>el.getBoundingClientRect().top))<50);
+   assert.equal(await page.locator(`[data-time="${t}"][data-measure="A"]`).inputValue(),Number(m.A[t/10]).toFixed(1));
+   if(t===10){await page.locator('[data-time="10"][data-measure="B"]').fill('2.9');assert.equal(await page.locator('#timerButton').isDisabled(),true);await page.locator('#recordMeasurements').click();}
+   if(t<30){await page.locator('#timerButton').click();assert(Math.abs(await page.locator('#labBench').evaluate(el=>el.getBoundingClientRect().top))<50);await page.waitForFunction(time=>state.currentTime===time&&!state.running,t+10);for(const id of ['A','B','C','D'])await dye(page,'#specimen-'+id);}
+  }
+  await page.screenshot({path:'/tmp/vl2-experiment.png',fullPage:true});await page.locator('#experimentNext').click();
+  assert.equal(await page.locator('.formula,#evidence').count(),0);assert(!(await page.locator('#calculationGrid').innerText()).includes('÷'));assert.equal(await page.locator('.graph-settings select').count(),0);
+  const rates=await page.evaluate(()=>Object.fromEntries(IDS.map(id=>[id,expectedRate(state,id).toFixed(3)])));rates.D='0.120';
+  for(const id of ['A','B','C','D'])await page.locator('#rate-'+id).fill(rates[id]);
+  for(const[id,x]of Object.entries({A:1200,B:300,C:133,D:300})){await page.locator('#point-x-'+id).fill(String(x));await page.locator('#point-y-'+id).fill(rates[id]);await page.locator(`[data-plot=${id}]`).click();}
+  await page.locator('#connectPoints').click();assert.match(await page.locator('#studentGraph .student-curve').getAttribute('d'),/C/);assert.equal(await page.locator('#studentGraph circle').count(),3);
+  for(const[id,v]of Object.entries({claim:'increase',leafComparison:'faster',leafConclusion:'promotes',limitations:'indirect'}))await page.locator('#'+id).selectOption(v);
+  await page.screenshot({path:'/tmp/vl2-analysis.png',fullPage:true});await page.locator('#submitInvestigation').click();await page.locator('#confirmSubmit').click();
+  assert.equal(await page.locator('#learningReveal').isVisible(),true);assert.equal(await page.locator('#rate-D').isDisabled(),true);assert.equal(await page.locator('#rate-D').inputValue(),'0.120');
+  assert.match(await page.locator('#feedbackSummary').innerText(),/不合理/);assert.match(await page.locator('#mechanismDiagram').innerText(),/木質導管/);
+  await page.locator('#reflection').fill('原始預測不獲支持，數據顯示較強光照下水跡上移較快。');await page.locator('#saveReflection').click();await page.reload();
+  assert.equal(await page.locator('#claim').isDisabled(),true);assert.equal(await page.locator('#claim').inputValue(),'increase');
+  const record=await page.evaluate(()=>state);assert.match(record.initialDesign.form.controlPlan,/不帶葉/);assert.equal(record.measurements[10].values.B,'2.9');assert.notEqual(record.measurements[10].firstValues.B,'2.9');
+  await page.evaluate(()=>{window.print=()=>window.printCalled=true;});await page.locator('#downloadPDF').click();await page.waitForFunction(()=>window.printCalled);
+  const report=await page.locator('#printReport').innerText();for(const t of ['此探究的假設是什麼','葉面積','原始預測不獲支持','水膜','氣室','當光強度增加時'])assert(report.includes(t));assert(!report.includes('我的假設解釋'));assert(!report.includes('undefined'));
+  await page.emulateMedia({media:'print'});await page.pdf({path:'/tmp/vl2-report.pdf',format:'A4',printBackground:true});await page.emulateMedia({media:'screen'});
+  const jd=page.waitForEvent('download');await page.locator('#downloadJSON').click();await(await jd).saveAs('/tmp/vl2-record.json');const parsed=JSON.parse(await fs.readFile('/tmp/vl2-record.json','utf8'));assert.equal(parsed.uiVersion,2);
+  const mobile=await context.newPage();await mobile.setViewportSize({width:390,height:844});await mobile.goto(LAB_URL);assert.equal(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await mobile.locator('#mechanismDiagram').screenshot({path:'/tmp/vl2-anatomy.png'});await mobile.screenshot({path:'/tmp/vl2-mobile.png',fullPage:true});await mobile.close();
+  await page.locator('#profileButton').click();await login(page,'教師','教師',TEACHER);assert.equal(await page.locator('#teacherDialog').isVisible(),true);assert.equal(await page.locator('#teacherButton').isVisible(),true);
+  assert.match(await page.locator('#teacherData').innerText(),/陳小明/);assert(!(await page.locator('#teacherData').innerText()).includes(TEACHER));
+  await page.locator('[data-view-record]').first().click();assert.match(await page.locator('#teacherReport').innerText(),/葉片有助水分向上運輸/);await page.screenshot({path:'/tmp/vl2-teacher.png'});
+  const xd=page.waitForEvent('download');await page.locator('#exportExcel').click();await(await xd).saveAs('/tmp/vl2-records.xlsx');
+  execFileSync('python',['-c',`from zipfile import ZipFile\nfrom xml.etree import ElementTree as ET\nfrom openpyxl import load_workbook\nwith ZipFile('/tmp/vl2-records.xlsx') as z:\n assert z.testzip() is None\n for n in z.namelist():\n  if n.endswith('.xml') or n.endswith('.rels'): ET.fromstring(z.read(n))\n assert any(n.startswith('xl/media/') for n in z.namelist())\nw=load_workbook('/tmp/vl2-records.xlsx')\nassert len(w.sheetnames)==4\nassert w['學生探究答案']['B2'].value=='陳小明'\nassert len(w['裝置設計圖']._images)==1\n`]);
+  await page.reload();assert.equal(await page.locator('#teacherDialog').isVisible(),true);await page.locator('#closeTeacher').click();await page.locator('#profileButton').click();await login(page,'另一位同學','S4X1-06','p013@example.edu.hk');
+  assert.equal(await page.locator('#teacherButton').isVisible(),false);assert.equal(await page.locator('#phase-1').isVisible(),true);assert.equal(await page.locator('#observation').isDisabled(),false);assert.equal(await page.evaluate(()=>storedRecords().filter(r=>r.submitted).length),1);
+  const other=await browser.newContext({viewport:{width:1280,height:900}}),teacher=await other.newPage();teacher.on('pageerror',e=>errors.push(e.message));await teacher.goto(LAB_URL);await login(teacher,'教師','教師',TEACHER);
+  await teacher.locator('#importRecords').setInputFiles('/tmp/vl2-record.json');await teacher.waitForFunction(()=>document.querySelector('#importStatus').textContent.includes('已處理 1'));assert.match(await teacher.locator('#teacherData').innerText(),/陳小明/);
+  const legacy=structuredClone(parsed);legacy.id+='-legacy';delete legacy.uiVersion;legacy.form.evidence='先前版本的證據文字';delete legacy.form.leafComparison;legacy.variables.iv=['光照強度'];legacy.profile.name='舊版同學';await fs.writeFile('/tmp/vl2-legacy-import.json',JSON.stringify(legacy));
+  await teacher.locator('#importRecords').setInputFiles('/tmp/vl2-legacy-import.json');await teacher.waitForFunction(()=>document.querySelector('#teacherData').textContent.includes('舊版同學'));assert.equal(await teacher.evaluate(()=>storedRecords().find(r=>r.profile.name==='舊版同學').form.evidence),'先前版本的證據文字');
+  assert.deepEqual(errors,[]);await other.close();console.log('PASS: revised student flow, one-decimal readings, 0.5 steps, horizontal ruler, equal dye, autoscroll, fixed axes, smooth curve, structured answers, anatomy, PDF, teacher login/switch/reload, XLSX drawings, JSON import, old records, mobile.');
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exit(1);});
