@@ -5,6 +5,7 @@ const {execFileSync}=require('node:child_process');
 const LAB_URL=process.env.LAB_URL||'http://127.0.0.1:8000';
 const TEACHER='tzechingchan0605@gmail.com';
 async function login(p,name,cl,email){for(const[id,v]of Object.entries({profileName:name,profileClass:cl,profileEmail:email}))await p.locator('#'+id).fill(v);await p.locator('#profileForm button[type=submit]').click();}
+async function reloadToLogin(p){p.once('dialog',async d=>{assert.equal(d.type(),'beforeunload');await d.accept();});await p.reload();assert.equal(await p.locator('#profileDialog').isVisible(),true);assert.equal(await p.locator('#profileName').inputValue(),'');assert.equal(await p.locator('#observation').inputValue(),'');assert.equal(await p.locator('#teacherButton').isVisible(),false);assert.equal(await p.locator('main').evaluate(el=>el.inert),true);}
 async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(svg=>{const c=[...svg.querySelectorAll('.dye-column')];return c.length===2&&['y','height','fill','width'].every(a=>c[0].getAttribute(a)===c[1].getAttribute(a));}),true);}
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
@@ -60,7 +61,7 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   assert.match(await page.locator('#originalHypothesis').innerText(),/需要量度才能知道/);
   await page.locator('#saveReflection').click();assert.equal(await page.locator('#downloadPDF').isDisabled(),true);
   await page.evaluate(async()=>{window.print=()=>window.printCalled=true;await document.querySelector('#downloadPDF').onclick();});assert.equal(await page.evaluate(()=>!!window.printCalled),false);assert.match(await page.locator('#mechanismDiagram').innerText(),/木質導管/);
-  await page.locator('#reflection').fill('原始預測不獲支持，數據顯示較強光照下水跡上移較快。');assert.equal(await page.locator('#downloadPDF').isDisabled(),true);await page.reload();assert.equal(await page.locator('#downloadPDF').isDisabled(),true);await page.locator('#saveReflection').click();await page.reload();assert.equal(await page.locator('#downloadPDF').isDisabled(),false);assert.equal(await page.locator('#reflection').isDisabled(),true);assert.equal(await page.locator('#saveReflection').isDisabled(),true);
+  await page.locator('#reflection').fill('原始預測不獲支持，數據顯示較強光照下水跡上移較快。');assert.equal(await page.locator('#downloadPDF').isDisabled(),true);await page.locator('#saveReflection').click();assert.equal(await page.locator('#downloadPDF').isDisabled(),false);assert.equal(await page.locator('#reflection').isDisabled(),true);assert.equal(await page.locator('#saveReflection').isDisabled(),true);
   assert.equal(await page.locator('#claim').isDisabled(),true);assert.equal(await page.locator('#claim').inputValue(),'increase');
   const record=await page.evaluate(()=>state);assert.match(record.initialDesign.form.controlPlan,/不帶葉/);assert.equal(record.measurements[10].values.B,'2.9');assert.notEqual(record.measurements[10].firstValues.B,'2.9');
   await page.evaluate(()=>{window.print=()=>window.printCalled=true;});await page.locator('#downloadPDF').click();await page.waitForFunction(()=>window.printCalled);
@@ -72,8 +73,13 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   await page.emulateMedia({media:'print'});await page.pdf({path:'/tmp/vl2-report.pdf',format:'A4',printBackground:true});await page.emulateMedia({media:'screen'});
   const parsed=await page.evaluate(()=>state);await fs.writeFile('/tmp/vl2-record.json',JSON.stringify(parsed));assert.equal(parsed.uiVersion,2);assert(parsed.reflectionSubmittedAt);
   const mobile=await context.newPage();await mobile.setViewportSize({width:390,height:844});await mobile.goto(LAB_URL);assert.equal(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await mobile.locator('#mechanismDiagram').screenshot({path:'/tmp/vl2-anatomy.png'});await mobile.screenshot({path:'/tmp/vl2-mobile.png',fullPage:true});await mobile.close();
-  await page.locator('#profileButton').click();await login(page,'教師','教師',TEACHER);assert.equal(await page.locator('#teacherDialog').isVisible(),true);assert.equal(await page.locator('#teacherButton').isVisible(),true);
+  assert.equal(await mobile.locator('#profileDialog').isVisible(),true);await login(mobile,'教師','教師',TEACHER);await mobile.locator('[data-view-record]').first().click();await mobile.locator('#teacherReport .structure-wrap').screenshot({path:'/tmp/vl2-anatomy.png'});await mobile.screenshot({path:'/tmp/vl2-mobile.png',fullPage:true});await mobile.close();
+  // The explicit new-investigation button has one confirmation, then login.
+  const buttonDialogs=[];const buttonLoad=page.waitForEvent('load');
+  const buttonDialog=async d=>{buttonDialogs.push(d.type());assert.equal(d.type(),'confirm');assert.match(d.message(),/開始新的探究/);await d.accept();};
+  page.on('dialog',buttonDialog);await page.locator('#newInvestigation').click();await buttonLoad;page.off('dialog',buttonDialog);
+  assert.deepEqual(buttonDialogs,['confirm']);assert.equal(await page.locator('#profileDialog').isVisible(),true);assert.equal(await page.locator('#observation').inputValue(),'');
+  await login(page,'教師','教師',TEACHER);assert.equal(await page.locator('#teacherDialog').isVisible(),true);assert.equal(await page.locator('#teacherButton').isVisible(),true);
   assert.match(await page.locator('#teacherData').innerText(),/陳小明/);assert(!(await page.locator('#teacherData').innerText()).includes(TEACHER));
   await page.locator('[data-view-record]').first().click();assert.match(await page.locator('#teacherReport').innerText(),/葉片有助水分向上運輸/);await page.screenshot({path:'/tmp/vl2-teacher.png'});
   await page.evaluate(()=>{
@@ -89,17 +95,17 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   });
   const xd=page.waitForEvent('download');await page.locator('#exportExcel').click();await(await xd).saveAs('/tmp/vl2-records.xlsx');
   execFileSync('python',['tests/excel_scores.py'],{stdio:'inherit'});
-  await page.reload();assert.equal(await page.locator('#teacherDialog').isVisible(),true);await page.locator('#closeTeacher').click();await page.locator('#profileButton').click();await login(page,'另一位同學','S4X1-06','p013@example.edu.hk');
+  await reloadToLogin(page);assert.equal(await page.locator('#teacherDialog').isVisible(),false);await login(page,'教師','教師',TEACHER);assert.equal(await page.locator('#teacherDialog').isVisible(),true);await page.locator('#closeTeacher').click();await page.locator('#profileButton').click();await login(page,'另一位同學','S4X1-06','p013@example.edu.hk');
   assert.equal(await page.locator('#teacherButton').isVisible(),false);assert.equal(await page.locator('#phase-1').isVisible(),true);assert.equal(await page.locator('#observation').isDisabled(),false);assert.equal(await page.evaluate(()=>storedRecords().filter(r=>r.submitted).length),1);
-  // A shared email does not identify two students as the same learner.
+  // Every explicit login starts a new attempt, even for the same learner.
   await page.locator('#observation').fill('第二位學生自己的初步觀察');await page.locator('#orientationNext').click();
   const secondId=await page.evaluate(()=>state.id);
   await page.locator('#profileButton').click();await login(page,'共用電郵另一位','S4X1-07','p013@example.edu.hk');
   assert.equal(await page.locator('#phase-1').isVisible(),true);assert.equal(await page.locator('#observation').inputValue(),'');assert.equal(await page.locator('#observation').isDisabled(),false);assert.notEqual(await page.evaluate(()=>state.id),secondId);
   await page.locator('#profileButton').click();await login(page,'另一位同學','S4X1-06','p013@example.edu.hk');
-  assert.equal(await page.evaluate(()=>state.id),secondId);assert.equal(await page.locator('#phase-2').isVisible(),true);assert.equal(await page.locator('#observation').inputValue(),'第二位學生自己的初步觀察');assert.equal(await page.locator('#prediction').isDisabled(),false);
+  assert.notEqual(await page.evaluate(()=>state.id),secondId);assert.equal(await page.locator('#phase-1').isVisible(),true);assert.equal(await page.locator('#observation').inputValue(),'');assert.equal(await page.evaluate(id=>storedRecords().find(r=>r.id===id).form.observation,secondId),'第二位學生自己的初步觀察');assert.equal(await page.locator('#prediction').isDisabled(),false);
   // Explicit login after completing an attempt creates an editable attempt;
-  // reloading the completed attempt earlier still preserved its own PDF.
+  // old completed and unfinished attempts remain available to teachers.
   await page.locator('#profileButton').click();await login(page,'陳小明','S4X1-05','p012@example.edu.hk');
   assert.notEqual(await page.evaluate(()=>state.id),record.id);assert.equal(await page.locator('.step.done').count(),0);assert.equal(await page.locator('#phase-1').isVisible(),true);assert.equal(await page.locator('#observation').isDisabled(),false);assert.equal(await page.locator('#observation').inputValue(),'');
   assert.equal(await page.evaluate(id=>storedRecords().find(r=>r.id===id).submitted,record.id),true);
@@ -113,11 +119,20 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   // A stale active profile/current-record mismatch also recovers on page load.
   const staleContext=await browser.newContext(),stalePage=await staleContext.newPage();stalePage.on('pageerror',e=>errors.push(e.message));
   await staleContext.addInitScript(r=>{localStorage.setItem('transpirationLab.current.v1',JSON.stringify(r));localStorage.setItem('transpirationLab.records.v1',JSON.stringify([r]));localStorage.setItem('transpirationLab.profile.v1',JSON.stringify({name:'另一位學生',classInfo:'S4X2-02',email:'other@example.edu.hk'}));},parsed);
-  await stalePage.goto(LAB_URL);assert.equal(await stalePage.locator('#observation').inputValue(),'');assert.equal(await stalePage.locator('#observation').isDisabled(),false);assert.equal(await stalePage.evaluate(()=>state.profile.email),'other@example.edu.hk');await staleContext.close();
+  await stalePage.goto(LAB_URL);assert.equal(await stalePage.locator('#observation').inputValue(),'');assert.equal(await stalePage.locator('#observation').isDisabled(),false);assert.equal(await stalePage.locator('#profileDialog').isVisible(),true);assert.equal(await stalePage.evaluate(()=>activeProfile),null);await login(stalePage,'另一位學生','S4X2-02','other@example.edu.hk');assert.equal(await stalePage.evaluate(()=>state.profile.email),'other@example.edu.hk');await staleContext.close();
+  // Cancel keeps the current attempt; accepting reload saves it, returns to
+  // blank login, and the same identity starts a new empty attempt.
+  const beforeReloadId=await page.evaluate(()=>state.id);
+  const cancelled=page.waitForEvent('dialog');await page.evaluate(()=>{setTimeout(()=>location.reload(),0);});
+  const cancelDialog=await cancelled;assert.equal(cancelDialog.type(),'beforeunload');await cancelDialog.dismiss();
+  assert.equal(await page.evaluate(()=>state.id),beforeReloadId);assert.equal(await page.locator('#phase-2').isVisible(),true);assert.equal(await page.locator('#profileDialog').isVisible(),false);
+  await reloadToLogin(page);assert.equal(await page.evaluate(id=>storedRecords().find(r=>r.id===id).form.observation,beforeReloadId),'重新登入後可開始新探究');
+  await login(page,'陳小明','S4X1-05','p012@example.edu.hk');assert.notEqual(await page.evaluate(()=>state.id),beforeReloadId);assert.equal(await page.locator('#phase-1').isVisible(),true);assert.equal(await page.locator('#observation').inputValue(),'');assert.equal(await page.locator('#observation').isDisabled(),false);assert.equal(await page.locator('#downloadPDF').isDisabled(),true);
+  await page.locator('#observation').fill('重新載入後的新探究');await page.locator('#orientationNext').click();assert.equal(await page.locator('#phase-2').isVisible(),true);
   const other=await browser.newContext({viewport:{width:1280,height:900}}),teacher=await other.newPage();teacher.on('pageerror',e=>errors.push(e.message));await teacher.goto(LAB_URL);await login(teacher,'教師','教師',TEACHER);
   await teacher.locator('#importRecords').setInputFiles('/tmp/vl2-record.json');await teacher.waitForFunction(()=>document.querySelector('#importStatus').textContent.includes('已處理 1'));assert.match(await teacher.locator('#teacherData').innerText(),/陳小明/);
   const legacy=structuredClone(parsed);legacy.id+='-legacy';delete legacy.uiVersion;legacy.form.evidence='先前版本的證據文字';delete legacy.form.leafComparison;legacy.variables.iv=['光照強度'];legacy.profile.name='舊版同學';await fs.writeFile('/tmp/vl2-legacy-import.json',JSON.stringify(legacy));
   await teacher.locator('#importRecords').setInputFiles('/tmp/vl2-legacy-import.json');await teacher.waitForFunction(()=>document.querySelector('#teacherData').textContent.includes('舊版同學'));assert.equal(await teacher.evaluate(()=>storedRecords().find(r=>r.profile.name==='舊版同學').form.evidence),'先前版本的證據文字');
-  assert.deepEqual(errors,[]);await other.close();console.log('PASS: revised student flow, one-decimal readings, 0.5 steps, horizontal ruler, equal dye, autoscroll, fixed axes, smooth curve, structured answers, anatomy, reflection submission gate/reload, original hypothesis, inline PDF ticks/crosses and ungraded open answers, teacher login/switch/reload, completed/legacy/shared-email learner isolation and own unfinished resume, single graph legend, front-facing lamp, XLSX drawings, JSON import, old records, mobile.');
+  assert.deepEqual(errors,[]);await other.close();console.log('PASS: revised student flow, one-decimal readings, 0.5 steps, horizontal ruler, equal dye, autoscroll, fixed axes, smooth curve, structured answers, anatomy, reflection submission gate, original hypothesis, inline PDF ticks/crosses and ungraded open answers, teacher login/switch/reload, completed/legacy/shared-email learner isolation and fresh login on every reload, cancel/accept beforeunload and old record retention, single graph legend, front-facing lamp, XLSX drawings, JSON import, old records, mobile.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});

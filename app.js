@@ -45,14 +45,6 @@ function upgradeRecord(record){
 }
 function storedRecords(){return readStored(RECORDS_KEY,[]).map(upgradeRecord).filter(isRecord).filter(r=>!isTeacher(r.profile));}
 
-function sameLearner(a,b) {
-  return !!a?.email && !!b?.email && a.email.trim().toLowerCase()===b.email.trim().toLowerCase() &&
-    a.name?.trim()===b.name?.trim() && a.classInfo?.trim().toUpperCase()===b.classInfo?.trim().toUpperCase();
-}
-function unfinishedRecord(profile) {
-  return storedRecords().filter(r=>!r.submitted&&sameLearner(r.profile,profile))
-    .sort((a,b)=>(Date.parse(b.savedAt)||0)-(Date.parse(a.savedAt)||0))[0];
-}
 function freshState(profile = null) {
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
   let n = seed;
@@ -80,14 +72,18 @@ function readStored(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
   catch { return fallback; }
 }
-let state = upgradeRecord(readStored(CURRENT_KEY, null));
-if (!isRecord(state)) state = freshState();
-let activeProfile=readStored(PROFILE_KEY,state.profile);
-// A saved login must never display a different learner's current record.
-if(activeProfile?.email&&!isTeacher(activeProfile)&&!sameLearner(state.profile,activeProfile)) {
-  state=unfinishedRecord(activeProfile)||freshState(activeProfile);
+let activeProfile=null;
+// Archive older current-only records, but never restore a learner session.
+const previousCurrent=upgradeRecord(readStored(CURRENT_KEY,null));
+if(isRecord(previousCurrent)&&previousCurrent.profile&&!isTeacher(previousCurrent.profile)) {
+  const records=storedRecords(),index=records.findIndex(r=>r.id===previousCurrent.id);
+  if(index<0||Date.parse(previousCurrent.savedAt)>Date.parse(records[index].savedAt)) {
+    if(index<0)records.push(previousCurrent);else records[index]=previousCurrent;
+    try{localStorage.setItem(RECORDS_KEY,JSON.stringify(records));}catch{/* Keep the current backup if storage is full. */}
+  }
 }
-state.running = false; // A restored task resumes at its last completed measurement time.
+let state=freshState();
+let allowUnload=false;
 let activeSince = Date.now();
 let saveTimer;
 let timerHandle;
@@ -805,7 +801,7 @@ function renderTeacherDashboard(){
 function refreshProfileUI(){
   $('#studentName').textContent=isTeacher()?'教師':activeProfile?.name||'同學';
   $('.avatar').textContent=isTeacher()?'師':activeProfile?.name?.[0]||'同';
-  $('#teacherButton').hidden=!isTeacher();$('main').inert=isTeacher();
+  $('#teacherButton').hidden=!isTeacher();$('main').inert=!activeProfile?.email||isTeacher();
 }
 async function printRecord(record){
   renderReport(record);
@@ -858,11 +854,7 @@ $('#profileForm').onsubmit=event=>{
   if(!classInfo||!email)return;
   clearInterval(timerHandle);state.running=false;save();clearTimeout(saveTimer);const profile={name,classInfo,email};
   if(!isTeacher(profile)){
-    // Resume only this learner's unfinished work. A completed record remains
-    // available to teachers; an explicit new login starts an editable attempt.
-    if(!sameLearner(state.profile,profile)||state.submitted) {
-      state=unfinishedRecord(profile)||freshState(profile);
-    }
+    state=freshState(profile);
     drawingChanged=false;drawingTool='pencil';
     state.profile=profile;
   }
@@ -916,8 +908,7 @@ $('#downloadPDF').onclick=async()=>{
 $('#newInvestigation').onclick=()=>{
   if(!confirm('開始新的探究？本次紀錄會保留於本機，教師儀表板可查看。未遞交的答案亦會保存。'))return;
   save();clearInterval(timerHandle);clearTimeout(saveTimer);
-  const profile=state.profile;state=freshState(profile);
-  try{localStorage.setItem(CURRENT_KEY,JSON.stringify(state));}catch{toast('未能建立新的本機紀錄。');return;}
+  allowUnload=true; // The button already obtained confirmation.
   location.reload();
 };
 $('#teacherButton').onclick=()=>{if(!isTeacher())return;renderTeacherDashboard();$('#teacherDialog').showModal();};
@@ -943,6 +934,11 @@ $('#importRecords').onchange=async event=>{
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){const now=Date.now();if(state.profile&&!isTeacher())state.phaseDurations[state.phase]+=(now-activeSince)/1000;activeSince=now;save();}
   else activeSince=Date.now();
+});
+window.addEventListener('beforeunload',event=>{
+  if(!activeProfile?.email||allowUnload)return;
+  save();
+  event.preventDefault();event.returnValue=''; // Browsers supply the confirmation wording.
 });
 window.addEventListener('pagehide',save);
 setInterval(()=>{if(state.profile&&!document.hidden)save();},15000);
