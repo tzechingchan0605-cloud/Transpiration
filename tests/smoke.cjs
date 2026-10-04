@@ -52,7 +52,7 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   for(const id of ['A','B','C','D']){
     const card=page.locator('.calc-card').filter({has:page.locator('#rate-'+id)});
     const record=await page.evaluate(()=>state),end=record.measurements[30].values[id];
-    assert((await card.innerText()).includes(`30 分鐘 ${end} cm`));assert((await card.innerText()).includes(`光強度：${{A:1200,B:300,C:133,D:300}[id]} lux`));assert((await card.innerText()).includes(`距離＝${(+end-+record.measurements[0].values[id]).toFixed(1)} cm`));
+    assert((await card.innerText()).includes(`30 分鐘 ${end} cm`));assert((await card.innerText()).includes(`光強度：${{A:1200,B:300,C:133,D:300}[id]} lux`));assert.equal(await card.locator('.calc-distance').count(),0);
     assert.equal(await page.locator('#rate-'+id).getAttribute('step'),'0.01');
   }
   await page.locator('#rate-A').fill('0.383');await page.locator('#rate-A').blur();assert.equal(await page.locator('#rate-A').inputValue(),'0.38');
