@@ -27,3 +27,5 @@
 
 /* Cloud acknowledgements stay visible above the investigation on every screen. */
 .cloud-strip{padding:14px 0 0;font-size:13px;line-height:1.7}.cloud-status{margin:0 0 8px;color:var(--muted);overflow-wrap:anywhere}.cloud-status[data-state="synced"]{color:var(--teal)}.cloud-status[data-state="error"]{color:var(--red)}.cloud-strip .secondary{padding:7px 12px;font-size:13px}
+
+.graph-pointer-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;font-size:13px}.graph-pointer-tools select{padding:7px 10px;border:1px solid #cbdcd0;border-radius:7px;background:white;color:var(--ink)}.graph-coordinates{display:block;min-height:2.2em;margin:8px 0;color:var(--teal);font-size:13px;font-variant-numeric:tabular-nums}#studentGraph{cursor:crosshair}#studentGraph[role="img"]{cursor:default}#studentGraph [data-graph-point]{cursor:pointer}#studentGraph [data-graph-point][aria-pressed="true"] .plot-mark{stroke:#e8a952;stroke-width:3}.plot-point.selected{background:#eff7f3;border-radius:8px;padding-left:8px;padding-right:8px}

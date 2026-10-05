@@ -471,23 +471,58 @@ function renderCalculations() {
     input.onblur=format;
   });
 }
+let selectedPlotId='A';
+const GRAPH_BOUNDS={left:90,right:677,top:27,bottom:362};
+function selectPlotDevice(id,edit=false){
+  if(!IDS.includes(id))return;
+  selectedPlotId=id;$('#plotDevice').value=id;
+  $$('.plot-point').forEach(card=>card.classList.toggle('selected',card.dataset.pointEditor===id));
+  $$('#studentGraph [data-graph-point]').forEach(mark=>mark.setAttribute('aria-pressed',String(mark.dataset.graphPoint===id)));
+  if(edit&&!state.submitted){
+    const point=state.graph.points[id];
+    if(point){$('#point-x-'+id).value=point.x;$('#point-y-'+id).value=point.y.toFixed(2);}
+    $('#point-x-'+id).focus({preventScroll:true});
+    $('#point-x-'+id).closest('.plot-point').scrollIntoView({block:'nearest',behavior:'smooth'});
+  }
+}
+function placeGraphPoint(id,x,y,method){
+  if(state.submitted||!IDS.includes(id)||!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>graphXMax()||y<0||y>+$('#graphMax').value)return false;
+  state.graph.points[id]={x,y};selectPlotDevice(id);
+  $('#point-x-'+id).value=x;$('#point-y-'+id).value=y.toFixed(2);
+  $(`[data-plot="${id}"]`).textContent='更新標點';
+  log('graph_point_plotted',{id,point:{x,y},method});renderGraph();save();return true;
+}
 function renderPoints() {
   $('#pointControls').innerHTML=IDS.map(id=>{
-    const point=state.graph.points[id];
-    const c=CONDITIONS[id];
-    return `<div class="plot-point"><strong>裝置${id} · ${c.leaves?'帶葉':'不帶葉'} · ${c.distance} cm<br>（光強度：${c.light} lux）</strong><div><label>X坐標<input type="number" id="point-x-${id}" aria-label="裝置${id} 圖點 X坐標" min="0" value="${esc(point?.x??'')}" ${state.submitted?'disabled':''}></label><label>Y坐標<input type="number" id="point-y-${id}" aria-label="裝置${id} 圖點 Y坐標" step="0.01" min="0" max="0.5" value="${esc(point?point.y.toFixed(2):'')}" ${state.submitted?'disabled':''}></label></div><button class="secondary" data-plot="${id}" ${state.submitted?'disabled':''}>${point?'更新標點':'標點'}</button></div>`;
+    const point=state.graph.points[id],c=CONDITIONS[id];
+    return `<div class="plot-point ${selectedPlotId===id?'selected':''}" data-point-editor="${id}"><strong>裝置${id} · ${c.leaves?'帶葉':'不帶葉'} · ${c.distance} cm<br>（光強度：${c.light} lux）</strong><div><label>X坐標<input type="number" id="point-x-${id}" aria-label="裝置${id} 圖點 X坐標" step="1" min="0" max="${graphXMax()}" value="${esc(point?.x??'')}" ${state.submitted?'disabled':''}></label><label>Y坐標<input type="number" id="point-y-${id}" aria-label="裝置${id} 圖點 Y坐標" step="0.01" min="0" max="0.5" value="${esc(point?point.y.toFixed(2):'')}" ${state.submitted?'disabled':''}></label></div><button class="secondary" data-plot="${id}" ${state.submitted?'disabled':''}>${point?'更新標點':'標點'}</button></div>`;
   }).join('');
+  $('#plotDevice').value=selectedPlotId;
   IDS.forEach(id=>{$('#point-y-'+id).onblur=()=>normaliseRateInput($('#point-y-'+id));});
   $$('[data-plot]').forEach(button=>button.onclick=()=>{
+    if(state.submitted)return;
     const id=button.dataset.plot,x=$('#point-x-'+id),y=$('#point-y-'+id);
     normaliseRateInput(y);
     if(!$('#xAxis').value||!$('#yAxis').value){incomplete('先選擇圖表的X軸及Y軸。','#xAxis');return;}
-    if(x.value===''||y.value===''||!x.validity.valid||!y.validity.valid){incomplete('請填寫有效的非負坐標。','#point-x-'+id);return;}
-    const xMax=graphXMax(),yMax=+$('#graphMax').value;
-    if(+x.value>xMax||+y.value>yMax){toast('坐標超出圖表刻度，請檢查計算結果及坐標。');return;}
-    state.graph.points[id]={x:+x.value,y:+y.value};
-    log('graph_point_plotted',{id,point:{...state.graph.points[id]}});renderGraph();button.textContent='更新標點';save();
+    if(x.value===''||y.value===''||!x.validity.valid||!y.validity.valid){incomplete('請填寫刻度內的有效坐標，X坐標使用整數。','#point-x-'+id);return;}
+    if(!placeGraphPoint(id,+x.value,+y.value,'typed'))toast('坐標超出圖表刻度，請檢查計算結果及坐標。');
   });
+}
+function pointerGraphPoint(event){
+  const svg=$('#studentGraph'),matrix=svg.getScreenCTM();
+  if(!matrix)return null;
+  const position=new DOMPoint(event.clientX,event.clientY).matrixTransform(matrix.inverse());
+  const {left,right,top,bottom}=GRAPH_BOUNDS;
+  if(position.x<left||position.x>right||position.y<top||position.y>bottom)return null;
+  return {x:Math.round((position.x-left)/(right-left)*graphXMax()),y:+((bottom-position.y)/(bottom-top)*+$('#graphMax').value).toFixed(2)};
+}
+function showGraphCursor(point){
+  const guide=$('#graphPointerGuide');if(!guide)return;
+  if(!point){guide.setAttribute('visibility','hidden');$('#graphCoordinates').textContent=state.submitted?'本次圖表已遞交，可查看圖點坐標。':'在圖內移動滑鼠查看 X、Y 坐標；手機可輕觸標點。';return;}
+  const {left,right,top,bottom}=GRAPH_BOUNDS;
+  const x=left+point.x/graphXMax()*(right-left),y=bottom-point.y/+$('#graphMax').value*(bottom-top);
+  guide.setAttribute('visibility','visible');guide.firstElementChild.setAttribute('d',`M${left} ${y}H${right} M${x} ${top}V${bottom}`);
+  $('#graphCoordinates').textContent=`裝置${selectedPlotId}：X = ${point.x} lux；Y = ${point.y.toFixed(2)} cm/min`;
 }
 function graphXMax(form=state.form) {return form.xAxis==='distance'?35:form.xAxis==='time'?40:1300;}
 // Shape-preserving cubic interpolation: pass through students' points, never add data.
@@ -508,9 +543,9 @@ function smoothCurve(points,x,y){
   for(let i=0;i<2;i++)path+=` C${x(points[i].x+h[i]/3)},${y(points[i].y+m[i]*h[i]/3)} ${x(points[i+1].x-h[i]/3)},${y(points[i+1].y-m[i+1]*h[i]/3)} ${x(points[i+1].x)},${y(points[i+1].y)}`;
   return path;
 }
-function graphMarkup(record,withLegend=true) {
+function graphMarkup(record,withLegend=true,interactive=false) {
   const form=record.form,maxX=graphXMax(form),maxY=+form.graphMax||.5;
-  const left=90,right=677,top=27,bottom=362;
+  const {left,right,top,bottom}=GRAPH_BOUNDS;
   const x=value=>left+value/maxX*(right-left),y=value=>bottom-value/maxY*(bottom-top);
   const xLabels={light:'光強度（lux）',distance:'光照距離（cm）',time:'模擬時間（min）'};
   const yLabels={rate:'紅色水跡平均上移速度（cm/min）',height:'紅色水跡上升高度（cm）'};
@@ -527,13 +562,16 @@ function graphMarkup(record,withLegend=true) {
   IDS.forEach(id=>{
     const p=record.graph.points[id];if(!validPoint(p))return;
     const px=x(p.x),py=y(p.y),bare=id==='D',colour=bare?'#bf8854':'#087b78';
-    marks+=bare?`<path d="M${px} ${py-7}l7 7-7 7-7-7Z" fill="${colour}" stroke="white" stroke-width="2"/>`:`<circle cx="${px}" cy="${py}" r="6" fill="${colour}" stroke="white" stroke-width="2"/>`;
+    if(interactive)marks+=`<g data-graph-point="${id}" role="button" tabindex="0" aria-pressed="${id===selectedPlotId}" aria-label="修訂裝置${id} 圖點，X ${p.x} lux，Y ${p.y} cm/min"><rect x="${px-12}" y="${py-12}" width="24" height="24" fill="transparent"/>`;
+    marks+=bare?`<path class="plot-mark" d="M${px} ${py-7}l7 7-7 7-7-7Z" fill="${colour}" stroke="white" stroke-width="2"/>`:`<circle class="plot-mark" cx="${px}" cy="${py}" r="6" fill="${colour}" stroke="white" stroke-width="2"/>`;
     marks+=`<text x="${px+10}" y="${py-9}" font-size="13" font-weight="700" fill="${colour}">裝置${id}</text>`;
+    if(interactive)marks+='</g>';
   });
   return `<title>學生繪製的光照與紅色水跡平均上移速度圖</title>${grid}<path d="M${left} ${top}V${bottom}H${right}" fill="none" stroke="#8ba28a" stroke-width="1.5"/>${marks}<text x="380" y="${bottom+58}" text-anchor="middle" fill="#4d715a" font-size="14">${xLabels[form.xAxis]||'請選擇X軸'}</text><text transform="translate(25 195) rotate(-90)" text-anchor="middle" fill="#4d715a" font-size="13">${yLabels[form.yAxis]||'請選擇Y軸'}</text>${withLegend?'<text class="graph-inline-legend" x="380" y="449" text-anchor="middle" fill="#829680" font-size="11">● 帶葉組：裝置A、裝置B、裝置C　◆ 不帶葉組：裝置D（獨立比較點）</text>':''}`;
 }
 function renderGraph() {
-  readForm();$('#studentGraph').innerHTML=graphMarkup(state,false);
+  readForm();$('#studentGraph').innerHTML=graphMarkup(state,false,!state.submitted)+'<g id="graphPointerGuide" visibility="hidden" pointer-events="none"><path stroke="#749a94" stroke-dasharray="4 4" stroke-width="1" fill="none"/></g>';
+  $('#studentGraph').setAttribute('role',state.submitted?'img':'group');showGraphCursor(null);
   $('#graphStatus').textContent=`已標示 ${Object.keys(state.graph.points).length} / 4 個裝置${state.graph.connected?'；帶葉組已連線':''}。`;
 }
 function conclusionMissing() {
@@ -557,6 +595,7 @@ function applyLock() {
   if(state.submitted)$('#submitInvestigation').textContent='✓ 已遞交本次探究';
   else $('#submitInvestigation').textContent='遞交探究，查看學習重點 →';
   updateReflection();
+  if(state.submitted)renderGraph();
   updateTimer();
 }
 function submit() {
@@ -966,7 +1005,7 @@ $('#profileForm').onsubmit=event=>{
   const classInfo=$('#profileClass').value.trim(),email=$('#profileEmail').value.trim().toLowerCase();
   if(!classInfo||!email)return;
   clearInterval(timerHandle);state.running=false;save();clearTimeout(saveTimer);const profile={name,classInfo,email};
-  state=freshState(profile);
+  state=freshState(profile);selectedPlotId='A';
   drawingChanged=false;drawingTool='pencil';
   activeProfile=profile;activeSince=Date.now();
   try{localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));}catch{toast('未能保存學習者資料。');}
@@ -1000,10 +1039,11 @@ $('#experimentNext').onclick=()=>{
   state.unlocked=4;phase(4);save();
 };
 $('#connectPoints').onclick=()=>{
+  if(state.submitted)return;
   if(!['A','B','C'].every(id=>state.graph.points[id])){toast('先標示帶葉組裝置A、裝置B、裝置C 的三個圖點。');return;}
   state.graph.connected=true;log('leafy_points_connected');renderGraph();save();
 };
-$('#clearGraph').onclick=()=>{state.graph={points:{},connected:false};log('graph_cleared');renderPoints();renderGraph();save();};
+$('#clearGraph').onclick=()=>{if(state.submitted)return;selectedPlotId='A';state.graph={points:{},connected:false};log('graph_cleared');renderPoints();renderGraph();save();};
 $('#submitInvestigation').onclick=()=>{const missing=conclusionMissing();if(missing){incomplete(...missing);return;}$('#submitDialog').showModal();};
 $('#cancelSubmit').onclick=()=>$('#submitDialog').close();$('#confirmSubmit').onclick=submit;
 $('#saveReflection').onclick=()=>{
@@ -1062,3 +1102,17 @@ $('#retryCloud').onclick=$('#loginRetryCloud').onclick=()=>{cloudSync.recover();
 window.addEventListener('online',()=>{cloudSync.recover();cloudSync.flush().catch(()=>{});});
 cloudSync.recover();
 setInterval(()=>{if(cloudSync.enabled)cloudSync.flush().catch(()=>{});},30000);
+
+$('#plotDevice').onchange=()=>{if(!state.submitted)selectPlotDevice($('#plotDevice').value);};
+$('#studentGraph').addEventListener('pointermove',event=>{if(!state.submitted)showGraphCursor(pointerGraphPoint(event));});
+$('#studentGraph').addEventListener('pointerleave',()=>showGraphCursor(null));
+$('#studentGraph').addEventListener('click',event=>{
+  if(state.submitted)return;
+  const mark=event.target.closest('[data-graph-point]');
+  if(mark){selectPlotDevice(mark.dataset.graphPoint,true);return;}
+  const point=pointerGraphPoint(event);if(point){placeGraphPoint(selectedPlotId,point.x,point.y,event.pointerType==='touch'?'touch':'mouse');showGraphCursor(point);}
+});
+$('#studentGraph').addEventListener('keydown',event=>{
+  if(state.submitted||!['Enter',' '].includes(event.key))return;
+  const mark=event.target.closest('[data-graph-point]');if(mark){event.preventDefault();selectPlotDevice(mark.dataset.graphPoint,true);}
+});
