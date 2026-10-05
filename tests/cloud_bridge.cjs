@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 (async()=>{
  const listeners=new Set(),frames=[],requests=[],timers=new Map();let timerId=0;
  const window={addEventListener:(type,fn)=>listeners.add(fn),removeEventListener:(type,fn)=>listeners.delete(fn)};
- const document={createElement:()=>({contentWindow:{},remove(){this.removed=true;}}),body:{append:frame=>frames.push(frame)}};
+ const document={createElement:()=>({style:{},setAttribute(){},addEventListener(){},contentWindow:{},remove(){this.removed=true;}}),body:{append:frame=>frames.push(frame)}};
  const sandbox={window,document,URL,crypto:crypto.webcrypto,location:{origin:'https://school.example'},setTimeout:(fn)=>{timers.set(++timerId,fn);return timerId;},clearTimeout:id=>timers.delete(id)};
  vm.createContext(sandbox);vm.runInContext(fs.readFileSync('cloud-bridge.js','utf8'),sandbox);
  const bridge=window.createAppsScriptBridge('https://script.google.com/macros/s/test/exec');

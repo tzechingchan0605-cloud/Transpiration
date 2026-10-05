@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VL2 雲端連線檢查</title>
+  <script src="cloud-config.js?v=5" defer></script>
+  <script src="cloud-bridge.js?v=6" defer></script>
+  <style>body{font-family:system-ui,sans-serif;max-width:850px;margin:32px auto;padding:0 20px;color:#193b40}button,a{font-size:16px}button{padding:12px 20px;cursor:pointer}pre{white-space:pre-wrap;background:#f0f6f3;padding:16px;line-height:1.7}iframe{margin-top:20px}#result{font-weight:bold}</style>
+</head>
+<body>
+  <h1>VL2 雲端連線檢查</h1>
+  <p>此頁只檢查 Google 嵌入頁及 RPC，不上傳答案，不要求密碼，也不會讀取全班紀錄。</p>
+  <p><a id="endpoint" target="_blank" rel="noopener">直接開啟部署網址</a></p>
+  <button id="check">開始檢查連線</button>
+  <p id="result" role="status">請按上方按鈕；若下方 Google 頁面顯示登入或錯誤，請連同檢查文字截圖。</p>
+  <pre id="log" aria-live="polite"></pre>
+  <script>
+    addEventListener('DOMContentLoaded',()=>{
+      const endpoint=window.VL2_CLOUD_CONFIG?.endpoint;
+      document.querySelector('#endpoint').href=endpoint||'#';
+      document.querySelector('#check').onclick=async()=>{
+        const button=document.querySelector('#check'),log=document.querySelector('#log'),result=document.querySelector('#result');
+        document.querySelectorAll('iframe').forEach(frame=>frame.remove());
+        button.disabled=true;log.textContent='';result.textContent='檢查中…';
+        if(!endpoint){result.textContent='網站沒有設定部署網址。';button.disabled=false;return;}
+        try{
+          const bridge=createAppsScriptBridge(endpoint,{visible:true,diagnostic:message=>log.textContent+=message+'\n'});
+          // Intentionally omit authentication. A password rejection proves an
+          // RPC round trip while releasing no student data and making no writes.
+          const response=await bridge.send({action:'list',teacherEmail:'tzechingchan0605@gmail.com',password:'',cursor:0});
+          if(response?.ok===false&&response.error==='教師密碼不正確')result.textContent='連線成功：收到收集端的教師密碼驗證回覆。沒有讀取或寫入學生紀錄。';
+          else result.textContent='已收到收集端回覆：'+String(response?.error||'非預期回覆；請提供下方檢查文字。');
+        }catch(error){result.textContent='連線未成功：'+error.message;}
+        finally{button.disabled=false;}
+      };
+    });
+  </script>
+</body>
+</html>

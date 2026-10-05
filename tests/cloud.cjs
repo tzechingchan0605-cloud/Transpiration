@@ -66,6 +66,7 @@ const server=http.createServer((req,res)=>{
  const phone=await browser.newContext({viewport:{width:390,height:844}}),desktop=await browser.newContext(),teacher=await browser.newContext();
  const errors=[];const page=await phone.newPage(),other=await desktop.newPage(),teach=await teacher.newPage();
  for(const p of [page,other,teach]){p.on('pageerror',e=>{errors.push(e.message);console.error('Browser test error:',e.message);});await p.route('https://fonts.googleapis.com/**',r=>r.abort());await p.route('https://fonts.gstatic.com/**',r=>r.abort());await p.goto('http://127.0.0.1:8100'+'');}
+ const diagnostic=await browser.newPage();await diagnostic.goto('http://127.0.0.1:8100/cloud-diagnostics.html');await diagnostic.locator('#check').click();await diagnostic.waitForFunction(()=>document.querySelector('#result').textContent.includes('連線成功'));assert.equal(rows.length,1,'diagnostic must not write records');assert.equal(await diagnostic.locator('iframe').count(),1);await diagnostic.close();
  assert((await page.locator('#loginCloudStatus').innerText()).includes('尚未確認'));
  await page.evaluate(()=>cloudSync.flush());
  assert.equal(await page.locator('#loginCloudStatus').getAttribute('data-state'),'configured');
