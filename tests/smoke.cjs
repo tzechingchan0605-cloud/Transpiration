@@ -13,7 +13,7 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
  // Dedicated cloud.cjs exercises sync and cloud Excel against isolated Google adapters.
  async function testContext(options={}){
   const context=await browser.newContext(options);
-  await context.route('**/cloud-config.js',route=>route.fulfill({contentType:'application/javascript',body:"window.VL2_CLOUD_CONFIG={endpoint:'',transport:'bridge'};"}));
+  await context.route('**/cloud-config.js*',route=>route.fulfill({contentType:'application/javascript',body:"window.VL2_CLOUD_CONFIG={endpoint:'',transport:'bridge'};"}));
   return context;
  }
  const context=await testContext({viewport:{width:1440,height:1000},acceptDownloads:true,reducedMotion:'reduce'});

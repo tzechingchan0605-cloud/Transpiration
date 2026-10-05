@@ -52,7 +52,7 @@ const collector=http.createServer((req,res)=>{
  res.writeHead(404);res.end();
 });
 const server=http.createServer((req,res)=>{
- if(req.url==='/cloud-config.js'){res.setHeader('Content-Type','application/javascript');res.end("window.VL2_CLOUD_CONFIG={endpoint:'http://127.0.0.1:8101/collector',transport:'bridge'};");return;}
+ if(req.url.split('?')[0]==='/cloud-config.js'){res.setHeader('Content-Type','application/javascript');res.end("window.VL2_CLOUD_CONFIG={endpoint:'http://127.0.0.1:8101/collector',transport:'bridge'};");return;}
  const pageUrl=new URL(req.url,'http://127.0.0.1:8100');
  const target=path.resolve('.','.'+(pageUrl.pathname==='/'?'/index.html':pageUrl.pathname));
  if(!target.startsWith(process.cwd()+path.sep)){res.writeHead(404);res.end();return;}
