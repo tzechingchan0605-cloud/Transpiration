@@ -20,18 +20,6 @@ window.createAppsScriptBridge = function (endpoint) {
       return url.protocol === 'https:' && (url.hostname === 'script.googleusercontent.com' || /^[a-z0-9-]+-script\.googleusercontent\.com$/.test(url.hostname));
     } catch {return false;}
   };
-  function belongsToFrame(candidate) {
-    // Google wraps HtmlService in nested cross-origin frames. WindowProxy.parent
-    // can be inspected without reading any cross-origin document or location.
-    try {
-      for(let i=0;candidate&&i<12;i++) {
-        if(candidate===frame?.contentWindow)return true;
-        if(candidate===window||candidate.parent===candidate)return false;
-        candidate=candidate.parent;
-      }
-    } catch {}
-    return false;
-  }
   function connect() {
     if (readyPromise) return readyPromise;
     readyPromise = new Promise((resolve, reject) => {
@@ -42,7 +30,10 @@ window.createAppsScriptBridge = function (endpoint) {
       function receive(event) {
         const data = event.data;
         if (!data || data.channel !== channel || !trustedOrigin(event.origin)) return;
-        if (data.type === 'vl2-ready' && !source && belongsToFrame(event.source)) {
+        // Match the supplied reference protocol: the unguessable channel is
+        // disclosed only to this embed, and the origin must be Google-owned.
+        // Pin the resulting WindowProxy; do not traverse Google's frame tree.
+        if (data.type === 'vl2-ready' && !source && event.source && event.source!==window) {
           source = event.source;sourceOrigin = event.origin;clearTimeout(timeout);
           source.postMessage({type:'vl2-connected',channel}, sourceOrigin);resolve();return;
         }
