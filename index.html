@@ -9,7 +9,7 @@
   <script src="cloud-config.js?v=5" defer></script>
   <script src="cloud-bridge.js?v=6" defer></script>
   <script src="cloud-sync.js" defer></script>
-  <script src="app.js?v=8" defer></script>
+  <script src="app.js?v=9" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到探究內容</a>
@@ -68,7 +68,7 @@
         <p id="initialReadingReminder" class="initial-reminder">先向下捲動至四個實驗裝置，觀察並記錄 0 分鐘的初始讀數。完成後按「確認並記錄本輪四項讀數」，才開始計時。</p>
         <details class="ruler-guide"><summary>如何使用虛擬尺？</summary><p>按住尺子左右移動到長柄旁。尺子的 0 刻度已固定在水面位置，不能上下移動。讀取紅色水跡頂端的高度，輸入數據並保留一位小數。讀數旁的箭嘴每次增減 0.5 cm。</p><p>每段 10 分鐘模擬時間會加速至約 3 秒。這是教學模型，並非真實實驗的精確預測。</p></details>
         <div id="labBench" class="lab-bench"></div>
-        <article class="card data-card"><div class="card-top"><div><p class="card-kicker">原始數據</p><h3>你的量度記錄</h3></div><span class="tag">高度單位：cm</span></div><div class="table-wrap"><table><thead><tr><th rowspan="2" scope="col">模擬時間（min）</th><th colspan="4" scope="colgroup">紅色水跡向上移動的距離（cm）</th></tr><tr><th scope="col">裝置A：10 cm 光照距離<br>帶葉</th><th>裝置B：20 cm 光照距離<br>帶葉</th><th>裝置C：30 cm 光照距離<br>帶葉</th><th>裝置D：20 cm 光照距離<br>不帶葉</th></tr></thead><tbody id="dataBody"></tbody></table></div><p class="muted">保留你的首次讀數；修訂亦會記錄。平台不會把數據自動改成參考值。</p><button id="recordMeasurements" class="primary">確認並記錄本輪四項讀數</button><span id="measurementStatus" class="inline-status" role="status"></span></article>
+        <article class="card data-card"><div class="card-top"><div><p class="card-kicker">原始數據</p><h3>你的量度記錄</h3></div><span class="tag">高度單位：cm</span></div><div class="table-wrap"><table><thead><tr><th rowspan="2" scope="col">模擬時間（min）</th><th colspan="4" scope="colgroup">紅色水跡向上移動的距離（cm）</th></tr><tr><th scope="col">裝置A：10 cm 光照距離<br>帶葉</th><th>裝置B：20 cm 光照距離<br>帶葉</th><th>裝置C：30 cm 光照距離<br>帶葉</th><th>裝置D：20 cm 光照距離<br>不帶葉</th></tr></thead><tbody id="dataBody"></tbody></table></div><p class="muted">輸入讀數後按 Enter 可移到下一格；裝置D 後移到確認按鈕。保留你的首次讀數；修訂亦會記錄。平台不會把數據自動改成參考值。</p><button id="recordMeasurements" class="primary">確認並記錄本輪四項讀數</button><span id="measurementStatus" class="inline-status" role="status"></span></article>
         <div class="action-row"><button class="secondary" data-back="2">← 查看探究設計</button><button id="experimentNext" class="primary" disabled>計算與分析我的數據 →</button></div>
       </section>
 

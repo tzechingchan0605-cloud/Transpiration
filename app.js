@@ -16,6 +16,14 @@ const CONDITIONS = {
   C: {distance:30, light:133, leaves:true},
   D: {distance:20, light:300, leaves:false}
 };
+// Teaching model: each apparatus has a constant speed and half-centimetre readings.
+// Copy into each new attempt; saved attempts retain their original model.
+const SIMULATION_HEIGHTS = {
+  A: [0,4,8,12],
+  B: [0,2.5,5,7.5],
+  C: [0,1.5,3,4.5],
+  D: [0,0.5,1,1.5]
+};
 const VARIABLE_NAMES = ['光強度','紅色水跡上升高度／平均上移速度','溫度','濕度及氣流','紅色水濃度及浸入深度','帶葉組的總葉面積','西芹長柄的長度及粗幼'];
 const VARIABLE_GROUPS = [['iv','獨立變量','主動改變的因素'],['dv','因變量','量度的結果'],['cv','控制變量','保持相同的因素']];
 const ASSUMPTIONS = [
@@ -49,13 +57,7 @@ function storedRecords(){return rawRecords().map(r=>upgradeRecord(structuredClon
 
 function freshState(profile = null) {
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
-  let n = seed;
-  const random = () => { n = (Math.imul(n,1664525)+1013904223)>>>0; return n/4294967296; };
-  const base = [.37,.245,.16,.055];
-  const model = Object.fromEntries(IDS.map((id,index) => {
-    const slope = base[index] * (.94 + random()*.12);
-    return [id,[0,10,20,30].map(t => Math.round(slope*t*2)/2)];
-  }));
+  const model = structuredClone(SIMULATION_HEIGHTS);
   return {
     schemaVersion:1, uiVersion:2, rateDecimals:2, moduleId:MODULE_ID, id:crypto.randomUUID(), profile,
     createdAt:new Date().toISOString(), savedAt:null, submittedAt:null, reflectionSubmittedAt:null,
@@ -350,7 +352,7 @@ function renderMeasurements() {
   $('#dataBody').innerHTML=times.map(time=>{
     const row=state.measurements[time];
     const disabled=state.submitted||time!==state.currentTime||state.running;
-    return `<tr class="${row?.confirmed?'saved-row':'current-row'}"><td>${time} ${row?.confirmed?'✓':''}</td>${IDS.map(id=>`<td><div class="measurement-input"><input type="number" min="0" max="16" step="any" inputmode="decimal" data-time="${time}" data-measure="${id}" aria-label="${time} 分鐘裝置${id} 水跡高度（cm）" value="${esc(row?.values?.[id]??'')}" ${disabled?'disabled':''}><span class="measurement-arrows"><button data-adjust-time="${time}" data-adjust-id="${id}" data-amount="0.5" aria-label="${time} 分鐘裝置${id} 讀數增加 0.5 cm" ${disabled?'disabled':''}>▴</button><button data-adjust-time="${time}" data-adjust-id="${id}" data-amount="-0.5" aria-label="${time} 分鐘裝置${id} 讀數減少 0.5 cm" ${disabled?'disabled':''}>▾</button></span></div></td>`).join('')}</tr>`;
+    return `<tr class="${row?.confirmed?'saved-row':'current-row'}"><td>${time} ${row?.confirmed?'✓':''}</td>${IDS.map(id=>`<td><div class="measurement-input"><input type="number" min="0" max="16" step="any" inputmode="decimal" enterkeyhint="${id==='D'?'done':'next'}" data-time="${time}" data-measure="${id}" aria-label="${time} 分鐘裝置${id} 水跡高度（cm）" value="${esc(row?.values?.[id]??'')}" ${disabled?'disabled':''}><span class="measurement-arrows"><button data-adjust-time="${time}" data-adjust-id="${id}" data-amount="0.5" aria-label="${time} 分鐘裝置${id} 讀數增加 0.5 cm" ${disabled?'disabled':''}>▴</button><button data-adjust-time="${time}" data-adjust-id="${id}" data-amount="-0.5" aria-label="${time} 分鐘裝置${id} 讀數減少 0.5 cm" ${disabled?'disabled':''}>▾</button></span></div></td>`).join('')}</tr>`;
   }).join('');
   $$('[data-measure]').forEach(input=>{
     input.oninput=()=>{
@@ -370,6 +372,15 @@ function renderMeasurements() {
       }
     };
     input.onkeydown=event=>{
+      if(event.isComposing||event.keyCode===229||input.disabled||state.submitted||state.running)return;
+      if(event.key==='Enter'){
+        event.preventDefault();
+        if(!validMeasurement(input)){
+          incomplete('請填寫 0 至 16 cm 的讀數，保留一位小數。',`[data-time="${input.dataset.time}"][data-measure="${input.dataset.measure}"]`);return;
+        }
+        const inputs=$$('[data-measure]:enabled');
+        (inputs[inputs.indexOf(input)+1]||$('#recordMeasurements')).focus();
+      }
       if(event.key==='ArrowUp'||event.key==='ArrowDown'){event.preventDefault();adjustMeasurement(input,event.key==='ArrowUp'?0.5:-0.5);}
     };
   });
@@ -377,6 +388,7 @@ function renderMeasurements() {
   updateTimer();
 }
 function oneDecimal(value){return Math.abs(value*10-Math.round(value*10))<1e-7;}
+function validMeasurement(input){return input.value.trim()!==''&&input.validity.valid&&Number.isFinite(+input.value)&&oneDecimal(+input.value);}
 function adjustMeasurement(input,amount){
   if(input.disabled)return;
   const next=(Number(input.value)||0)+amount;
@@ -434,7 +446,7 @@ function recordMeasurements() {
   const time=state.currentTime,inputs=$$(`[data-time="${time}"][data-measure]`);
   if(inputs.length!==4)return;
   for(const input of inputs){
-    if(input.value.trim()===''||!input.validity.valid||!Number.isFinite(+input.value)||!oneDecimal(+input.value)){
+    if(!validMeasurement(input)){
       incomplete('請填寫四項 0 至 16 cm 的讀數，保留一位小數。',`[data-time="${time}"][data-measure="${input.dataset.measure}"]`);return;
     }
   }
