@@ -12,7 +12,9 @@ const properties={SPREADSHEET_ID:'test-sheet',TEACHER_PASSWORD_HASH:crypto.creat
 const sheet={getLastRow:()=>rows.length,getRange(start,col,count,width){return {getValues:()=>Array.from({length:count},(_,i)=>Array.from({length:width},(_,j)=>rows[start+i-1]?.[col+j-1]??'')),setNumberFormat(){},setValues(values){values.forEach((value,i)=>{rows[start+i-1]=value;});}};}};
 const sandbox={PropertiesService:{getScriptProperties:()=>({getProperty:k=>properties[k]})},SpreadsheetApp:{openById:()=>({getSheetByName:()=>sheet})},Utilities:{DigestAlgorithm:{SHA_256:'sha256'},Charset:{UTF_8:'utf8'},computeDigest:(_,value)=>[...crypto.createHash('sha256').update(value).digest()]},LockService:{getScriptLock:()=>({waitLock(){},hasLock:()=>true,releaseLock(){}})},ContentService:{MimeType:{JSON:'json'},createTextOutput:text=>({text,getContent(){return text;},setMimeType(){return this;}})}};
 sandbox.HtmlService={XFrameOptionsMode:{ALLOWALL:'all'},createHtmlOutput:html=>({html,setXFrameOptionsMode(){return this;}})};
-vm.createContext(sandbox);vm.runInContext(fs.readFileSync('cloud/Code.gs','utf8'),sandbox);
+// Also exercise a module-adapted reference collector without replacing the app.
+const collectorSource=process.env.COLLECTOR_SOURCE||'cloud/Code.gs';
+vm.createContext(sandbox);vm.runInContext(fs.readFileSync(collectorSource,'utf8'),sandbox);
 const call=data=>JSON.parse(sandbox.doPost({postData:{contents:JSON.stringify(data)}}).text);
 const record={moduleId:'VL_BIO_TRANSPIRATION',id:crypto.randomUUID(),profile:{name:'測試',email:'backend@example.com'},savedAt:'2026-10-05T01:00:00.000Z',phase2:{setup:{image:'data:image/jpeg;base64,'+'A'.repeat(120000)}},telemetry:[{type:'answer_changed',value:'=IMPORTXML("test")'}]};
 const token='a'.repeat(72);

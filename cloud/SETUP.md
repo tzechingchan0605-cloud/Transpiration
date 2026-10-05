@@ -48,3 +48,5 @@ Existing local answers, timestamps, attempt IDs, write tokens and old pending sn
 正式部署後，手機及獨立電腦瀏覽器各填不同答案並等候確認；第三個瀏覽器登入教師、輸入私人密碼，確認列表及 Excel 有兩份。再用同電郵做第二次，確認新增探究、舊次仍在；測試斷線補傳及教師示範不增加紀錄。可打開 `/exec` 查看版本 3，但健康回應不代表已完成學生保存或教師讀取。
 
 `node tests/cloud_setup.cjs`、`node tests/cloud_metadata.cjs`、`node tests/cloud.cjs` 使用 Google 服務替身及獨立瀏覽器測試；`node tests/smoke.cjs` 驗證原流程、PDF、反思及評分。模擬資料不寫入正式收集端。仍需在取得正式 `/exec` 後驗證 Google 授權、真正匿名嵌入頁與 RPC、配額及真實手機讀寫；不能把模擬測試或健康回應當作正式部署成功。
+
+已與使用者提供的可運作 VL1 Apps Script 比對：把模組、工作表及 `vl1-*` 訊息改為 VL2 後，核心嵌入頁／RPC／save／list 協定一致，並通過完整跨瀏覽器與 Excel 模擬測試。VL2 保留舊 Drive 紀錄遷移及分段資料檢核。測試其他參考版本可用 `COLLECTOR_SOURCE=/path/to/module-adapted-reference.gs node tests/cloud.cjs`；此設定只切換本機測試替身，不改正式部署或提交正式學生資料。
