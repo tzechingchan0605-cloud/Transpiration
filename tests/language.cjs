@@ -38,7 +38,7 @@ async function login(page,profile=STUDENT){
 // Capture only content which a language switch must preserve, including local
 // backups, original snapshots, clocks, option order, locks and actual pixels.
 function preserved(){
- const controls=[...document.querySelectorAll('input,textarea,select')].filter(el=>el.id!=='languageCode').map(el=>({
+ const controls=[...document.querySelectorAll('input,textarea,select')].map(el=>({
   id:el.id,time:el.dataset.time,measure:el.dataset.measure,value:el.value,checked:el.checked,disabled:el.disabled,
   options:el.options?[...el.options].map(option=>({value:option.value,selected:option.selected,disabled:option.disabled})):undefined
  }));
@@ -52,26 +52,22 @@ function preserved(){
  };
 }
 
-async function switchLanguage(page,code,button='#languageButton'){
- await page.locator(button).click();
- assert.equal(await page.locator('#languageDialog').isVisible(),true,'each switch needs a code dialog');
- await page.locator('#languageCode').fill(code);
- await page.locator('#confirmLanguage').click();
- await page.waitForFunction(()=>!document.querySelector('#languageDialog').open);
- assert.equal(await page.evaluate(()=>VL2I18n.language),code.trim()==='EMI'?'en':'zh');
+async function switchLanguage(page,locale,button='#languageButton'){
+ if(await page.evaluate(()=>VL2I18n.language)!==locale)await page.locator(button).click();
+ assert.equal(await page.evaluate(()=>VL2I18n.language),locale);
+ assert.equal(await page.locator('#languageDialog,#languageCode').count(),0,'switches freely without a code or confirmation dialog');
 }
 
-async function invariantSwitch(page,code){
+async function invariantSwitch(page,locale){
  // Run before/after in one task so ordinary experiment animation and scheduled
  // autosave cannot race the assertion about the switch itself.
- const result=await page.evaluate(({source,code})=>{
+ const result=await page.evaluate(({source,locale})=>{
   const snapshot=(0,eval)('('+source+')');
-  VL2I18n.requestSwitch();document.querySelector('#languageCode').value=code;
-  const before=snapshot();document.querySelector('#confirmLanguage').click();
-  return {before,after:snapshot(),language:VL2I18n.language,open:document.querySelector('#languageDialog').open};
- },{source:preserved.toString(),code});
+  const before=snapshot();VL2I18n.setLanguage(locale);
+  return {before,after:snapshot(),language:VL2I18n.language};
+ },{source:preserved.toString(),locale});
  assert.deepEqual(result.after,result.before,'language-only change must preserve answers, order, drawing, locks, snapshots, events, timing and cloud metadata');
- assert.equal(result.open,false);assert.equal(result.language,code==='EMI'?'en':'zh');
+ assert.equal(result.language,locale);
  await page.waitForTimeout(30);
 }
 
@@ -141,29 +137,17 @@ async function assertEnglish(page,stage,scope='body'){
   const chineseHints=await page.locator('input[placeholder],textarea[placeholder]').evaluateAll(els=>els.map(el=>({id:el.id,value:el.getAttribute('placeholder')})));
   assert(chineseHints.length>=6,'cover every existing input and textarea hint');
 
-  await page.locator('#loginLanguageButton').click();
-  const cancelled=await page.evaluate(preserved);
-  await page.locator('#languageCode').fill('EMI');await page.locator('#cancelLanguage').click();
-  assert.deepEqual(await page.evaluate(preserved),cancelled);
-  assert.equal(await page.evaluate(()=>VL2I18n.language),'zh');
-  await page.locator('#loginLanguageButton').click();await page.locator('#languageCode').fill('emi');
-  const invalid=await page.evaluate(preserved);await page.locator('#confirmLanguage').click();
-  assert.deepEqual(await page.evaluate(preserved),invalid);assert.equal(await page.locator('#languageDialog').isVisible(),true);
-  assert((await page.locator('#languageError').innerText()).trim());assert.equal(await page.evaluate(()=>VL2I18n.language),'zh');
-  await page.locator('#languageCode').fill('wrong');await page.locator('#confirmLanguage').click();
-  assert.equal(await page.evaluate(()=>VL2I18n.language),'zh');await page.locator('#languageCode').fill(' EMI ');await page.locator('#confirmLanguage').click();
-  assert.equal(await page.evaluate(()=>VL2I18n.language),'en');
+  assert.equal(await page.locator('#languageDialog,#languageCode').count(),0);
+  const beforeSwitch=await page.evaluate(preserved);
+  await switchLanguage(page,'en','#loginLanguageButton');
+  assert.deepEqual(await page.evaluate(preserved),beforeSwitch,'direct login switch keeps entered personal information and records');
   for(const hint of chineseHints){const english=await page.locator('#'+hint.id).getAttribute('placeholder');if(han.test(hint.value)){assert(!han.test(english),hint.id+' placeholder must be translated');assert.notEqual(english,hint.value);}}
   assert.equal(await page.locator('#profileName').inputValue(),STUDENT.name);await assertEnglish(page,'login');
-  await page.locator('#loginLanguageButton').click();await page.locator('#languageCode').fill('CM1');
-  const invalidEnglish=await page.evaluate(preserved);await page.locator('#confirmLanguage').click();
-  assert.deepEqual(await page.evaluate(preserved),invalidEnglish);assert.equal(await page.evaluate(()=>VL2I18n.language),'en');await assertEnglish(page,'invalid-code-english');await page.locator('#cancelLanguage').click();
-  await page.locator('#loginLanguageButton').click();await page.locator('#languageCode').fill('CMI');await page.locator('#languageCode').press('Escape');
-  assert.equal(await page.evaluate(()=>VL2I18n.language),'en');
-  assert.equal(await page.locator('#profileDialog').isVisible(),true,'Escape closes only language dialog');
+  await switchLanguage(page,'zh','#loginLanguageButton');await switchLanguage(page,'en','#loginLanguageButton');
+  assert.equal(await page.locator('#profileDialog').isVisible(),true,'direct switch keeps the login form open');
   await page.locator('#profileForm button[type=submit]').click();
   await page.locator('#orientationNext').click();await assertEnglish(page,'observation-required');
-  await page.locator('#observation').fill(ANSWERS.observation);await invariantSwitch(page,'CMI');await invariantSwitch(page,'EMI');
+  await page.locator('#observation').fill(ANSWERS.observation);await invariantSwitch(page,'zh');await invariantSwitch(page,'en');
   await page.locator('#orientationNext').click();await assertEnglish(page,'design');
   await page.locator('#prediction').selectOption('decrease');await page.locator('#reason').fill(ANSWERS.reason);
   await page.locator('[data-group=iv]').first().click();await page.locator('[data-group=dv]').nth(1).click();
@@ -172,17 +156,17 @@ async function assertEnglish(page,stage,scope='body'){
   await page.locator('#controlPlan').fill(ANSWERS.controlPlan);await page.locator('#setupDescription').fill(ANSWERS.setupDescription);
   await page.locator('#setupCanvas').scrollIntoViewIfNeeded();const box=await page.locator('#setupCanvas').boundingBox();
   await page.mouse.move(box.x+70,box.y+60);await page.mouse.down();await page.mouse.move(box.x+180,box.y+100);await page.mouse.up();
-  await page.locator('#saveSetup').click();await invariantSwitch(page,'CMI');await invariantSwitch(page,'EMI');await assertEnglish(page,'saved-design');
+  await page.locator('#saveSetup').click();await invariantSwitch(page,'zh');await invariantSwitch(page,'en');await assertEnglish(page,'saved-design');
   await page.locator('#designNext').click();assert.equal(await page.locator('#phase-3').isVisible(),true);await assertEnglish(page,'experiment');
   for(const time of [0,10,20,30]){
    const model=await page.evaluate(()=>state.model);
    for(const id of ['A','B','C','D'])await page.locator('[data-time="'+time+'"][data-measure="'+id+'"]').fill(model[id][time/10].toFixed(1));
    await page.locator('#recordMeasurements').click();
    if(time===10){await page.locator('[data-time="10"][data-measure=B]').fill('2.9');await page.locator('#recordMeasurements').click();}
-   await invariantSwitch(page,'CMI');await invariantSwitch(page,'EMI');await assertEnglish(page,'measurement-'+time);
+   await invariantSwitch(page,'zh');await invariantSwitch(page,'en');await assertEnglish(page,'measurement-'+time);
    if(time<30){
     await page.locator('#timerButton').click();
-    if(time===0){assert.equal(await page.evaluate(()=>state.running),true);await invariantSwitch(page,'CMI');await invariantSwitch(page,'EMI');assert.equal(await page.evaluate(()=>state.running),true);await assertEnglish(page,'running');}
+    if(time===0){assert.equal(await page.evaluate(()=>state.running),true);await invariantSwitch(page,'zh');await invariantSwitch(page,'en');assert.equal(await page.evaluate(()=>state.running),true);await assertEnglish(page,'running');}
     await page.waitForFunction(t=>state.currentTime===t&&!state.running,time+10);
     await assertEnglish(page,'timer-finished-'+time);
    }
@@ -196,7 +180,7 @@ async function assertEnglish(page,stage,scope='body'){
   await page.locator('#connectPoints').click();
   const graphBox=await page.locator('#studentGraph').boundingBox();await page.mouse.move(graphBox.x+graphBox.width/2,graphBox.y+graphBox.height/2);
   for(const [id,value] of Object.entries({claim:'increase',leafComparison:'faster',leafConclusion:'promotes',limitations:'indirect'}))await page.locator('#'+id).selectOption(value);
-  await invariantSwitch(page,'CMI');await invariantSwitch(page,'EMI');await assertEnglish(page,'graph');
+  await invariantSwitch(page,'zh');await invariantSwitch(page,'en');await assertEnglish(page,'graph');
   await page.locator('#submitInvestigation').click();await assertEnglish(page,'submission-confirmation');await page.locator('#confirmSubmit').click();
   assert.equal(await page.locator('#rate-A').isDisabled(),true);assert.equal(await page.locator('#downloadPDF').isDisabled(),true);await assertEnglish(page,'learning');
   const science=await page.locator('#mechanismDiagram').innerText();
@@ -209,12 +193,12 @@ async function assertEnglish(page,stage,scope='body'){
   }
   for(const term of ['water potential','osmosis','diffusion'])assert(!new RegExp(term+'\\s*\\([^)]*[\\u3400-\\u9fff]','i').test(science),'unapproved word has no Chinese support: '+term);
   assert(!/transpiration\s*\(蒸騰\)\s*pull/i.test(science),'transpiration pull gets one complete approved translation');
-  await page.locator('#reflection').fill(ANSWERS.reflection);await invariantSwitch(page,'CMI');await invariantSwitch(page,'EMI');
+  await page.locator('#reflection').fill(ANSWERS.reflection);await invariantSwitch(page,'zh');await invariantSwitch(page,'en');
   await page.locator('#saveReflection').click();assert.equal(await page.locator('#reflection').isDisabled(),true);assert.equal(await page.locator('#downloadPDF').isDisabled(),false);
-  await invariantSwitch(page,'CMI');await invariantSwitch(page,'EMI');await assertEnglish(page,'reflection-submitted');
+  await invariantSwitch(page,'zh');await invariantSwitch(page,'en');await assertEnglish(page,'reflection-submitted');
   for(const [id,value] of Object.entries(ANSWERS))assert.equal(await page.locator('#'+id).inputValue(),value);
   await page.evaluate(()=>{window.print=()=>{window.__printed=(window.__printed||0)+1;};});
-  for(const [code,lang] of [['CMI','zh'],['EMI','en']]){
+  for(const [code,lang] of [['zh','zh'],['en','en']]){
    await invariantSwitch(page,code);await page.locator('#downloadPDF').click();await page.waitForFunction(()=>!!window.__printed);
    const report=await page.locator('#printReport').innerText();
    for(const value of Object.values(ANSWERS))assert(report.includes(value),'PDF retains original student text: '+value);
@@ -242,7 +226,7 @@ for language in ['zh','en']:
   assert.equal(await page.locator('#teacherDialog').isVisible(),true);await assertEnglish(page,'teacher');
   await page.locator('[data-view-record]').first().click();await assertEnglish(page,'teacher-preview');
   assert((await page.locator('#teacherReport').innerText()).includes(ANSWERS.controlPlan),'diagram ID remapping must not change original student words');
-  for(const [code,lang] of [['CMI','zh'],['EMI','en']]){
+  for(const [code,lang] of [['zh','zh'],['en','en']]){
    await invariantSwitch(page,code);const download=page.waitForEvent('download');await page.locator('#exportExcel').click();await (await download).saveAs(path.join(artifacts,'excel-'+lang+'.xlsx'));
   }
   assert((await fs.readFile(path.join(artifacts,'excel-zh.xlsx'))).equals(await fs.readFile(path.join(artifacts,'excel-en.xlsx'))),'Chinese and English interfaces must export identical workbook bytes, including scores, formulas and images');
@@ -258,36 +242,36 @@ with ZipFile(root/'excel-en.xlsx') as z:
  print('PASS: Excel keeps Chinese headings, original bilingual answers, grading formulas and drawing')
 `],{stdio:'inherit'});
   const beforeDemo=await page.evaluate(()=>JSON.stringify(storedRecords()));
-  await switchLanguage(page,'CMI','#teacherLanguageButton');await switchLanguage(page,'EMI','#teacherLanguageButton');await page.locator('#teacherDemo').click();
-  await assertEnglish(page,'teacher-demonstration');await page.locator('#observation').fill('教師自己的示範文字');await invariantSwitch(page,'CMI');await invariantSwitch(page,'EMI');
+  await switchLanguage(page,'zh','#teacherLanguageButton');await switchLanguage(page,'en','#teacherLanguageButton');await page.locator('#teacherDemo').click();
+  await assertEnglish(page,'teacher-demonstration');await page.locator('#observation').fill('教師自己的示範文字');await invariantSwitch(page,'zh');await invariantSwitch(page,'en');
   assert.equal(await page.evaluate(()=>JSON.stringify(storedRecords())),beforeDemo);
 
   const mobile=await desktop.newPage();await mobile.setViewportSize({width:390,height:844});await mobile.goto(server.url);
   assert.equal(await mobile.evaluate(()=>VL2I18n.language),'zh','a new page always starts in Traditional Chinese');
   const mobileButton=await mobile.locator('#loginLanguageButton').boundingBox();assert(mobileButton&&mobileButton.x>=0&&mobileButton.x+mobileButton.width<=390&&mobileButton.y>=0&&mobileButton.y+mobileButton.height<=844);
-  await switchLanguage(mobile,'EMI','#loginLanguageButton');await assertEnglish(mobile,'mobile-login');
+  await switchLanguage(mobile,'en','#loginLanguageButton');await assertEnglish(mobile,'mobile-login');
   await login(mobile,{name:'Mobile student',classInfo:'S4-mobile',email:'mobile-language-isolated@example.edu.hk'});
-  await switchLanguage(mobile,'CMI');await switchLanguage(mobile,'EMI');await assertEnglish(mobile,'mobile-student');
+  await switchLanguage(mobile,'zh');await switchLanguage(mobile,'en');await assertEnglish(mobile,'mobile-student');
   assert.equal(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await mobile.screenshot({path:path.join(artifacts,'mobile-en.png'),fullPage:true});
   await mobile.locator('#profileButton').click();await login(mobile,{name:'教師',classInfo:'教師',email:TEACHER});
-  await switchLanguage(mobile,'CMI','#teacherLanguageButton');await switchLanguage(mobile,'EMI','#teacherLanguageButton');await assertEnglish(mobile,'mobile-teacher');
+  await switchLanguage(mobile,'zh','#teacherLanguageButton');await switchLanguage(mobile,'en','#teacherLanguageButton');await assertEnglish(mobile,'mobile-teacher');
   assert.equal(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await mobile.locator('#teacherDemo').click();await switchLanguage(mobile,'CMI');await switchLanguage(mobile,'EMI');await assertEnglish(mobile,'mobile-teacher-demo');
+  await mobile.locator('#teacherDemo').click();await switchLanguage(mobile,'zh');await switchLanguage(mobile,'en');await assertEnglish(mobile,'mobile-teacher-demo');
   mobile.on('dialog',dialog=>dialog.accept());await mobile.reload();assert.equal(await mobile.evaluate(()=>VL2I18n.language),'zh');assert.equal(await mobile.locator('#profileDialog').isVisible(),true);
 
   const cloudContext=await context({viewport:{width:1280,height:900}},true),cloud=await cloudContext.newPage();await cloud.goto(server.url);await login(cloud);
   await cloud.locator('#observation').fill(ANSWERS.observation);await cloud.evaluate(async()=>{save();clearTimeout(saveTimer);await cloudSync.flush().catch(()=>{});});
   assert.equal(await cloud.locator('#cloudStatus').getAttribute('data-state'),'error');
   const pendingRecord=await cloud.evaluate(()=>JSON.stringify(storedRecords()));const sentBefore=await cloud.evaluate(()=>window.__isolatedCloud.calls.length);
-  await invariantSwitch(cloud,'EMI');await assertEnglish(cloud,'cloud-offline');await invariantSwitch(cloud,'CMI');
+  await invariantSwitch(cloud,'en');await assertEnglish(cloud,'cloud-offline');await invariantSwitch(cloud,'zh');
   assert.equal(await cloud.evaluate(()=>window.__isolatedCloud.calls.length),sentBefore,'language switches do not create sync requests');
   assert.equal(await cloud.evaluate(()=>JSON.stringify(storedRecords())),pendingRecord,'pending cloud record remains unchanged');
   await cloud.evaluate(()=>window.__isolatedCloud.online=true);await cloud.locator('#retryCloud').click();await cloud.waitForFunction(()=>document.querySelector('#cloudStatus').dataset.state==='synced');
   assert.equal(await cloud.evaluate(()=>window.__isolatedCloud.records[state.id].form.observation),ANSWERS.observation);
-  await invariantSwitch(cloud,'EMI');await assertEnglish(cloud,'cloud-confirmed');
-  const acknowledged=await cloud.evaluate(()=>JSON.stringify(window.__isolatedCloud.records));await invariantSwitch(cloud,'CMI');await invariantSwitch(cloud,'EMI');assert.equal(await cloud.evaluate(()=>JSON.stringify(window.__isolatedCloud.records)),acknowledged);
+  await invariantSwitch(cloud,'en');await assertEnglish(cloud,'cloud-confirmed');
+  const acknowledged=await cloud.evaluate(()=>JSON.stringify(window.__isolatedCloud.records));await invariantSwitch(cloud,'zh');await invariantSwitch(cloud,'en');assert.equal(await cloud.evaluate(()=>JSON.stringify(window.__isolatedCloud.records)),acknowledged);
   assert.deepEqual(errors,[]);
-  console.log('PASS: default Chinese on every page/reload; CMI/EMI, invalid/cancel/Escape; every placeholder and owned text/SVG/accessibility attribute; original bilingual answers, option order, canvas, graph, ID, snapshots, events, timers, locks and local/cloud records; running experiment; full English student flow and dynamic statuses; actual bilingual PDF; byte-identical Chinese Excel with original answers, scoring formulas and images; mobile; teacher preview/demo; isolated offline/retry cloud sync. Artifacts: '+artifacts);
+  console.log('PASS: default Chinese on every page/reload; free direct language switching without a code dialog; every placeholder and owned text/SVG/accessibility attribute; original bilingual answers, option order, canvas, graph, ID, snapshots, events, timers, locks and local/cloud records; running experiment; full English student flow and dynamic statuses; actual bilingual PDF; byte-identical Chinese Excel with original answers, scoring formulas and images; mobile; teacher preview/demo; isolated offline/retry cloud sync. Artifacts: '+artifacts);
  }finally{await browser.close();await server.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

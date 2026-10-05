@@ -1,5 +1,5 @@
 /*
- * Static CMI / EMI interface text. Keys match trimmed source text nodes or
+ * Static Chinese / English interface text. Keys match trimmed source text nodes or
  * placeholder / accessible-label attributes in index.html. Boundary spaces
  * in English values are intentional where inline HTML splits a sentence.
  * Student answer values are never included in this dictionary.
@@ -16,13 +16,6 @@ window.VL2_I18N_STATIC = {
   "教師儀表板": "Teacher dashboard",
   "中文 / English": "Chinese / English",
   "切換介面語言": "Change interface language",
-  "介面語言": "Interface language",
-  "切換語言": "Change language",
-  "中文請輸入 CMI，英文請輸入 EMI。每次切換都需要輸入代碼。": "Enter CMI for Chinese or EMI for English. Enter a code each time you change the language.",
-  "語言代碼": "Language code",
-  "輸入 CMI 或 EMI": "Enter CMI or EMI",
-  "確認切換": "Confirm language change",
-  "代碼不正確。中文請輸入 CMI，英文請輸入 EMI。": "Incorrect code. Enter CMI for Chinese or EMI for English.",
   "更新學習者資料": "Update learner details",
   "雲端同步狀態": "Cloud sync status",
   "重試同步／補傳舊紀錄": "Retry sync / upload saved records",

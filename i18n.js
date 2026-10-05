@@ -118,25 +118,14 @@ window.VL2I18n = (() => {
     }
     restore(element,clone);return inner?clone.innerHTML:clone.outerHTML;
   }
-  function requestSwitch(){
-    const dialog=document.querySelector('#languageDialog');
-    document.querySelector('#languageCode').value='';document.querySelector('#languageError').textContent='';
-    apply(dialog);if(!dialog.open)dialog.showModal();document.querySelector('#languageCode').focus();
-  }
-  function confirmSwitch(event){
-    event.preventDefault();
-    const code=document.querySelector('#languageCode').value.trim();
-    if(code!=='CMI'&&code!=='EMI'){
-      document.querySelector('#languageError').textContent=language==='en'?'Incorrect code. Enter CMI for Chinese or EMI for English.':'代碼不正確。中文請輸入 CMI，英文請輸入 EMI。';
-      document.querySelector('#languageCode').focus();return;
-    }
-    language=code==='EMI'?'en':'zh';
+  function setLanguage(locale){
+    if(locale!=='zh'&&locale!=='en')return;
+    language=locale;
     document.documentElement.lang=language==='en'?'en':'zh-Hant-HK';
     document.title=translate('西芹的紅色水跡｜探究實驗室');
-    apply();document.querySelector('#languageDialog').close();
+    apply();
   }
-  document.querySelector('#languageForm').addEventListener('submit',confirmSwitch);
-  document.querySelector('#cancelLanguage').addEventListener('click',()=>document.querySelector('#languageDialog').close());
+  function requestSwitch(){setLanguage(language==='zh'?'en':'zh');}
   for(const id of ['languageButton','loginLanguageButton','teacherLanguageButton'])document.querySelector('#'+id).addEventListener('click',requestSwitch);
   // Batch UI updates. No form events, re-render, save, timer reset or network action.
   let queued=false;
@@ -156,5 +145,5 @@ window.VL2I18n = (() => {
   });
   observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:attributeNames});
   apply();
-  return {get language(){return language;},approvedVocabulary,translate,apply,sourceHTML,requestSwitch};
+  return {get language(){return language;},approvedVocabulary,translate,apply,sourceHTML,setLanguage,requestSwitch};
 })();

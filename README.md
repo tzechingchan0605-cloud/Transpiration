@@ -13,9 +13,9 @@ python -m http.server 8000 --bind 0.0.0.0
 
 使用網站伺服器提供整個目錄，包括 `index.html`、`styles.css`、`app.js`、雲端及 `i18n*.js` 語言檔。亦可部署至支援靜態網站的服務。直接開啟 HTML 的本機儲存行為因瀏覽器而異，建議使用 HTTP。
 
-## 語言：CMI／EMI
+## 語言：中文／英文
 
-每次開啟或重新載入頁面均預設繁體中文。按右上角「中文 / English」，輸入 **CMI** 使用繁體中文，或輸入 **EMI** 使用英文，再按「確認切換」。登入及教師儀表板的彈出頁右上角也有按鈕。每次切換都需要重新輸入代碼；代碼區分大小寫，首尾空格會忽略。錯誤、取消或按 Esc 均保留目前語言及作答。
+每次開啟或重新載入頁面均預設繁體中文。按右上角「中文 / English」即可直接切換中英文，再按一次便切回另一語言。登入及教師儀表板的彈出頁右上角也有按鈕。切換毋須輸入語言代碼，不會出現確認視窗，並保留作答及實驗狀態。
 
 英文的一般指示使用簡單英文，例如 `experiment setup`、`the factor changed on purpose`；保留 `Independent variable`、`Dependent variable`、`Controlled variables`，並附簡單英文解釋。生物專有詞保持科學準確。
 
@@ -111,4 +111,4 @@ node tests/smoke.cjs
 
 量度互動驗證：`node tests/measurements.cjs`（涵蓋恆定速度、0.5 cm 模擬讀數、Enter 操作、舊資料保留及獨立手機瀏覽器；不連接正式收集端）。
 
-語言隔離驗證：`node tests/language.cjs`（需 Playwright、Chromium 和 Python `pypdf`；自動啟動本機伺服器）。涵蓋 CMI／EMI、錯誤／取消、所有輸入框提示、完整介面及動態 SVG、批准詞彙、作答／原始快照／繪圖／圖點／事件／計時／鎖定保存、實際雙語 PDF、逐位元一致的中文 Excel、手機、教師示範，以及使用真正前端同步程式配合隔離收集端的離線／補傳驗證。所有測試覆寫正式雲端設定，並攔截 Apps Script 連線；測試紀錄不會上傳正式收集端。`tests/cloud.cjs` 另以實際 Apps Script 程式及 Google 服務替身驗證跨裝置收集。這些是本機隔離測試，並非正式 Google 部署驗證。
+語言隔離驗證：`node tests/language.cjs`（需 Playwright、Chromium 和 Python `pypdf`；自動啟動本機伺服器）。涵蓋直接中英文切換、所有輸入框提示、完整介面及動態 SVG、批准詞彙、作答／原始快照／繪圖／圖點／事件／計時／鎖定保存、實際雙語 PDF、逐位元一致的中文 Excel、手機、教師示範，以及使用真正前端同步程式配合隔離收集端的離線／補傳驗證。所有測試覆寫正式雲端設定，並攔截 Apps Script 連線；測試紀錄不會上傳正式收集端。`tests/cloud.cjs` 另以實際 Apps Script 程式及 Google 服務替身驗證跨裝置收集。這些是本機隔離測試，並非正式 Google 部署驗證。
