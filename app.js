@@ -74,6 +74,17 @@ function readStored(key, fallback) {
   catch { return fallback; }
 }
 let activeProfile=null;
+const cloud=new LabCloudSync({url:window.VL_CLOUD_CONFIG?.url||'',teacherEmail:TEACHER_EMAIL,onStatus:message=>$('#cloudStatus').textContent=message});
+cloud.status(cloud.enabled?'已啟用中央儲存；登入後會自動同步學生答案。':'中央儲存尚未設定：目前答案只保留在這部瀏覽器。');
+function teacherRecords(){return cloud.enabled?(cloud.records||[]).map(upgradeRecord).filter(isRecord).filter(r=>!isTeacher(r.profile)):storedRecords();}
+async function refreshCloudRecords(){
+  if(!isTeacher()||!cloud.enabled)return false;
+  const key=$('#cloudTeacherKey').value.trim()||cloud.teacherKey;
+  if(!key){toast('請輸入教師中央紀錄存取金鑰。');return false;}
+  $('#dashboardStatus').textContent='正在讀取中央學生紀錄…';
+  try{await cloud.load(key);renderTeacherDashboard();return true;}
+  catch{cloud.records=null;renderTeacherDashboard();$('#dashboardStatus').textContent='未能讀取中央紀錄：請檢查金鑰、連線及中央服務部署。';return false;}
+}
 // Archive older current-only records, but never restore a learner session.
 const previousCurrent=upgradeRecord(readStored(CURRENT_KEY,null));
 if(isRecord(previousCurrent)&&previousCurrent.profile&&!isTeacher(previousCurrent.profile)) {
@@ -131,8 +142,9 @@ function save() {
     if(index<0) records.push(state); else records[index]=state;
     localStorage.setItem(RECORDS_KEY,JSON.stringify(records));
   } catch {
-    toast('瀏覽器儲存空間不足或未允許儲存。請下載研究紀錄保存答案。');
+    toast('瀏覽器儲存空間不足或未允許儲存。請保持頁面開啟並確認中央同步狀態。');
   }
+  cloud.enqueue(state);
 }
 function scheduleSave() { clearTimeout(saveTimer); saveTimer=setTimeout(save,400); }
 function log(type,details={}) {
@@ -806,9 +818,10 @@ function scoringWorkbook(records){
   return {sheet:{name:'教師評分',rows,validations},rubric:{name:'評分準則',rows:rubric},col};
 }
 
-function exportExcel(){
+async function exportExcel(){
   if(!isTeacher())return;
-  save();const records=storedRecords();
+  if(cloud.enabled&&!await refreshCloudRecords())return;
+  save();const records=teacherRecords();
   if(!records.length){toast('目前沒有可匯出的研究紀錄。');return;}
   const headings=['紀錄識別碼','姓名','班別及學號','電郵','狀態','建立時間','遞交時間','初步觀察','原始預測','原始理由','目前預測','目前理由','獨立變量－學生答案','獨立變量－參考答案','因變量－學生答案','因變量－參考答案','控制變量－學生答案','控制變量－參考答案','假設－學生答案','假設－參考答案','對照裝置設計－學生答案','對照裝置設計－參考答案','裝置文字設計','X軸','Y軸','光強度關係－學生答案','光強度關係－參考答案','葉片比較－學生答案','葉片作用－學生答案','葉片作用－參考答案','實驗限制－學生答案','實驗限制－參考答案','反思','總有效秒數','階段一有效秒數','階段二有效秒數','階段三有效秒數','階段四有效秒數','記錄量度次數','計算作答次數','標點次數','結論作答次數'];
   const rows=[headings],data=[['紀錄識別碼','姓名','模擬時間（min）','裝置','光照距離（cm）','光強度（lux）','葉片','首次讀數（cm）','最後讀數（cm）','模型參考高度（cm）','學生平均速度（cm/min）','依學生數據計算的速度（cm/min）','圖點 X坐標','圖點 Y坐標']];
@@ -864,8 +877,9 @@ function observationAccuracy(record){
 let previewRecord=null;
 function renderTeacherDashboard(){
   if(!isTeacher())return;
-  const records=storedRecords();
-  $('#dashboardStatus').textContent=`這部瀏覽器現有 ${records.length} 份學生紀錄。資料不會跨裝置同步；可匯入舊版 JSON 紀錄。`;
+  const records=teacherRecords();
+  $('#refreshCloud').disabled=!cloud.enabled;$('#cloudTeacherKey').disabled=!cloud.enabled;
+  $('#dashboardStatus').textContent=cloud.enabled?(cloud.records?`中央現有 ${records.length} 份學生紀錄，包含不同裝置及多次探究。下載 Excel 時會重新讀取中央資料。`:'請輸入教师存取金鑰並連線，讀取不同裝置的學生紀錄。'):`中央儲存尚未設定。這部瀏覽器現有 ${records.length} 份學生紀錄。`;
   $('#teacherData').innerHTML=records.length?records.map(r=>`<tr><td><strong>${esc(r.profile?.name||'—')}</strong><small>${esc(r.profile?.email||'—')}</small></td><td>${esc(r.profile?.classInfo||'—')}</td><td><span class="report-status ${reflectionComplete(r)?'complete':''}">${reflectionComplete(r)?'已完成':r.submitted?'待提交反思':`階段 ${r.phase}`}</span></td><td>${observationAccuracy(r)}</td><td>${formatDuration(Object.values(r.phaseDurations).reduce((a,b)=>a+b,0))}</td><td>${esc(dateText(r.savedAt))}</td><td><button class="small-button" data-view-record="${esc(r.id)}">查看紀錄</button></td></tr>`).join(''):'<tr><td colspan="7">這部瀏覽器暫無學生紀錄。</td></tr>';
   $$('[data-view-record]').forEach(button=>button.onclick=()=>{
     previewRecord=records.find(r=>r.id===button.dataset.viewRecord);
@@ -939,7 +953,9 @@ $('#profileForm').onsubmit=event=>{
   drawingChanged=false;drawingTool='pencil';
   activeProfile=profile;activeSince=Date.now();
   try{localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));}catch{toast('未能保存學習者資料。');}
+  cloud.records=null;cloud.teacherKey='';$('#cloudTeacherKey').value='';
   $('#profileDialog').close();init();log('profile_saved');save();
+  if(cloud.enabled){storedRecords().forEach(record=>cloud.enqueue(record));cloud.flush();}
 };
 $('#profileButton').onclick=()=>{
   $('#profileName').value=activeProfile?.name||'';$('#profileClass').value=activeProfile?.classInfo||'';$('#profileEmail').value=activeProfile?.email||'';
@@ -991,6 +1007,7 @@ $('#newInvestigation').onclick=()=>{
   location.reload();
 };
 $('#teacherButton').onclick=()=>{if(!isTeacher())return;renderTeacherDashboard();$('#teacherDialog').showModal();};
+$('#refreshCloud').onclick=refreshCloudRecords;
 $('#closeTeacher').onclick=()=>$('#teacherDialog').close();
 $('#teacherDemo').onclick=()=>{if(!isTeacher())return;$('#teacherDialog').close();phase(state.phase);toast('教師示範模式：可以進行完整探究，操作不會加入學生紀錄。');};$('#exportExcel').onclick=exportExcel;
 $('#teacherPDF').onclick=()=>{if(isTeacher()&&previewRecord)return printRecord(previewRecord);};
@@ -1008,7 +1025,7 @@ $('#importRecords').onchange=async event=>{
       success++;
     }catch{failed++;}
   }
-  try{localStorage.setItem(RECORDS_KEY,JSON.stringify(records));renderTeacherDashboard();$('#importStatus').textContent=`已處理 ${success} 份紀錄；${failed} 份未匯入（格式不符或檔案過大）。`;}catch{toast('儲存空間不足，未能匯入。');}
+  try{localStorage.setItem(RECORDS_KEY,JSON.stringify(records));records.forEach(record=>cloud.enqueue(record));renderTeacherDashboard();$('#importStatus').textContent=`已處理 ${success} 份紀錄；${failed} 份未匯入（格式不符或檔案過大）。`;}catch{toast('儲存空間不足，未能匯入。');}
   event.target.value='';
 };
 document.addEventListener('visibilitychange',()=>{
