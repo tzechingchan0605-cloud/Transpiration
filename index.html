@@ -5,11 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#087b78">
   <title>西芹的紅色水跡｜探究實驗室</title>
-  <link rel="stylesheet" href="styles.css?v=8">
+  <link rel="stylesheet" href="styles.css?v=9">
   <script src="cloud-config.js?v=5" defer></script>
   <script src="cloud-bridge.js?v=6" defer></script>
   <script src="cloud-sync.js" defer></script>
-  <script src="app.js?v=11" defer></script>
+  <script src="i18n-static.js?v=1" defer></script>
+  <script src="i18n-dynamic.js?v=1" defer></script>
+  <script src="i18n-svg.js?v=1" defer></script>
+  <script src="i18n.js?v=1" defer></script>
+  <script src="app.js?v=12" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到探究內容</a>
@@ -17,7 +21,7 @@
     <header class="topbar">
       <a class="brand" href="#main"><span class="brand-mark">✦</span>探究實驗室</a>
       <span class="module-label"><i></i>S4 生物 · 模組 2</span>
-      <div class="student-chip"><span class="avatar" aria-hidden="true">同</span><span id="studentName">同學</span><button id="teacherButton" class="small-button" hidden>教師儀表板</button><button id="profileButton" class="icon-button" aria-label="更新學習者資料">⚙</button></div>
+      <div class="student-chip"><button id="languageButton" type="button" class="small-button" aria-label="切換介面語言">中文 / English</button><span class="avatar" aria-hidden="true">同</span><span id="studentName">同學</span><button id="teacherButton" class="small-button" hidden>教師儀表板</button><button id="profileButton" class="icon-button" aria-label="更新學習者資料">⚙</button></div>
     </header>
     <section class="cloud-strip" aria-label="雲端同步狀態">
       <p id="cloudStatus" class="cloud-status" role="status" aria-atomic="true"></p>
@@ -97,9 +101,10 @@
     <p id="localStorageStatus" class="privacy-note" role="status"></p>
     <footer class="site-footer">探究實驗室 · 用觀察提出問題，用證據建立解釋。<span>西芹水跡為教學模擬；中央儲存狀態見頁首提示。</span></footer>
   </div>
-  <dialog id="profileDialog"><form id="profileForm" class="dialog-panel"><span class="profile-mark">✦</span><p class="eyebrow">探究實驗室 · 模組 2</p><h2>開始你的探究</h2><p class="muted">輸入姓名、班別及電郵地址。輸入指定教師電郵會開啟教師儀表板。</p><label class="field">姓名<input id="profileName" required maxlength="40" autocomplete="name" placeholder="例如：陳小明"></label><label class="field">班別及學號<input id="profileClass" required maxlength="30" placeholder="例如：S4X1-05"></label><label class="field">電郵地址<input id="profileEmail" type="email" required autocomplete="email" placeholder="例如：student@school.edu.hk"></label><button class="primary" type="submit">進入實驗室 →</button><p class="privacy-note">每次重新載入都會返回此登入頁，登入後開始新的探究。答案先保留於本機；啟用中央服務後會同步給教師，請確認同步狀態顯示已獲中央確認儲存再關閉。</p><p id="loginCloudStatus" class="privacy-note" role="status"></p><button id="loginRetryCloud" type="button" class="secondary" hidden>重試同步舊紀錄</button><button id="closeProfile" type="button" class="text-button" hidden>取消</button></form></dialog>
-  <dialog id="teacherDialog"><section class="dialog-panel wide teacher-panel"><button id="closeTeacher" class="dialog-close" aria-label="關閉教師儀表板">×</button><p class="eyebrow">教師儀表板</p><h2>學生學習紀錄</h2><div class="field"><label for="cloudTeacherKey">教師雲端密碼（只保留於目前頁面，不會写入網站或 Excel）</label><input id="cloudTeacherKey" type="password" autocomplete="off"><button id="refreshCloud" type="button" class="secondary">連線／重新載入全部學生紀錄</button></div><p id="dashboardStatus" class="muted"></p><div class="dashboard-note">報告以完整中文句子顯示。Excel 以底色區分題目類別，以綠／紅字標示正確／錯誤答案，並附六項 SPS、新知識與整體分數欄及評分準則。開放題及反思由教師在 Excel 評分，學生 PDF 不顯示分數。按「進入示範探究」可操作完整實驗；教師示範不會加入學生紀錄。</div><div class="record-actions"><button id="teacherDemo" class="secondary">進入示範探究 →</button><button id="exportExcel" class="primary">下載 Excel 報告</button><label class="upload-button">匯入學生研究紀錄<input id="importRecords" type="file" accept="application/json,.json" multiple></label></div><div class="table-wrap"><table class="teacher-table"><thead><tr><th>學生</th><th>班別及學號</th><th>進度</th><th>觀察準確度</th><th>總用時</th><th>更新時間</th><th>學習報告</th></tr></thead><tbody id="teacherData"></tbody></table></div><p id="importStatus" role="status" class="muted"></p><div id="teacherDetail" hidden><div class="record-actions"><button id="teacherPDF" class="secondary">列印／儲存這份 PDF</button></div><div id="teacherReport"></div></div></section></dialog>
+  <dialog id="profileDialog"><form id="profileForm" class="dialog-panel"><button id="loginLanguageButton" type="button" class="small-button language-dialog-button" aria-label="切換介面語言">中文 / English</button><span class="profile-mark">✦</span><p class="eyebrow">探究實驗室 · 模組 2</p><h2>開始你的探究</h2><p class="muted">輸入姓名、班別及電郵地址。輸入指定教師電郵會開啟教師儀表板。</p><label class="field">姓名<input id="profileName" required maxlength="40" autocomplete="name" placeholder="例如：陳小明"></label><label class="field">班別及學號<input id="profileClass" required maxlength="30" placeholder="例如：S4X1-05"></label><label class="field">電郵地址<input id="profileEmail" type="email" required autocomplete="email" placeholder="例如：student@school.edu.hk"></label><button class="primary" type="submit">進入實驗室 →</button><p class="privacy-note">每次重新載入都會返回此登入頁，登入後開始新的探究。答案先保留於本機；啟用中央服務後會同步給教師，請確認同步狀態顯示已獲中央確認儲存再關閉。</p><p id="loginCloudStatus" class="privacy-note" role="status"></p><button id="loginRetryCloud" type="button" class="secondary" hidden>重試同步舊紀錄</button><button id="closeProfile" type="button" class="text-button" hidden>取消</button></form></dialog>
+  <dialog id="teacherDialog"><section class="dialog-panel wide teacher-panel"><button id="closeTeacher" class="dialog-close" aria-label="關閉教師儀表板">×</button><button id="teacherLanguageButton" type="button" class="small-button language-dialog-button" aria-label="切換介面語言">中文 / English</button><p class="eyebrow">教師儀表板</p><h2>學生學習紀錄</h2><div class="field"><label for="cloudTeacherKey">教師雲端密碼（只保留於目前頁面，不會写入網站或 Excel）</label><input id="cloudTeacherKey" type="password" autocomplete="off"><button id="refreshCloud" type="button" class="secondary">連線／重新載入全部學生紀錄</button></div><p id="dashboardStatus" class="muted"></p><div class="dashboard-note">Excel 保持繁體中文；PDF 的題目及說明跟隨介面語言，學生答案保留原文。Excel 以底色區分題目類別，以綠／紅字標示正確／錯誤答案，並附六項 SPS、新知識與整體分數欄及評分準則。開放題及反思由教師在 Excel 評分，學生 PDF 不顯示分數。按「進入示範探究」可操作完整實驗；教師示範不會加入學生紀錄。</div><div class="record-actions"><button id="teacherDemo" class="secondary">進入示範探究 →</button><button id="exportExcel" class="primary">下載 Excel 報告</button><label class="upload-button">匯入學生研究紀錄<input id="importRecords" type="file" accept="application/json,.json" multiple></label></div><div class="table-wrap"><table class="teacher-table"><thead><tr><th>學生</th><th>班別及學號</th><th>進度</th><th>觀察準確度</th><th>總用時</th><th>更新時間</th><th>學習報告</th></tr></thead><tbody id="teacherData"></tbody></table></div><p id="importStatus" role="status" class="muted"></p><div id="teacherDetail" hidden><div class="record-actions"><button id="teacherPDF" class="secondary">列印／儲存這份 PDF</button></div><div id="teacherReport"></div></div></section></dialog>
   <dialog id="submitDialog"><section class="dialog-panel"><p class="eyebrow">準備遞交</p><h2>保存本次探究答案？</h2><p>遞交後不能再修改本次探究記錄。你將可查看學習重點、填寫並<strong>遞交</strong>學習反思、下載學習紀錄。你亦可重新進行探究活動。</p><div class="record-actions"><button id="cancelSubmit" class="secondary">返回檢查</button><button id="confirmSubmit" class="primary">確認遞交</button></div></section></dialog>
+  <dialog id="languageDialog"><form id="languageForm" class="dialog-panel"><p class="eyebrow">介面語言</p><h2>切換語言</h2><p>中文請輸入 CMI，英文請輸入 EMI。每次切換都需要輸入代碼。</p><label class="field" for="languageCode">語言代碼<input id="languageCode" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="輸入 CMI 或 EMI"></label><p id="languageError" class="language-error" role="alert"></p><div class="record-actions"><button id="cancelLanguage" type="button" class="secondary">取消</button><button id="confirmLanguage" type="submit" class="primary">確認切換</button></div></form></dialog>
   <section id="printReport" class="print-report"></section>
   <div id="toast" role="status" class="toast"></div>
 </body>

@@ -638,7 +638,7 @@ function reflectionComplete(record=state) {
 }
 function updateReflection() {
   const original=state.initialDesign?.form||state.form, complete=reflectionComplete();
-  $('#originalHypothesis').innerHTML=`<strong>你的原始假說</strong><p>${esc(hypothesisText(state))}</p><p>原始理由：${esc(original.reason||'未回答')}</p>`;
+  $('#originalHypothesis').innerHTML=`<strong>你的原始假說</strong><p>${esc(hypothesisText(state))}</p><p>原始理由：${original.reason?`<span data-user-text>${esc(original.reason)}</span>`:'未回答'}</p>`;
   $('#reflection').disabled=complete;
   $('#saveReflection').disabled=!state.submitted||complete;
   $('#saveReflection').textContent=isTeacher()?(complete?'✓ 已完成反思示範':'完成反思示範'):(complete?'✓ 學習反思已提交':'儲存並提交學習反思');
@@ -652,13 +652,13 @@ function updateReflection() {
 function answerMark(correct) {
   return correct===null?'':`<span class="answer-mark ${correct?'correct':'incorrect'}" aria-label="${correct?'正確':'錯誤'}">${correct?'✓':'✕'}</span>`;
 }
-function reportAnswer(title,answer,reference='',correct=null) {
-  return `<div class="report-answer" data-graded="${correct!==null}"><b>${esc(title)}</b>${answerMark(correct)}<p>${esc(answer||'未回答')}</p>${reference?`<div class="report-reference">${correct===null?'參考答案／說明':'參考答案'}：${esc(reference)}</div>`:''}</div>`;
+function reportAnswer(title,answer,reference='',correct=null,userText=false) {
+  return `<div class="report-answer" data-graded="${correct!==null}"><b>${esc(title)}</b>${answerMark(correct)}<p ${userText&&answer?'data-user-text':''}>${esc(answer||'未回答')}</p>${reference?`<div class="report-reference">${correct===null?'參考答案／說明':'參考答案'}：${esc(reference)}</div>`:''}</div>`;
 }
 function structureDiagram(scope='learning'){
   const prefix=`structure-${scope}-`,water=prefix+'water',vapour=prefix+'vapour';
   const xylemFill='#fbebed',xylemStroke='#ba8195',evaporation='#c77838',pull='#218bb0';
-  const text=(x,y,lines,size=17,colour='#31594b',weight=400)=>`<text x="${x}" y="${y}" fill="${colour}" font-size="${size}" font-weight="${weight}">${lines.map((line,i)=>`<tspan x="${x}" dy="${i?22:0}">${line}</tspan>`).join('')}</text>`;
+  const text=(x,y,lines,size=17,colour='#31594b',weight=400)=>`<text data-i18n-svg data-i18n-lines="${esc(JSON.stringify(lines))}" data-i18n-font="${size}" data-i18n-x="${x}" data-i18n-y="${y}" x="${x}" y="${y}" fill="${colour}" font-size="${size}" font-weight="${weight}">${lines.map((line,i)=>`<tspan x="${x}" dy="${i?22:0}">${line}</tspan>`).join('')}</text>`;
   const leader=(d,label='')=>`<path class="anatomy-leader" ${label?`data-label="${label}"`:''} d="${d}" fill="none" stroke="#849b90" stroke-width="1.4" stroke-linejoin="round"/>`;
   const arrow=(d,gas=false,kind='')=>`<path class="movement-arrow" ${kind?`data-movement="${kind}"`:''} d="${d}" fill="none" stroke="${gas?evaporation:pull}" stroke-width="2" ${gas?'stroke-dasharray="5 4"':''} marker-end="url(#${gas?vapour:water})"/>`;
   const badge=(x,y,n,group)=>`<g class="process-marker" data-process="${group}-${n}"><circle cx="${x}" cy="${y}" r="12" fill="${group==='evaporation'?evaporation:pull}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y+5}" text-anchor="middle" font-size="14" font-weight="700" fill="white">${n}</text></g>`;
@@ -749,6 +749,7 @@ function structureDiagram(scope='learning'){
 }
 function renderReport(record) {
   const f=record.form, initial=record.initialDesign?.form||f;
+  const freeAnswer=(title,answer,reference='')=>reportAnswer(title,answer,reference,null,true);
   const setupImage=/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(record.setup.image||'')?`<img class="setup-image" src="${esc(record.setup.image)}" alt="學生實驗裝置設計">`:'';
   const refs={iv:['光強度'],dv:[VARIABLE_NAMES[1]],cv:VARIABLE_NAMES.slice(2)};
   const variables=VARIABLE_GROUPS.map(([id,title])=>reportAnswer(title,record.variables[id].join('、'),refs[id].join('、'),record.variables[id].length?sameChoices(record.variables[id],refs[id]):null)).join('');
@@ -767,14 +768,15 @@ function renderReport(record) {
   }).join('');
   const b=record.calculations.B,d=record.calculations.D,comparable=b!==undefined&&d!==undefined&&b!==''&&d!==''&&Number.isFinite(+b)&&Number.isFinite(+d);
   const comparison=+b>+d+.0005?'faster':+b<+d-.0005?'slower':'same';
-  const choice=(field,title,key,reference)=>reportAnswer(title,f[field]?answerText(field,f[field]):'',reference??ANSWER_LABELS[field][key],f[field]&&key?f[field]===key:null);
+  const choice=(field,title,key,reference)=>reportAnswer(title,f[field]?answerText(field,f[field]):'',reference??ANSWER_LABELS[field][key],f[field]&&key?f[field]===key:null,!!f[field]&&!Object.hasOwn(ANSWER_LABELS[field],f[field]));
   const total=Math.round(Object.values(record.phaseDurations).reduce((sum,n)=>sum+n,0));
-  $('#printReport').innerHTML=`<header class="report-cover"><span class="report-logo">✦</span><div><p>IBL 虛擬實驗室 · S4 生物 · 模組 2</p><h1>西芹的紅色水跡</h1><strong>個人學習紀錄</strong></div></header><div class="report-meta"><span>姓名：${esc(record.profile?.name)}</span><span>班別及學號：${esc(record.profile?.classInfo||'—')}</span><span>電郵：${esc(record.profile?.email||'—')}</span><span>探究遞交：${esc(dateText(record.submittedAt))}</span><span>反思提交：${esc(dateText(record.reflectionSubmittedAt))}</span><span>有效操作時間：約 ${Math.floor(total/60)} 分 ${total%60} 秒</span></div>
-    <section class="report-section"><h2>01 · 了解情境</h2><div class="report-card"><p class="card-kicker">研究情境</p><div class="report-scene"><div><p>開始時</p>${celerySVG('report-before',0,true)}</div><div><p>過了一段時間</p>${celerySVG('report-after',7,true)}</div></div>${reportAnswer('主要探究問題','在其他條件相同下，光強度如何影響帶葉西芹中紅色水跡向上移動的速度？')}${reportAnswer('你的初步觀察',f.observation,'過了一段時間後，紅色水跡沿西芹長柄內的部分區域向上延伸。')}${reportAnswer('構造辨認','西芹長柄是葉柄，外觀像莖，內含木質部。')}</div></section>
-    <section class="report-section"><h2>02 · 設計探究</h2><div class="report-card"><p class="card-kicker">我的假說</p>${reportAnswer('實驗前的原始假說',hypothesisText(record),'此題沒有固定答案；假說應能透過改變光強度和量度水跡上移速度來測試。')}${reportAnswer('原始假說理由',initial.reason,'說明你預期光照與水分運輸有何關係；預測毋須猜中結果。')}</div><div class="report-card"><p class="card-kicker">我的公平測試設計</p>${variables}</div><div class="report-card"><p class="card-kicker">此探究的假設是什麼？</p>${assumptions}</div><div class="report-card">${reportAnswer('探究的對照組',f.controlPlan,'裝置D 不帶葉，與帶葉的裝置B 比較；兩者皆為 20 cm 光照距離，其餘條件相同，主要差別是葉片有無。')}${reportAnswer('我的實驗裝置設計',f.setupDescription,'材料：西芹 ×4、檯燈 ×4、紅色水杯 ×4、30 cm 尺子 ×4、剪刀 ×1、計時器 ×1。三株帶葉西芹的燈距為 10、20、30 cm；不帶葉組與其中一個帶葉組保持相同燈距。各浸入紅色水 2 cm。')}${setupImage}</div></section>
+  $('#printReport').innerHTML=`<header class="report-cover"><span class="report-logo">✦</span><div><p>IBL 虛擬實驗室 · S4 生物 · 模組 2</p><h1>西芹的紅色水跡</h1><strong>個人學習紀錄</strong></div></header><div class="report-meta"><span>姓名：<span data-user-text>${esc(record.profile?.name)}</span></span><span>班別及學號：<span data-user-text>${esc(record.profile?.classInfo||'—')}</span></span><span>電郵：<span data-user-text>${esc(record.profile?.email||'—')}</span></span><span>探究遞交：${esc(dateText(record.submittedAt))}</span><span>反思提交：${esc(dateText(record.reflectionSubmittedAt))}</span><span>有效操作時間：約 ${Math.floor(total/60)} 分 ${total%60} 秒</span></div>
+    <section class="report-section"><h2>01 · 了解情境</h2><div class="report-card"><p class="card-kicker">研究情境</p><div class="report-scene"><div><p>開始時</p>${celerySVG('report-before',0,true)}</div><div><p>過了一段時間</p>${celerySVG('report-after',7,true)}</div></div>${reportAnswer('主要探究問題','在其他條件相同下，光強度如何影響帶葉西芹中紅色水跡向上移動的速度？')}${freeAnswer('你的初步觀察',f.observation,'過了一段時間後，紅色水跡沿西芹長柄內的部分區域向上延伸。')}${reportAnswer('構造辨認','西芹長柄是葉柄，外觀像莖，內含木質部。')}</div></section>
+    <section class="report-section"><h2>02 · 設計探究</h2><div class="report-card"><p class="card-kicker">我的假說</p>${reportAnswer('實驗前的原始假說',hypothesisText(record),'此題沒有固定答案；假說應能透過改變光強度和量度水跡上移速度來測試。')}${freeAnswer('原始假說理由',initial.reason,'說明你預期光照與水分運輸有何關係；預測毋須猜中結果。')}</div><div class="report-card"><p class="card-kicker">我的公平測試設計</p>${variables}</div><div class="report-card"><p class="card-kicker">此探究的假設是什麼？</p>${assumptions}</div><div class="report-card">${freeAnswer('探究的對照組',f.controlPlan,'裝置D 不帶葉，與帶葉的裝置B 比較；兩者皆為 20 cm 光照距離，其餘條件相同，主要差別是葉片有無。')}${freeAnswer('我的實驗裝置設計',f.setupDescription,'材料：西芹 ×4、檯燈 ×4、紅色水杯 ×4、30 cm 尺子 ×4、剪刀 ×1、計時器 ×1。三株帶葉西芹的燈距為 10、20、30 cm；不帶葉組與其中一個帶葉組保持相同燈距。各浸入紅色水 2 cm。')}${setupImage}</div></section>
     <section class="report-section"><h2>03 · 進行探究與收集數據</h2><div class="report-card"><p>你的量度記錄（cm）</p><table><thead><tr><th>時間（min）</th>${IDS.map(id=>`<th>裝置${id} · ${CONDITIONS[id].leaves?'帶葉':'不帶葉'}<br>${CONDITIONS[id].distance} cm（光強度：${CONDITIONS[id].light} lux）</th>`).join('')}</tr></thead><tbody>${measurements}</tbody></table></div></section>
     <section class="report-section"><h2>04 · 分析與結論</h2><div class="report-card"><p class="card-kicker">計算平均上移速度</p><p>參考計算方法：平均上移速度＝（30 分鐘高度 − 0 分鐘高度）÷ 30 分鐘</p>${calculations}</div><div class="report-card"><p class="card-kicker">我的圖表：光照與紅色水跡上移速度</p><div class="report-graph"><svg viewBox="0 0 760 460" role="img" aria-label="學生圖表">${graphMarkup(record)}</svg></div>${points}<p>標點按你的計算檢核；計算是否正確另列於上方。曲線呈現三點之間的趨勢，並不能證明其間所有光強度的精確結果。</p></div><div class="report-card">${choice('claim','主張：光照與水跡上移速度有甚麼關係？','increase')}${choice('leafComparison','相同光照距離下，裝置B（帶葉）與裝置D（不帶葉）的速度比較',comparable?comparison:null,comparable?`按你計算的數值：裝置B ${(+b).toFixed(rateDigits(record))}、裝置D ${(+d).toFixed(rateDigits(record))} cm/min。${ANSWER_LABELS.leafComparison[comparison]}`:'先完成裝置B 和裝置D 的平均上移速度計算，再比較兩者。')}${choice('leafConclusion','帶葉與不帶葉的比較顯示葉片有何作用？','promotes')}${choice('limitations','這些數據還不能直接證明甚麼？','indirect')}</div></section>
-    <section class="report-section"><h2>學習重點：葉與莖的內部構造</h2><div class="report-card">${structureDiagram('report')}${$('.learning-points').outerHTML}</div></section><section class="report-section"><h2>學習反思</h2><div class="report-card">${reportAnswer('你的原始假說',hypothesisText(record))}${reportAnswer('原始假說是否獲數據支持？請運用學習重點修訂或完善假說解釋，並連結你的數據。',f.reflection,'比較原始預測與量度結果，指出支持或不支持的數據，再修訂解釋。例如：若原先預測光強度增加會令水跡變慢，但帶葉組在較強光照下上移較快，則原始預測不獲支持；可修訂為光照通常促進氣孔開啟及蒸騰，並促進水分沿木質部向上運輸。水跡仍只是間接線索。')}</div></section><footer class="report-footer">✓／✕ 為有標準答案項目的檢核；開放題只附參考答案，不自動評分。這些檢核不等同 SPS 評分。學習重點參照課本第 11.1 節（頁 11-3 至 11-8）。水跡為教學模擬，不是直接蒸騰速率量度。紀錄識別碼：${esc(record.id)}</footer>`;
+    <section class="report-section"><h2>學習重點：葉與莖的內部構造</h2><div class="report-card">${structureDiagram('report')}${window.VL2I18n.sourceHTML($('.learning-points'))}</div></section><section class="report-section"><h2>學習反思</h2><div class="report-card">${reportAnswer('你的原始假說',hypothesisText(record))}${freeAnswer('原始假說是否獲數據支持？請運用學習重點修訂或完善假說解釋，並連結你的數據。',f.reflection,'比較原始預測與量度結果，指出支持或不支持的數據，再修訂解釋。例如：若原先預測光強度增加會令水跡變慢，但帶葉組在較強光照下上移較快，則原始預測不獲支持；可修訂為光照通常促進氣孔開啟及蒸騰，並促進水分沿木質部向上運輸。水跡仍只是間接線索。')}</div></section><footer class="report-footer">✓／✕ 為有標準答案項目的檢核；開放題只附參考答案，不自動評分。這些檢核不等同 SPS 評分。學習重點參照課本第 11.1 節（頁 11-3 至 11-8）。水跡為教學模擬，不是直接蒸騰速率量度。紀錄識別碼：${esc(record.id)}</footer>`;
+  window.VL2I18n.apply($('#printReport'));
 }
 
 // Minimal OOXML writer: genuine .xlsx, UTF-8 inline strings, no external library.
@@ -955,35 +957,43 @@ function renderTeacherDashboard(){
   const records=teacherRecords();
   $('#refreshCloud').disabled=!cloudSync.enabled;$('#cloudTeacherKey').disabled=!cloudSync.enabled;
   $('#dashboardStatus').textContent=cloudSync.enabled?(cloudRecords?`中央及本機共有 ${records.length} 份學生紀錄，包含不同裝置及多次探究。下載 Excel 時會重新讀取全部中央資料。`:'請輸入教師雲端密碼並連線，讀取全部學生紀錄。'):`中央儲存尚未設定。這部瀏覽器現有 ${records.length} 份學生紀錄。`;
-  $('#teacherData').innerHTML=records.length?records.map(r=>`<tr><td><strong>${esc(r.profile?.name||'—')}</strong><small>${esc(r.profile?.email||'—')}</small></td><td>${esc(r.profile?.classInfo||'—')}</td><td><span class="report-status ${reflectionComplete(r)?'complete':''}">${reflectionComplete(r)?'已完成':r.submitted?'待提交反思':`階段 ${r.phase}`}</span></td><td>${observationAccuracy(r)}</td><td>${formatDuration(Object.values(r.phaseDurations).reduce((a,b)=>a+b,0))}</td><td>${esc(dateText(r.savedAt))}</td><td><button class="small-button" data-view-record="${esc(r.id)}">查看紀錄</button></td></tr>`).join(''):'<tr><td colspan="7">這部瀏覽器暫無學生紀錄。</td></tr>';
+  $('#teacherData').innerHTML=records.length?records.map(r=>`<tr><td><strong data-user-text>${esc(r.profile?.name||'—')}</strong><small data-user-text>${esc(r.profile?.email||'—')}</small></td><td data-user-text>${esc(r.profile?.classInfo||'—')}</td><td><span class="report-status ${reflectionComplete(r)?'complete':''}">${reflectionComplete(r)?'已完成':r.submitted?'待提交反思':`階段 ${r.phase}`}</span></td><td>${observationAccuracy(r)}</td><td>${formatDuration(Object.values(r.phaseDurations).reduce((a,b)=>a+b,0))}</td><td>${esc(dateText(r.savedAt))}</td><td><button class="small-button" data-view-record="${esc(r.id)}">查看紀錄</button></td></tr>`).join(''):'<tr><td colspan="7">這部瀏覽器暫無學生紀錄。</td></tr>';
   $$('[data-view-record]').forEach(button=>button.onclick=()=>{
     previewRecord=records.find(r=>r.id===button.dataset.viewRecord);
-    renderReport(previewRecord);$('#teacherReport').innerHTML=$('#printReport').innerHTML.replaceAll('structure-report-','structure-teacher-').replaceAll('celery-report-','celery-teacher-');
+    renderReport(previewRecord);$('#teacherReport').innerHTML=window.VL2I18n.sourceHTML($('#printReport'),true);
+    for(const element of $$('#teacherReport svg, #teacherReport svg *')){
+      for(const name of ['id','href','xlink:href','fill','stroke','clip-path','mask','filter','marker-start','marker-mid','marker-end','aria-labelledby']){
+        const value=element.getAttribute(name);
+        if(value?.includes('structure-report-')||value?.includes('celery-report-'))element.setAttribute(name,value.replaceAll('structure-report-','structure-teacher-').replaceAll('celery-report-','celery-teacher-'));
+      }
+    }
     $('#teacherDetail').hidden=false;$('#teacherDetail').scrollIntoView({block:'start',behavior:'smooth'});
   });
 }
 function refreshProfileUI(){
+  const userName=!isTeacher()&&!!activeProfile?.name;
+  $('#studentName').toggleAttribute('data-user-text',userName);$('.avatar').toggleAttribute('data-user-text',userName);
   $('#studentName').textContent=isTeacher()?'教師示範':activeProfile?.name||'同學';
   $('.avatar').textContent=isTeacher()?'師':activeProfile?.name?.[0]||'同';
   $('#teacherButton').hidden=!isTeacher();$('main').inert=!activeProfile?.email;
 }
 function reportFilename(record){
   const safe=value=>String(value||'未填寫').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'_').trim();
-  return `VL2_西芹的紅色水跡_${safe(record.profile?.classInfo)}_${safe(record.profile?.name)}`;
+  return `VL2_${window.VL2I18n.language==='en'?'Red_Water_Trace_in_Celery':'西芹的紅色水跡'}_${safe(record.profile?.classInfo)}_${safe(record.profile?.name)}`;
 }
 async function printRecord(record){
   renderReport(record);
   await Promise.all($$('#printReport img').map(image=>image.complete?Promise.resolve():new Promise(resolve=>{image.onload=resolve;image.onerror=resolve;})));
   await document.fonts.ready;
   document.title=reportFilename(record);
-  try{window.print();}catch(error){document.title=PAGE_TITLE;throw error;}
+  try{window.print();}catch(error){document.title=window.VL2I18n.translate(PAGE_TITLE);throw error;}
 }
-window.addEventListener('afterprint',()=>{document.title=PAGE_TITLE;});
+window.addEventListener('afterprint',()=>{document.title=window.VL2I18n.translate(PAGE_TITLE);});
 
 function init() {
   FIELD_IDS.forEach(id=>{
     const input=$('#'+id),value=state.form[id];
-    if(input.tagName==='SELECT'&&value&&![...input.options].some(option=>option.value===value))input.add(new Option(`先前答案：${value}`,value));
+    if(input.tagName==='SELECT'&&value&&![...input.options].some(option=>option.value===value)){const option=new Option(`先前答案：${value}`,value);option.dataset.legacyAnswer=value;option.setAttribute('data-user-text','');input.add(option);}
     input.value=value;
   });
   refreshProfileUI();
@@ -1077,7 +1087,7 @@ $('#downloadPDF').onclick=async()=>{
   save();log('pdf_print_requested');save();await printRecord(state);
 };
 $('#newInvestigation').onclick=()=>{
-  if(!confirm(isTeacher()?'重新開始教師示範？重新載入後需再次登入，示範操作不會保存。':'開始新的探究？本次紀錄會保留於本機，教師儀表板可查看。未遞交的答案亦會保存。'))return;
+  if(!confirm(window.VL2I18n.translate(isTeacher()?'重新開始教師示範？重新載入後需再次登入，示範操作不會保存。':'開始新的探究？本次紀錄會保留於本機，教師儀表板可查看。未遞交的答案亦會保存。')))return;
   save();clearInterval(timerHandle);clearTimeout(saveTimer);
   allowUnload=true; // The button already obtained confirmation.
   location.reload();

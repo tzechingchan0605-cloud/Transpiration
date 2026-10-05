@@ -74,7 +74,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#loginCloudStatus').getAttribute('data-state'),'configured');
  assert.equal(rows.length,1);
  assert(await page.evaluate(async()=>{try{await fetch('http://127.0.0.1:8101/collector',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'noop'})});return false;}catch{return true;}}),'Direct fetch must reproduce the CORS failure');
- async function login(p,name,email){await p.fill('#profileName',name);await p.fill('#profileClass','S4-01');await p.fill('#profileEmail',email);await p.click('#profileForm button');}
+ async function login(p,name,email){await p.fill('#profileName',name);await p.fill('#profileClass','S4-01');await p.fill('#profileEmail',email);await p.click('#profileForm button[type=submit]');}
  async function saved(p){await p.evaluate(async()=>{save();await cloudSync.flush();});}
  await login(page,'手機學生','phone@example.com');await page.fill('#observation','手機初步觀察：油水分層');await saved(page);
  await page.evaluate(()=>{state.setup.image=document.querySelector('#setupCanvas').toDataURL('image/png');state.setup.saved=true;state.setup.method='drawing';state.initialDesign={form:{...state.form,prediction:'decrease',reason:'原始理由'},at:state.createdAt};state.measurements[30]={values:{A:11.5,B:7.5,C:5,D:1.5},firstValues:{A:11,B:7,C:4.5,D:1},confirmed:true};state.events.push({type:'test_complete_event',at:state.createdAt,phase:1,details:{note:'完整事件'}});});await saved(page);
