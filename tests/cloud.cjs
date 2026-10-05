@@ -78,6 +78,7 @@ const server=http.createServer((req,res)=>{
  await page.evaluate(()=>{state.setup.image=document.querySelector('#setupCanvas').toDataURL('image/png');state.setup.saved=true;state.setup.method='drawing';state.initialDesign={form:{...state.form,prediction:'decrease',reason:'原始理由'},at:state.createdAt};state.measurements[30]={values:{A:11.5,B:7.5,C:5,D:1.5},firstValues:{A:11,B:7,C:4.5,D:1},confirmed:true};state.events.push({type:'test_complete_event',at:state.createdAt,phase:1,details:{note:'完整事件'}});});await saved(page);
  assert.equal(await page.locator('#cloudStatus').getAttribute('data-state'),'synced');
  assert.equal(await page.locator('#cloudStatus').innerText(),'✓ 本機學生紀錄已獲中央確認儲存。');
+ assert.equal(await page.locator('#retryCloud').isVisible(),false);assert.equal(await page.locator('.cloud-strip').evaluate(el=>!!el.nextElementSibling?.matches('main')),true);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'/tmp/vl2-header-sync.png'});
  const firstId=await page.evaluate(()=>state.id);
  wrongAck=true;await page.fill('#observation','錯誤確認不能成功');await page.evaluate(async()=>{save();await cloudSync.flush().catch(()=>{});});assert.equal(await page.locator('#cloudStatus').getAttribute('data-state'),'error');wrongAck=false;await page.fill('#observation','手機初步觀察：油水分層');await saved(page);
  await login(other,'電腦學生','desktop@example.com');await other.fill('#observation','電腦觀察');await saved(other).catch(async e=>{console.error('Desktop frames:',other.frames().map(f=>f.url()));console.error('Desktop bridge status:',await other.locator('#cloudStatus').innerText());throw e;});
@@ -91,7 +92,7 @@ const server=http.createServer((req,res)=>{
  await page.click('#profileButton');await login(page,'手機學生','phone@example.com');await saved(page);
  const secondId=await page.evaluate(()=>state.id);assert.notEqual(firstId,secondId);
  unavailable=true;await page.fill('#observation','離線修改保留');await page.evaluate(async()=>{save();await cloudSync.flush().catch(()=>{});});
- assert((await page.locator('#cloudStatus').innerText()).includes('同步失敗'));
+ assert((await page.locator('#cloudStatus').innerText()).includes('同步失敗'));assert.equal(await page.locator('#retryCloud').isVisible(),true);
  assert.equal(call({action:'list',teacherEmail:'tzechingchan0605@gmail.com',password:'test-teacher-password'}).records.find(r=>r.id===secondId).form.observation,'');
  page.on('dialog',dialog=>dialog.accept());await page.reload();await page.waitForFunction(()=>document.querySelector('#cloudStatus').dataset.state==='error');
  unavailable=false;await page.click('#loginRetryCloud');await page.waitForFunction(()=>document.querySelector('#cloudStatus').dataset.state==='synced');

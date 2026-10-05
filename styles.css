@@ -24,3 +24,6 @@
 /* Combined leaf anatomy and transpiration SVG, kept readable on small screens. */
 .structure-svg{min-width:900px}.structure-svg text{font-family:inherit}.structure-wrap{border:1px solid #d8e8df}.structure-svg .process-card{pointer-events:none}
 @media print{.report-section .structure-svg{min-width:0;max-height:145mm}.report-section .structure-wrap{border:0}.report-section .structure-wrap svg{max-height:145mm}}
+
+/* Cloud acknowledgements stay visible above the investigation on every screen. */
+.cloud-strip{padding:14px 0 0;font-size:13px;line-height:1.7}.cloud-status{margin:0 0 8px;color:var(--muted);overflow-wrap:anywhere}.cloud-status[data-state="synced"]{color:var(--teal)}.cloud-status[data-state="error"]{color:var(--red)}.cloud-strip .secondary{padding:7px 12px;font-size:13px}

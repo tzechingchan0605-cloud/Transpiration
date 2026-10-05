@@ -79,7 +79,7 @@ function writeStored(key,value){if(damagedStorage.has(key))throw Error('本機�
 let activeProfile=null;
 let cloudRecords=null,dashboardGeneration=0;
 const cloudSync=createCloudSync({endpoint:window.VL2_CLOUD_CONFIG?.endpoint||window.VL_CLOUD_CONFIG?.url||'',transport:window.VL2_CLOUD_CONFIG?.transport||'bridge',storage:localStorage,records:()=>{const rows=rawRecords();if(damagedStorage.has(RECORDS_KEY))throw Error('本機紀錄損壞，原值已保留');return rows;},
-  status:(kind,message)=>{for(const id of ['cloudStatus','loginCloudStatus']){$('#'+id).textContent=message;$('#'+id).dataset.state=kind;}for(const id of ['retryCloud','loginRetryCloud'])$('#'+id).hidden=!cloudSync.enabled;}});
+  status:(kind,message)=>{for(const id of ['cloudStatus','loginCloudStatus']){$('#'+id).textContent=message;$('#'+id).dataset.state=kind;}for(const id of ['retryCloud','loginRetryCloud'])$('#'+id).hidden=!cloudSync.enabled||!['pending','error'].includes(kind);}});
 function mergeRecords(...sources){
   const merged=new Map();
   sources.flat().forEach(raw=>{const r=upgradeRecord(structuredClone(raw));if(!isRecord(r)||isTeacher(r.profile))return;const old=merged.get(r.id);if(!old||Date.parse(r.savedAt)>Date.parse(old.savedAt))merged.set(r.id,r);});
