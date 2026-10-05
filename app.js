@@ -501,13 +501,13 @@ function placeGraphPoint(id,x,y,method){
   if(state.submitted||!IDS.includes(id)||!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>graphXMax()||y<0||y>+$('#graphMax').value)return false;
   state.graph.points[id]={x,y};selectPlotDevice(id);
   $('#point-x-'+id).value=x;$('#point-y-'+id).value=y.toFixed(2);
-  $(`[data-plot="${id}"]`).textContent='更新標點';
+  $(`[data-plot="${id}"]`).textContent='確認／更新標點';
   log('graph_point_plotted',{id,point:{x,y},method});renderGraph();save();return true;
 }
 function renderPoints() {
   $('#pointControls').innerHTML=IDS.map(id=>{
     const point=state.graph.points[id],c=CONDITIONS[id];
-    return `<div class="plot-point ${selectedPlotId===id?'selected':''}" data-point-editor="${id}"><strong>裝置${id} · ${c.leaves?'帶葉':'不帶葉'} · ${c.distance} cm<br>（光強度：${c.light} lux）</strong><div><label>X坐標<input type="number" id="point-x-${id}" aria-label="裝置${id} 圖點 X坐標" step="1" min="0" max="${graphXMax()}" value="${esc(point?.x??'')}" ${state.submitted?'disabled':''}></label><label>Y坐標<input type="number" id="point-y-${id}" aria-label="裝置${id} 圖點 Y坐標" step="0.01" min="0" max="0.5" value="${esc(point?point.y.toFixed(2):'')}" ${state.submitted?'disabled':''}></label></div><button class="secondary" data-plot="${id}" ${state.submitted?'disabled':''}>${point?'更新標點':'標點'}</button></div>`;
+    return `<div class="plot-point ${selectedPlotId===id?'selected':''}" data-point-editor="${id}"><strong>裝置${id} · ${c.leaves?'帶葉':'不帶葉'} · ${c.distance} cm<br>（光強度：${c.light} lux）</strong><div><label>X坐標<input type="number" id="point-x-${id}" aria-label="裝置${id} 圖點 X坐標" step="1" min="0" max="${graphXMax()}" value="${esc(point?.x??'')}" ${state.submitted?'disabled':''}></label><label>Y坐標<input type="number" id="point-y-${id}" aria-label="裝置${id} 圖點 Y坐標" step="0.01" min="0" max="0.5" value="${esc(point?point.y.toFixed(2):'')}" ${state.submitted?'disabled':''}></label></div><button class="secondary" data-plot="${id}" ${state.submitted?'disabled':''}>${point?'確認／更新標點':'標點'}</button></div>`;
   }).join('');
   $('#plotDevice').value=selectedPlotId;
   IDS.forEach(id=>{$('#point-y-'+id).onblur=()=>normaliseRateInput($('#point-y-'+id));});
@@ -534,6 +534,13 @@ function showGraphCursor(point){
   const {left,right,top,bottom}=GRAPH_BOUNDS;
   const x=left+point.x/graphXMax()*(right-left),y=bottom-point.y/+$('#graphMax').value*(bottom-top);
   guide.setAttribute('visibility','visible');guide.firstElementChild.setAttribute('d',`M${left} ${y}H${right} M${x} ${top}V${bottom}`);
+  const label=$('#graphCursorLabel'),text=label.querySelector('text'),background=label.querySelector('rect');
+  text.textContent=`(${point.x}, ${point.y.toFixed(2)})`;
+  const width=text.getComputedTextLength()+20,height=28,gap=12,padding=4;
+  background.setAttribute('width',width);
+  const labelX=Math.max(left+padding,Math.min(right-width-padding,x+gap+width<=right-padding?x+gap:x-width-gap));
+  const labelY=Math.max(top+padding,Math.min(bottom-height-padding,y-height-gap>=top+padding?y-height-gap:y+gap));
+  label.setAttribute('transform',`translate(${labelX} ${labelY})`);
   $('#graphCoordinates').textContent=`裝置${selectedPlotId}：X = ${point.x} lux；Y = ${point.y.toFixed(2)} cm/min`;
 }
 function graphXMax(form=state.form) {return form.xAxis==='distance'?35:form.xAxis==='time'?40:1300;}
@@ -579,10 +586,10 @@ function graphMarkup(record,withLegend=true,interactive=false) {
     marks+=`<text x="${px+10}" y="${py-9}" font-size="13" font-weight="700" fill="${colour}">裝置${id}</text>`;
     if(interactive)marks+='</g>';
   });
-  return `<title>學生繪製的光照與紅色水跡平均上移速度圖</title>${grid}<path d="M${left} ${top}V${bottom}H${right}" fill="none" stroke="#8ba28a" stroke-width="1.5"/>${marks}<text x="380" y="${bottom+58}" text-anchor="middle" fill="#4d715a" font-size="14">${xLabels[form.xAxis]||'請選擇X軸'}</text><text transform="translate(25 195) rotate(-90)" text-anchor="middle" fill="#4d715a" font-size="13">${yLabels[form.yAxis]||'請選擇Y軸'}</text>${withLegend?'<text class="graph-inline-legend" x="380" y="449" text-anchor="middle" fill="#829680" font-size="11">● 帶葉組：裝置A、裝置B、裝置C　◆ 不帶葉組：裝置D（獨立比較點）</text>':''}`;
+  return `${interactive?'':'<title>學生繪製的光照與紅色水跡平均上移速度圖</title>'}${grid}<path d="M${left} ${top}V${bottom}H${right}" fill="none" stroke="#8ba28a" stroke-width="1.5"/>${marks}<text x="380" y="${bottom+58}" text-anchor="middle" fill="#4d715a" font-size="14">${xLabels[form.xAxis]||'請選擇X軸'}</text><text transform="translate(25 195) rotate(-90)" text-anchor="middle" fill="#4d715a" font-size="13">${yLabels[form.yAxis]||'請選擇Y軸'}</text>${withLegend?'<text class="graph-inline-legend" x="380" y="449" text-anchor="middle" fill="#829680" font-size="11">● 帶葉組：裝置A、裝置B、裝置C　◆ 不帶葉組：裝置D（獨立比較點）</text>':''}`;
 }
 function renderGraph() {
-  readForm();$('#studentGraph').innerHTML=graphMarkup(state,false,!state.submitted)+'<g id="graphPointerGuide" visibility="hidden" pointer-events="none"><path stroke="#749a94" stroke-dasharray="4 4" stroke-width="1" fill="none"/></g>';
+  readForm();$('#studentGraph').innerHTML=graphMarkup(state,false,!state.submitted)+'<g id="graphPointerGuide" visibility="hidden" pointer-events="none" aria-hidden="true"><path stroke="#749a94" stroke-dasharray="4 4" stroke-width="1" fill="none"/><g id="graphCursorLabel"><rect height="28" rx="6" fill="white" fill-opacity="0.96" stroke="#c9ded8"/><text x="10" y="19" fill="#173c43" font-size="15" font-weight="700"></text></g></g>';
   $('#studentGraph').setAttribute('role',state.submitted?'img':'group');showGraphCursor(null);
   $('#graphStatus').textContent=`已標示 ${Object.keys(state.graph.points).length} / 4 個裝置${state.graph.connected?'；帶葉組已連線':''}。`;
 }
