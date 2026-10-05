@@ -1,2 +1,2 @@
-// Paste the deployed Google Apps Script /exec URL here. Never put teacher keys here.
-window.VL_CLOUD_CONFIG = {url: ''};
+// VL2 collector only. No passwords, tokens or private spreadsheet IDs here.
+window.VL2_CLOUD_CONFIG = {endpoint: '', transport: 'bridge'};

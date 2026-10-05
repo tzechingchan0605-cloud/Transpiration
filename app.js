@@ -44,7 +44,8 @@ function upgradeRecord(record){
   IDS.forEach(id=>{if(record.ruler?.[id])record.ruler[id].y=0;});
   return record;
 }
-function storedRecords(){return readStored(RECORDS_KEY,[]).map(upgradeRecord).filter(isRecord).filter(r=>!isTeacher(r.profile));}
+function rawRecords(){const value=readStored(RECORDS_KEY,[]);if(!Array.isArray(value)){damagedStorage.add(RECORDS_KEY);$('#localStorageStatus').textContent='本機紀錄格式損壞，原值已保留；請勿清除瀏覽器資料。';return [];}return value;}
+function storedRecords(){return rawRecords().map(r=>upgradeRecord(structuredClone(r))).filter(isRecord).filter(r=>!isTeacher(r.profile));}
 
 function freshState(profile = null) {
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
@@ -69,29 +70,45 @@ function freshState(profile = null) {
   };
 }
 
-function readStored(key, fallback) {
-  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
-  catch { return fallback; }
+const damagedStorage=new Set();
+function readStored(key,fallback){
+  try{const raw=localStorage.getItem(key);return raw===null?fallback:JSON.parse(raw);}
+  catch{damagedStorage.add(key);$('#localStorageStatus').textContent='本機資料讀取失敗，原值已保留；請勿清除瀏覽器資料。';return fallback;}
 }
+function writeStored(key,value){if(damagedStorage.has(key))throw Error('本機資料損壞，原值已保留');localStorage.setItem(key,JSON.stringify(value));}
 let activeProfile=null;
-const cloud=new LabCloudSync({url:window.VL_CLOUD_CONFIG?.url||'',teacherEmail:TEACHER_EMAIL,onStatus:message=>$('#cloudStatus').textContent=message});
-cloud.status(cloud.enabled?'已啟用中央儲存；登入後會自動同步學生答案。':'中央儲存尚未設定：目前答案只保留在這部瀏覽器。');
-function teacherRecords(){return cloud.enabled?(cloud.records||[]).map(upgradeRecord).filter(isRecord).filter(r=>!isTeacher(r.profile)):storedRecords();}
+let cloudRecords=null,dashboardGeneration=0;
+const cloudSync=createCloudSync({endpoint:window.VL2_CLOUD_CONFIG?.endpoint||window.VL_CLOUD_CONFIG?.url||'',transport:window.VL2_CLOUD_CONFIG?.transport||'bridge',storage:localStorage,records:()=>{const rows=rawRecords();if(damagedStorage.has(RECORDS_KEY))throw Error('本機紀錄損壞，原值已保留');return rows;},
+  status:(kind,message)=>{for(const id of ['cloudStatus','loginCloudStatus']){$('#'+id).textContent=message;$('#'+id).dataset.state=kind;}for(const id of ['retryCloud','loginRetryCloud'])$('#'+id).hidden=!cloudSync.enabled;}});
+function mergeRecords(...sources){
+  const merged=new Map();
+  sources.flat().forEach(raw=>{const r=upgradeRecord(structuredClone(raw));if(!isRecord(r)||isTeacher(r.profile))return;const old=merged.get(r.id);if(!old||Date.parse(r.savedAt)>Date.parse(old.savedAt))merged.set(r.id,r);});
+  return [...merged.values()];
+}
+function teacherRecords(){return cloudSync.enabled?(cloudRecords||[]):storedRecords();}
 async function refreshCloudRecords(){
-  if(!isTeacher()||!cloud.enabled)return false;
-  const key=$('#cloudTeacherKey').value.trim()||cloud.teacherKey;
-  if(!key){toast('請輸入教師中央紀錄存取金鑰。');return false;}
-  $('#dashboardStatus').textContent='正在讀取中央學生紀錄…';
-  try{await cloud.load(key);renderTeacherDashboard();return true;}
-  catch{cloud.records=null;renderTeacherDashboard();$('#dashboardStatus').textContent='未能讀取中央紀錄：請檢查金鑰、連線及中央服務部署。';return false;}
+  if(!isTeacher()||!cloudSync.enabled)return false;
+  const generation=++dashboardGeneration;
+  const password=$('#cloudTeacherKey').value||undefined;$('#cloudTeacherKey').value='';
+  $('#dashboardStatus').textContent='正在讀取全部中央學生紀錄…';
+  try{
+    const remote=await cloudSync.list(password);
+    if(!isTeacher()||generation!==dashboardGeneration)return false;
+    if(remote.some(r=>!isRecord(upgradeRecord(structuredClone(r)))))throw Error('有紀錄格式不符，未取得可完整匯出的資料');
+    cloudRecords=mergeRecords(remote,rawRecords());renderTeacherDashboard();return true;
+  }catch(error){
+    if(generation!==dashboardGeneration)return false;
+    cloudRecords=null;$('#teacherDetail').hidden=true;$('#teacherReport').innerHTML='';previewRecord=null;
+    renderTeacherDashboard();$('#dashboardStatus').textContent='未能完整讀取中央紀錄：'+error.message+'。未匯出部分本機資料。';return false;
+  }
 }
 // Archive older current-only records, but never restore a learner session.
 const previousCurrent=upgradeRecord(readStored(CURRENT_KEY,null));
 if(isRecord(previousCurrent)&&previousCurrent.profile&&!isTeacher(previousCurrent.profile)) {
-  const records=storedRecords(),index=records.findIndex(r=>r.id===previousCurrent.id);
+  const records=rawRecords(),index=records.findIndex(r=>r?.id===previousCurrent.id);
   if(index<0||Date.parse(previousCurrent.savedAt)>Date.parse(records[index].savedAt)) {
     if(index<0)records.push(previousCurrent);else records[index]=previousCurrent;
-    try{localStorage.setItem(RECORDS_KEY,JSON.stringify(records));}catch{/* Keep the current backup if storage is full. */}
+    try{writeStored(RECORDS_KEY,records);}catch{/* Keep the current backup if storage is full. */}
   }
 }
 let state=freshState();
@@ -133,18 +150,18 @@ function readForm() {
 function save() {
   accountTime();
   readForm();
-  state.savedAt=new Date().toISOString();
+  state.savedAt=new Date(Math.max(Date.now(),(Date.parse(state.savedAt)||0)+1)).toISOString();
   if (!state.profile || isTeacher()) return;
   try {
-    localStorage.setItem(CURRENT_KEY,JSON.stringify(state));
-    const records=storedRecords();
-    const index=records.findIndex(record=>record.id===state.id);
+    writeStored(CURRENT_KEY,state);
+    const records=rawRecords();
+    const index=records.findIndex(record=>record?.id===state.id);
     if(index<0) records.push(state); else records[index]=state;
-    localStorage.setItem(RECORDS_KEY,JSON.stringify(records));
+    writeStored(RECORDS_KEY,records);
   } catch {
     toast('瀏覽器儲存空間不足或未允許儲存。請保持頁面開啟並確認中央同步狀態。');
   }
-  cloud.enqueue(state);
+  cloudSync.enqueue(state);
 }
 function scheduleSave() { clearTimeout(saveTimer); saveTimer=setTimeout(save,400); }
 function log(type,details={}) {
@@ -820,7 +837,7 @@ function scoringWorkbook(records){
 
 async function exportExcel(){
   if(!isTeacher())return;
-  if(cloud.enabled&&!await refreshCloudRecords())return;
+  if(cloudSync.enabled&&!await refreshCloudRecords())return;
   save();const records=teacherRecords();
   if(!records.length){toast('目前沒有可匯出的研究紀錄。');return;}
   const headings=['紀錄識別碼','姓名','班別及學號','電郵','狀態','建立時間','遞交時間','初步觀察','原始預測','原始理由','目前預測','目前理由','獨立變量－學生答案','獨立變量－參考答案','因變量－學生答案','因變量－參考答案','控制變量－學生答案','控制變量－參考答案','假設－學生答案','假設－參考答案','對照裝置設計－學生答案','對照裝置設計－參考答案','裝置文字設計','X軸','Y軸','光強度關係－學生答案','光強度關係－參考答案','葉片比較－學生答案','葉片作用－學生答案','葉片作用－參考答案','實驗限制－學生答案','實驗限制－參考答案','反思','總有效秒數','階段一有效秒數','階段二有效秒數','階段三有效秒數','階段四有效秒數','記錄量度次數','計算作答次數','標點次數','結論作答次數'];
@@ -878,8 +895,8 @@ let previewRecord=null;
 function renderTeacherDashboard(){
   if(!isTeacher())return;
   const records=teacherRecords();
-  $('#refreshCloud').disabled=!cloud.enabled;$('#cloudTeacherKey').disabled=!cloud.enabled;
-  $('#dashboardStatus').textContent=cloud.enabled?(cloud.records?`中央現有 ${records.length} 份學生紀錄，包含不同裝置及多次探究。下載 Excel 時會重新讀取中央資料。`:'請輸入教师存取金鑰並連線，讀取不同裝置的學生紀錄。'):`中央儲存尚未設定。這部瀏覽器現有 ${records.length} 份學生紀錄。`;
+  $('#refreshCloud').disabled=!cloudSync.enabled;$('#cloudTeacherKey').disabled=!cloudSync.enabled;
+  $('#dashboardStatus').textContent=cloudSync.enabled?(cloudRecords?`中央及本機共有 ${records.length} 份學生紀錄，包含不同裝置及多次探究。下載 Excel 時會重新讀取全部中央資料。`:'請輸入教師雲端密碼並連線，讀取全部學生紀錄。'):`中央儲存尚未設定。這部瀏覽器現有 ${records.length} 份學生紀錄。`;
   $('#teacherData').innerHTML=records.length?records.map(r=>`<tr><td><strong>${esc(r.profile?.name||'—')}</strong><small>${esc(r.profile?.email||'—')}</small></td><td>${esc(r.profile?.classInfo||'—')}</td><td><span class="report-status ${reflectionComplete(r)?'complete':''}">${reflectionComplete(r)?'已完成':r.submitted?'待提交反思':`階段 ${r.phase}`}</span></td><td>${observationAccuracy(r)}</td><td>${formatDuration(Object.values(r.phaseDurations).reduce((a,b)=>a+b,0))}</td><td>${esc(dateText(r.savedAt))}</td><td><button class="small-button" data-view-record="${esc(r.id)}">查看紀錄</button></td></tr>`).join(''):'<tr><td colspan="7">這部瀏覽器暫無學生紀錄。</td></tr>';
   $$('[data-view-record]').forEach(button=>button.onclick=()=>{
     previewRecord=records.find(r=>r.id===button.dataset.viewRecord);
@@ -953,11 +970,11 @@ $('#profileForm').onsubmit=event=>{
   drawingChanged=false;drawingTool='pencil';
   activeProfile=profile;activeSince=Date.now();
   try{localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));}catch{toast('未能保存學習者資料。');}
-  cloud.records=null;cloud.teacherKey='';$('#cloudTeacherKey').value='';
+  cloudRecords=null;cloudSync.clearCredential();dashboardGeneration++;$('#cloudTeacherKey').value='';$('#teacherDetail').hidden=true;$('#teacherReport').innerHTML='';previewRecord=null;
   $('#profileDialog').close();init();log('profile_saved');save();
-  if(cloud.enabled){storedRecords().forEach(record=>cloud.enqueue(record));cloud.flush();}
+  if(cloudSync.enabled){cloudSync.recover();cloudSync.flush().catch(()=>{});}
 };
-$('#profileButton').onclick=()=>{
+$('#profileButton').onclick=()=>{cloudSync.clearCredential();dashboardGeneration++;cloudRecords=null;$('#teacherDetail').hidden=true;$('#teacherReport').innerHTML='';previewRecord=null;
   $('#profileName').value=activeProfile?.name||'';$('#profileClass').value=activeProfile?.classInfo||'';$('#profileEmail').value=activeProfile?.email||'';
   $('#closeProfile').hidden=!activeProfile?.email;$('#profileDialog').showModal();
 };
@@ -1013,7 +1030,7 @@ $('#teacherDemo').onclick=()=>{if(!isTeacher())return;$('#teacherDialog').close(
 $('#teacherPDF').onclick=()=>{if(isTeacher()&&previewRecord)return printRecord(previewRecord);};
 $('#importRecords').onchange=async event=>{
   if(!isTeacher())return;
-  let success=0,failed=0;const records=storedRecords();
+  let success=0,failed=0;const records=rawRecords();
   for(const file of event.target.files){
     try{
       if(file.size>8*1024*1024)throw new Error('too large');
@@ -1025,7 +1042,7 @@ $('#importRecords').onchange=async event=>{
       success++;
     }catch{failed++;}
   }
-  try{localStorage.setItem(RECORDS_KEY,JSON.stringify(records));records.forEach(record=>cloud.enqueue(record));renderTeacherDashboard();$('#importStatus').textContent=`已處理 ${success} 份紀錄；${failed} 份未匯入（格式不符或檔案過大）。`;}catch{toast('儲存空間不足，未能匯入。');}
+  try{writeStored(RECORDS_KEY,records);records.forEach(record=>cloudSync.enqueue(record));renderTeacherDashboard();$('#importStatus').textContent=`已處理 ${success} 份紀錄；${failed} 份未匯入（格式不符或檔案過大）。`;}catch{toast('儲存空間不足，未能匯入。');}
   event.target.value='';
 };
 document.addEventListener('visibilitychange',()=>{
@@ -1040,3 +1057,8 @@ window.addEventListener('beforeunload',event=>{
 window.addEventListener('pagehide',save);
 setInterval(()=>{if(state.profile&&!document.hidden)save();},15000);
 init();
+
+$('#retryCloud').onclick=$('#loginRetryCloud').onclick=()=>{cloudSync.recover();cloudSync.flush().catch(()=>{});};
+window.addEventListener('online',()=>{cloudSync.recover();cloudSync.flush().catch(()=>{});});
+cloudSync.recover();
+setInterval(()=>{if(cloudSync.enabled)cloudSync.flush().catch(()=>{});},30000);

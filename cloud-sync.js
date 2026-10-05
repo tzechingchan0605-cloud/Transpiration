@@ -1,54 +1,90 @@
 'use strict';
-// Durable outbox: acknowledgement, rather than sending a request, means saved.
-class LabCloudSync {
-  constructor({url,teacherEmail,onStatus}) {
-    this.url=url;this.teacherEmail=teacherEmail;this.onStatus=onStatus;
-    this.prefix='transpirationLab.cloud.v1.';
-    try {this.pending=JSON.parse(localStorage.getItem(this.prefix+'pending'))||{};this.tokens=JSON.parse(localStorage.getItem(this.prefix+'tokens'))||{};} catch {this.pending={};this.tokens={};}
-    this.busy=false;this.timer=null;this.records=null;this.teacherKey='';
-    addEventListener('online',()=>this.flush());
+// Answers remain in the VL2 record store. Metadata grants per-attempt write access;
+// acknowledgements are scoped to the collector URL, never to a student's email.
+window.createCloudSync = function ({endpoint,storage,records,status,transport='bridge'}) {
+  const enabled=Boolean(endpoint),key='transpirationLab.cloudSync.v2';
+  const legacyPrefix='transpirationLab.cloud.v1.';
+  const pending=new Map();
+  let bridge,running=null,timer,credential='',confirmed=false;
+  const clone=value=>JSON.parse(JSON.stringify(value));
+  function objectAt(name){
+    const raw=storage.getItem(name),value=raw?JSON.parse(raw):{};
+    if(!value||Array.isArray(value)||typeof value!=='object')throw Error('同步設定損壞，原資料已保留');
+    return value;
   }
-  get enabled(){return /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(this.url||'');}
-  status(message){this.onStatus(message);}
-  persist(){localStorage.setItem(this.prefix+'tokens',JSON.stringify(this.tokens));localStorage.setItem(this.prefix+'pending',JSON.stringify(this.pending));}
-  enqueue(record){
-    if(!this.enabled||!record.profile||record.profile.email?.toLowerCase()===this.teacherEmail)return;
-    this.tokens[record.id] ||= crypto.randomUUID()+crypto.randomUUID();
-    this.pending[record.id]=JSON.parse(JSON.stringify(record));
-    try{this.persist();}catch{this.status('中央同步待重試：本機儲存空間不足，請保持此頁開啟。');}
-    this.status('答案已保留於本機，等待中央儲存確認。');
-    if(!this.timer)this.timer=setTimeout(()=>{this.timer=null;this.flush();},1500);
+  function metadata(){return objectAt(key);}
+  function entry(id){
+    const all=metadata();
+    if(!all[id]){
+      // Preserve the credentials of attempts already uploaded by the old version.
+      const oldTokens=objectAt(legacyPrefix+'tokens');
+      all[id]={token:oldTokens[id]||crypto.randomUUID()+crypto.randomUUID(),acknowledgements:{}};
+      storage.setItem(key,JSON.stringify(all));
+    }
+    if(typeof all[id].token!=='string'||all[id].token.length<64||!all[id].acknowledgements||typeof all[id].acknowledgements!=='object')throw Error('同步設定不完整，原資料已保留');
+    return all[id];
   }
-  async request(payload){
-    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),30000);
+  function student(r){return r?.moduleId==='VL_BIO_TRANSPIRATION'&&typeof r.id==='string'&&r.profile?.email&&r.profile.email.trim().toLowerCase()!=='tzechingchan0605@gmail.com';}
+  async function request(body){
+    // Apps Script traffic exclusively uses the embedded Google RPC bridge.
+    bridge ||= createAppsScriptBridge(endpoint);
+    const result=await bridge.send(body);
+    if(!result?.ok)throw Error(result?.error||'收集端未確認操作');
+    return result;
+  }
+  function enqueue(record){
+    if(!enabled||!student(record))return;
     try{
-      const response=await fetch(this.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),signal:controller.signal,redirect:'follow'});
-      const result=await response.json();
-      if(!response.ok||!result.ok)throw Error(result.error||'連線失敗');
-      return result;
-    }finally{clearTimeout(timeout);}
+      const info=entry(record.id);
+      if(info.acknowledgements[endpoint]===record.savedAt)return;
+      const previous=pending.get(record.id);
+      if(!previous||Date.parse(record.savedAt)>=Date.parse(previous.savedAt))pending.set(record.id,clone(record));
+      status('pending',`尚有 ${pending.size} 份紀錄等待同步；本機備份已保留。`);
+      if(!timer)timer=setTimeout(()=>{timer=null;flush().catch(()=>{});},1200);
+    }catch(e){pending.set(record.id,clone(record));status('error',e.message+'；請勿清除瀏覽器資料。');}
   }
-  async flush(){
-    if(!this.enabled||this.busy)return;
-    this.busy=true;
+  async function drain(){
+    let acknowledged=false;
+    while(pending.size){
+      const [id,record]=pending.entries().next().value,info=entry(id);
+      if(JSON.stringify(record).length>960000)throw Error('紀錄超過 960,000 字元，請減小裝置相片；完整答案仍保留本機');
+      const reply=await request({action:'save',token:info.token,record});
+      if(reply.id!==id)throw Error('收集端回覆的探究 ID 不符，未確認儲存');
+      const all=metadata();all[id].acknowledgements[endpoint]=record.savedAt;storage.setItem(key,JSON.stringify(all));
+      if(pending.get(id)?.savedAt===record.savedAt)pending.delete(id);
+      acknowledged=true;
+    }
+    if(acknowledged){confirmed=true;status('synced','✓ 本機學生紀錄已獲中央確認儲存。');}
+  }
+  function flush(){
+    clearTimeout(timer);timer=null;
+    if(!enabled||!running&&!pending.size)return Promise.resolve();
+    if(!running)running=drain().catch(e=>{status('error','同步失敗：'+e.message+'。本機備份仍在，請重試。');throw e;}).finally(()=>{running=null;});
+    return running;
+  }
+  function recover(){
+    if(!enabled){status('unconfigured','未設定雲端：答案只存於這部瀏覽器，尚不能跨裝置收集。');return;}
     try{
-      for(const id of Object.keys(this.pending)){
-        const record=this.pending[id];
-        await this.request({action:'save',record,token:this.tokens[id]});
-        if(this.pending[id]?.savedAt===record.savedAt){delete this.pending[id];this.persist();}
-      }
-      this.status(Object.keys(this.pending).length?'仍有答案等待中央確認。':'✓ 答案已同步至教師中央紀錄。');
-    }catch(error){
-      this.status('尚未同步至中央；答案保留於本機，恢復連線後重試。');
-      if(!this.timer)this.timer=setTimeout(()=>{this.timer=null;this.flush();},30000);
-    }finally{this.busy=false;}
+      // Read and preserve the previous durable outbox, including saves which could
+      // not fit in the old main store. Never clear or rewrite its original value.
+      const candidates=[...records(),...Object.values(objectAt(legacyPrefix+'pending'))];
+      const latest=new Map();
+      candidates.filter(student).forEach(r=>{const old=latest.get(r.id);if(!old||Date.parse(r.savedAt)>=Date.parse(old.savedAt))latest.set(r.id,r);});
+      latest.forEach(enqueue);
+      if(!pending.size&&!confirmed)status('configured','已設定雲端；尚未確認本次連線或儲存成功。');
+    }catch(e){status('error','無法補傳：'+e.message+'；原資料已保留，請勿清除瀏覽器資料。');}
   }
-  async load(key){
-    let cursor=0,records=[];
+  async function list(password){
+    if(password!==undefined)credential=password;
+    if(!credential)throw Error('請先輸入教師雲端密碼');
+    const all=[];let cursor=0;
     do{
-      const result=await this.request({action:'list',teacherKey:key,cursor});
-      records.push(...result.records);cursor=result.nextCursor;
+      const page=await request({action:'list',teacherEmail:'tzechingchan0605@gmail.com',password:credential,cursor});
+      if(!Array.isArray(page.records)||!(page.nextCursor===null||Number.isInteger(page.nextCursor)&&page.nextCursor>cursor))throw Error('雲端分頁回應格式不正確');
+      if(page.records.some(r=>!student(r)))throw Error('雲端紀錄模組或學生身分不符');
+      all.push(...page.records);cursor=page.nextCursor;
     }while(cursor!==null);
-    this.teacherKey=key;this.records=records;return records;
+    return all;
   }
-}
+  return {enabled,enqueue,flush,recover,list,clearCredential(){credential='';},student};
+};

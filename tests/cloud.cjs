@@ -1,34 +1,108 @@
+// Exercise the actual Apps Script collector with in-memory Google service adapters,
+// plus independent browser contexts and the real frontend/exporter.
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const rows=[['Attempt ID','Saved at','Name','Class','Email','Status','File','Token']],files=new Map();
-const props={SHEET_ID:'sheet',FOLDER_ID:'folder',TEACHER_KEY:'teacher-private-key'};
-const sheet={getLastRow:()=>rows.length,getRange:(start,col,n=1,w=1)=>({getValues:()=>rows.slice(start-1,start-1+n).map(r=>r.slice(col-1,col-1+w)),setValues:values=>{values.forEach((v,i)=>rows[start-1+i]=v)}})};
-const backend={PropertiesService:{getScriptProperties:()=>({getProperty:key=>props[key]})},SpreadsheetApp:{openById:()=>({getSheetByName:()=>sheet})},DriveApp:{getFileById:id=>files.get(id),getFolderById:()=>({createFile:(name,data)=>{const id=String(files.size+1);let content=data;const file={getId:()=>id,setContent:x=>content=x,getBlob:()=>({getDataAsString:()=>content})};files.set(id,file);return file;}})},MimeType:{PLAIN_TEXT:'text/plain'},Utilities:{DigestAlgorithm:{SHA_256:'sha256'},computeDigest:(_,s)=>[...require('node:crypto').createHash('sha256').update(s).digest()]},ContentService:{MimeType:{JSON:'application/json'},createTextOutput:s=>({setMimeType:()=>s})},LockService:{getScriptLock:()=>({waitLock(){},hasLock:()=>true,releaseLock(){}})}};
-vm.createContext(backend);vm.runInContext(fs.readFileSync('server/Code.gs','utf8'),backend);
-const post=b=>JSON.parse(backend.doPost({postData:{contents:JSON.stringify(b)}}));
+const crypto=require('node:crypto');
+const http=require('node:http');
+const path=require('node:path');
+const rows=[['headers']];
+const properties={SPREADSHEET_ID:'test-sheet',TEACHER_PASSWORD_HASH:crypto.createHash('sha256').update('test-teacher-password').digest('hex')};
+const sheet={getLastRow:()=>rows.length,getRange(start,col,count,width){return {getValues:()=>Array.from({length:count},(_,i)=>Array.from({length:width},(_,j)=>rows[start+i-1]?.[col+j-1]??'')),setNumberFormat(){},setValues(values){values.forEach((value,i)=>{rows[start+i-1]=value;});}};}};
+const sandbox={PropertiesService:{getScriptProperties:()=>({getProperty:k=>properties[k]})},SpreadsheetApp:{openById:()=>({getSheetByName:()=>sheet})},Utilities:{DigestAlgorithm:{SHA_256:'sha256'},Charset:{UTF_8:'utf8'},computeDigest:(_,value)=>[...crypto.createHash('sha256').update(value).digest()]},LockService:{getScriptLock:()=>({waitLock(){},hasLock:()=>true,releaseLock(){}})},ContentService:{MimeType:{JSON:'json'},createTextOutput:text=>({text,getContent(){return text;},setMimeType(){return this;}})}};
+sandbox.HtmlService={XFrameOptionsMode:{ALLOWALL:'all'},createHtmlOutput:html=>({html,setXFrameOptionsMode(){return this;}})};
+vm.createContext(sandbox);vm.runInContext(fs.readFileSync('cloud/Code.gs','utf8'),sandbox);
+const call=data=>JSON.parse(sandbox.doPost({postData:{contents:JSON.stringify(data)}}).text);
+const record={moduleId:'VL_BIO_TRANSPIRATION',id:crypto.randomUUID(),profile:{name:'測試',email:'backend@example.com'},savedAt:'2026-10-05T01:00:00.000Z',phase2:{setup:{image:'data:image/jpeg;base64,'+'A'.repeat(120000)}},telemetry:[{type:'answer_changed',value:'=IMPORTXML("test")'}]};
+const token='a'.repeat(72);
+assert(call({action:'save',record,token}).ok);
+assert.equal(rows.length,2);assert.equal(rows[1][3],4);
+assert(!call({action:'save',record:{...record,savedAt:'2026-10-05T02:00:00Z'},token:'b'.repeat(72)}).ok);
+assert(!call({action:'list',teacherEmail:'tzechingchan0605@gmail.com',password:'wrong'}).ok);
+assert(!call({action:'save',record:{...record,id:crypto.randomUUID(),profile:{email:'tzechingchan0605@gmail.com'}},token}).ok);
+assert(call({action:'save',record:{...record,savedAt:'2026-10-04T00:00:00Z'},token}).ok);
+let list=call({action:'list',teacherEmail:'tzechingchan0605@gmail.com',password:'test-teacher-password'});
+assert.deepEqual(list.records[0],record);assert.equal(list.nextCursor,null);
+assert.equal(rows.length,2);
+for(let i=0;i<6;i++)assert(call({action:'save',record:{...record,id:'legacy-'+i},token}).ok);
+list=call({action:'list',teacherEmail:'tzechingchan0605@gmail.com',password:'test-teacher-password',cursor:0});
+assert.equal(list.records.length,5);assert.equal(list.nextCursor,5);
+assert.equal(call({action:'list',teacherEmail:'tzechingchan0605@gmail.com',password:'test-teacher-password',cursor:5}).records.length,2);
+assert(rows.slice(1).every(row=>row.slice(4,4+row[3]).every(chunk=>chunk.startsWith('json:'))));
+rows.splice(1);
+let unavailable=false,wrongAck=false;
+// No CORS headers: a direct browser fetch must fail. The bridge must still work.
+const collector=http.createServer((req,res)=>{
+ const url=new URL(req.url,'http://127.0.0.1:8101');
+ if(req.method==='GET' && url.pathname==='/collector' && url.searchParams.get('view')==='bridge') {
+  const inner=new URL('/bridge-content','http://127.0.0.1:8101');inner.search=url.search;
+  res.setHeader('Content-Type','text/html');res.end('<!doctype html><iframe src="'+inner.href.replaceAll('&','&amp;')+'"></iframe>');return;
+ }
+ if(req.method==='GET' && url.pathname==='/bridge-content') {
+  const output=sandbox.doGet({parameter:Object.fromEntries(url.searchParams)});
+  const stub=`<script>window.google={script:{run:{withSuccessHandler(success){return{withFailureHandler(failure){return{collectorBridge(payload){fetch('/rpc',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).then(r=>{if(!r.ok)throw Error('服務離線');return r.json();}).then(success).catch(failure);}};}};}}}};</script>`;
+  res.setHeader('Content-Type','text/html');res.end(output.html.replace('<body>','<body>'+stub));return;
+ }
+ if(req.method==='POST' && ['/collector','/rpc'].includes(url.pathname)){
+  assert(req.headers['content-type'].startsWith('text/plain'));
+  if(unavailable){res.writeHead(503);res.end('offline');return;}
+  let body='';req.on('data',b=>body+=b);req.on('end',()=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(wrongAck?{ok:true,id:'wrong-attempt'}:sandbox.collectorBridge(JSON.parse(body))));});return;
+ }
+ res.writeHead(404);res.end();
+});
+const server=http.createServer((req,res)=>{
+ if(req.url==='/cloud-config.js'){res.setHeader('Content-Type','application/javascript');res.end("window.VL2_CLOUD_CONFIG={endpoint:'http://127.0.0.1:8101/collector',transport:'bridge'};");return;}
+ const pageUrl=new URL(req.url,'http://127.0.0.1:8100');
+ const target=path.resolve('.','.'+(pageUrl.pathname==='/'?'/index.html':pageUrl.pathname));
+ if(!target.startsWith(process.cwd()+path.sep)){res.writeHead(404);res.end();return;}
+ try{res.setHeader('Content-Type',({'.html':'text/html','.js':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png'})[path.extname(target)]||'application/octet-stream');let contents=fs.readFileSync(target);if(pageUrl.searchParams.has('cached'))contents=contents.toString().replace(/<script src="cloud-bridge.js[^"]*"><\/script>/g,'');res.end(contents);}catch{res.writeHead(404);res.end();}
+});
 (async()=>{
- const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
- const contexts=[];
+ await new Promise(resolve=>server.listen(8100,'127.0.0.1',resolve));
+ await new Promise(resolve=>collector.listen(8101,'127.0.0.1',resolve));
+ const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
  try{
-  async function client(){const c=await browser.newContext();contexts.push(c);const p=await c.newPage();await p.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:"window.VL_CLOUD_CONFIG={url:'https://script.google.com/macros/s/test/exec'};"}));await p.route('https://script.google.com/macros/s/test/exec',r=>r.fulfill({contentType:'application/json',body:JSON.stringify(post(r.request().postDataJSON()))}));await p.goto(process.env.LAB_URL||'http://127.0.0.1:8000');return p;}
-  async function login(p,email){for(const[id,v] of Object.entries({profileName:'測試學生',profileClass:'S4-01',profileEmail:email}))await p.locator('#'+id).fill(v);await p.locator('#profileForm button[type=submit]').click();}
-  const phone=await client();await login(phone,'phone@example.com');await phone.locator('#observation').fill('手機上的回答');await phone.evaluate(()=>{save();return cloud.flush();});
-  const laptop=await client();await login(laptop,'laptop@example.com');await laptop.locator('#observation').fill('電腦上的回答');await laptop.evaluate(()=>{save();return cloud.flush();});
-  await phone.evaluate(()=>{state=freshState(activeProfile);save();return cloud.flush();});
-  await phone.waitForFunction(()=>Object.keys(cloud.pending).length===0);await laptop.waitForFunction(()=>Object.keys(cloud.pending).length===0);
-  assert.equal(rows.length,4,'two devices plus second attempt retained');
-  const teacher=await client();await login(teacher,'tzechingchan0605@gmail.com');await teacher.locator('#cloudTeacherKey').fill('wrong');await teacher.locator('#refreshCloud').click();await teacher.waitForFunction(()=>document.querySelector('#dashboardStatus').textContent.includes('未能讀取'));
-  assert.equal(await teacher.locator('[data-view-record]').count(),0);
-  await teacher.locator('#cloudTeacherKey').fill(props.TEACHER_KEY);await teacher.locator('#refreshCloud').click();await teacher.waitForFunction(()=>document.querySelectorAll('[data-view-record]').length===3);
-  const all=await teacher.evaluate(()=>teacherRecords());assert(all.some(r=>r.form.observation==='手機上的回答'));assert(all.some(r=>r.form.observation==='電腦上的回答'));
-  const downloadPromise=teacher.waitForEvent('download');await teacher.locator('#exportExcel').click();const download=await downloadPromise;await download.saveAs('/tmp/vl2-central.xlsx');
-  const before=rows.length;await teacher.locator('#teacherDemo').click();await teacher.locator('#observation').fill('教師示範');await teacher.evaluate(()=>save());assert.equal(rows.length,before);
-  const r=all[0];assert.equal(post({action:'save',record:{...r,profile:{...r.profile,email:'tzechingchan0605@gmail.com'}},token:'x'.repeat(64)}).ok,false);
-  assert.equal(post({action:'save',record:r,token:'x'.repeat(64)}).ok,false,'cannot replace another attempt');
-  const retry=await client();await login(retry,'retry@example.com');await retry.waitForFunction(()=>!cloud.busy);await retry.unroute('https://script.google.com/macros/s/test/exec');await retry.route('https://script.google.com/macros/s/test/exec',r=>r.abort());await retry.locator('#observation').fill('斷線保存');await retry.evaluate(()=>{save();return cloud.flush();});assert(await retry.evaluate(()=>Object.keys(cloud.pending).length>0));
-  await retry.unroute('https://script.google.com/macros/s/test/exec');await retry.route('https://script.google.com/macros/s/test/exec',r=>r.fulfill({contentType:'application/json',body:JSON.stringify(post(r.request().postDataJSON()))}));await retry.evaluate(()=>cloud.flush());await retry.waitForFunction(()=>Object.keys(cloud.pending).length===0);
-  assert.equal(rows.length,5);console.log('PASS: independent browser records, separate repeat attempts, teacher key protection, central XLSX export, demo exclusion, ownership tokens, offline retry; real Code.gs executed with Google service doubles.');
- }finally{await browser.close();}
-})().catch(e=>{console.error(e);process.exitCode=1});
+ const phone=await browser.newContext({viewport:{width:390,height:844}}),desktop=await browser.newContext(),teacher=await browser.newContext();
+ const errors=[];const page=await phone.newPage(),other=await desktop.newPage(),teach=await teacher.newPage();
+ for(const p of [page,other,teach]){p.on('pageerror',e=>{errors.push(e.message);console.error('Browser test error:',e.message);});await p.route('https://fonts.googleapis.com/**',r=>r.abort());await p.route('https://fonts.gstatic.com/**',r=>r.abort());await p.goto('http://127.0.0.1:8100'+'');}
+ assert((await page.locator('#loginCloudStatus').innerText()).includes('尚未確認'));
+ await page.evaluate(()=>cloudSync.flush());
+ assert.equal(await page.locator('#loginCloudStatus').getAttribute('data-state'),'configured');
+ assert.equal(rows.length,1);
+ assert(await page.evaluate(async()=>{try{await fetch('http://127.0.0.1:8101/collector',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'noop'})});return false;}catch{return true;}}),'Direct fetch must reproduce the CORS failure');
+ async function login(p,name,email){await p.fill('#profileName',name);await p.fill('#profileClass','S4-01');await p.fill('#profileEmail',email);await p.click('#profileForm button');}
+ async function saved(p){await p.evaluate(async()=>{save();await cloudSync.flush();});}
+ await login(page,'手機學生','phone@example.com');await page.fill('#observation','手機初步觀察：油水分層');await saved(page);
+ await page.evaluate(()=>{state.setup.image=document.querySelector('#setupCanvas').toDataURL('image/png');state.setup.saved=true;state.setup.method='drawing';state.initialDesign={form:{...state.form,prediction:'decrease',reason:'原始理由'},at:state.createdAt};state.measurements[30]={values:{A:11.5,B:7.5,C:5,D:1.5},firstValues:{A:11,B:7,C:4.5,D:1},confirmed:true};state.events.push({type:'test_complete_event',at:state.createdAt,phase:1,details:{note:'完整事件'}});});await saved(page);
+ assert.equal(await page.locator('#cloudStatus').getAttribute('data-state'),'synced');
+ assert.equal(await page.locator('#cloudStatus').innerText(),'✓ 本機學生紀錄已獲中央確認儲存。');
+ const firstId=await page.evaluate(()=>state.id);
+ wrongAck=true;await page.fill('#observation','錯誤確認不能成功');await page.evaluate(async()=>{save();await cloudSync.flush().catch(()=>{});});assert.equal(await page.locator('#cloudStatus').getAttribute('data-state'),'error');wrongAck=false;await page.fill('#observation','手機初步觀察：油水分層');await saved(page);
+ await login(other,'電腦學生','desktop@example.com');await other.fill('#observation','電腦觀察');await saved(other).catch(async e=>{console.error('Desktop frames:',other.frames().map(f=>f.url()));console.error('Desktop bridge status:',await other.locator('#cloudStatus').innerText());throw e;});
+ await login(teach,'教師','tzechingchan0605@gmail.com');
+ assert.equal(await teach.evaluate(()=>storedRecords().length),0);
+ assert.equal(await teach.locator('[data-view-record]').count(),0);
+ await teach.fill('#cloudTeacherKey','wrong');await teach.click('#refreshCloud');await teach.waitForFunction(()=>document.querySelector('#dashboardStatus').textContent.includes('密碼不正確'));
+ await teach.fill('#cloudTeacherKey','test-teacher-password');await teach.click('#refreshCloud');await teach.waitForFunction(()=>document.querySelectorAll('[data-view-record]').length===2);
+ assert((await teach.locator('#teacherData').innerText()).includes('手機學生'));
+ await teach.locator('[data-view-record]').first().click();assert((await teach.locator('#teacherReport').innerText()).includes('手機初步觀察'));
+ await page.click('#profileButton');await login(page,'手機學生','phone@example.com');await saved(page);
+ const secondId=await page.evaluate(()=>state.id);assert.notEqual(firstId,secondId);
+ unavailable=true;await page.fill('#observation','離線修改保留');await page.evaluate(async()=>{save();await cloudSync.flush().catch(()=>{});});
+ assert((await page.locator('#cloudStatus').innerText()).includes('同步失敗'));
+ assert.equal(call({action:'list',teacherEmail:'tzechingchan0605@gmail.com',password:'test-teacher-password'}).records.find(r=>r.id===secondId).form.observation,'');
+ page.on('dialog',dialog=>dialog.accept());await page.reload();await page.waitForFunction(()=>document.querySelector('#cloudStatus').dataset.state==='error');
+ unavailable=false;await page.click('#loginRetryCloud');await page.waitForFunction(()=>document.querySelector('#cloudStatus').dataset.state==='synced');
+ await teach.fill('#cloudTeacherKey','test-teacher-password');await teach.click('#refreshCloud');await teach.waitForFunction(()=>document.querySelectorAll('[data-view-record]').length===3);
+ const [download]=await Promise.all([teach.waitForEvent('download'),teach.click('#exportExcel')]);await download.saveAs('/tmp/vl2-central.xlsx');
+ const shared=call({action:'list',teacherEmail:'tzechingchan0605@gmail.com',password:'test-teacher-password'}).records;
+ assert.equal(shared.find(r=>r.id===secondId).form.observation,'離線修改保留');assert(shared.find(r=>r.id===firstId).events.some(e=>e.type==='test_complete_event'));
+ const original=shared.find(r=>r.id===firstId);assert(original.setup.image.startsWith('data:image/png'));assert.equal(original.initialDesign.form.reason,'原始理由');assert.equal(original.measurements[30].firstValues.A,11);
+ const before=JSON.stringify(rows);await teach.click('#teacherDemo');await teach.fill('#observation','教師示範');await teach.evaluate(()=>save());assert.equal(JSON.stringify(rows),before);
+ unavailable=true;let unexpected=false;teach.on('download',()=>unexpected=true);await teach.evaluate(()=>exportExcel());assert(!unexpected);assert((await teach.locator('#dashboardStatus').innerText()).includes('未匯出'));
+ assert.deepEqual(errors,[]);
+ const {execFileSync}=require('node:child_process');execFileSync('python',['tests/cloud_excel.py','/tmp/vl2-central.xlsx'],{stdio:'inherit'});
+ console.log('PASS: nested Apps Script bridge succeeds while direct fetch fails CORS; truthful idle/pending/confirmed status; actual collector ownership/auth/chunking/stale protection; independent phone/desktop/teacher contexts; same-email separate attempts; offline reload/retry; cloud-only teacher preview and XLSX; demonstration exclusion; export refuses incomplete records.');
+ }finally{await browser.close();await new Promise(resolve=>server.close(resolve));await new Promise(resolve=>collector.close(resolve));}
+})().catch(e=>{console.error(e);server.close();collector.close();process.exitCode=1;});
