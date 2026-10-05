@@ -9,7 +9,14 @@ async function reloadToLogin(p){p.once('dialog',async d=>{assert.equal(d.type(),
 async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(svg=>{const c=[...svg.querySelectorAll('.dye-column')];return c.length===2&&['y','height','fill','width'].every(a=>c[0].getAttribute(a)===c[1].getAttribute(a));}),true);}
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
- const context=await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true,reducedMotion:'reduce'});
+ // Keep synthetic activity/PDF/score pupils out of the live collector in every context.
+ // Dedicated cloud.cjs exercises sync and cloud Excel against isolated Google adapters.
+ async function testContext(options={}){
+  const context=await browser.newContext(options);
+  await context.route('**/cloud-config.js',route=>route.fulfill({contentType:'application/javascript',body:"window.VL2_CLOUD_CONFIG={endpoint:'',transport:'bridge'};"}));
+  return context;
+ }
+ const context=await testContext({viewport:{width:1440,height:1000},acceptDownloads:true,reducedMotion:'reduce'});
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  try{
   await page.goto(LAB_URL);await page.screenshot({path:'/tmp/vl2-profile.png'});
@@ -199,13 +206,13 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   assert.equal(await page.evaluate(id=>storedRecords().find(r=>r.id===id).submitted,record.id),true);
   await page.locator('#observation').fill('重新登入後可開始新探究');await page.locator('#orientationNext').click();assert.equal(await page.locator('#phase-2').isVisible(),true);
   // Legacy records with no email must not transfer answers to a new profile.
-  const legacyContext=await browser.newContext(),legacyPage=await legacyContext.newPage();legacyPage.on('pageerror',e=>errors.push(e.message));
+  const legacyContext=await testContext(),legacyPage=await legacyContext.newPage();legacyPage.on('pageerror',e=>errors.push(e.message));
   const noEmail=structuredClone(parsed);delete noEmail.profile.email;
   await legacyContext.addInitScript(r=>{localStorage.setItem('transpirationLab.current.v1',JSON.stringify(r));localStorage.setItem('transpirationLab.records.v1',JSON.stringify([r]));localStorage.removeItem('transpirationLab.profile.v1');},noEmail);
   await legacyPage.goto(LAB_URL);await login(legacyPage,'新學生','S4X2-01','new@example.edu.hk');
   assert.equal(await legacyPage.locator('#observation').inputValue(),'');assert.equal(await legacyPage.locator('#observation').isDisabled(),false);assert.notEqual(await legacyPage.evaluate(()=>state.id),parsed.id);assert.equal(await legacyPage.evaluate(()=>storedRecords().some(r=>r.submitted)),true);await legacyContext.close();
   // A stale active profile/current-record mismatch also recovers on page load.
-  const staleContext=await browser.newContext(),stalePage=await staleContext.newPage();stalePage.on('pageerror',e=>errors.push(e.message));
+  const staleContext=await testContext(),stalePage=await staleContext.newPage();stalePage.on('pageerror',e=>errors.push(e.message));
   await staleContext.addInitScript(r=>{localStorage.setItem('transpirationLab.current.v1',JSON.stringify(r));localStorage.setItem('transpirationLab.records.v1',JSON.stringify([r]));localStorage.setItem('transpirationLab.profile.v1',JSON.stringify({name:'另一位學生',classInfo:'S4X2-02',email:'other@example.edu.hk'}));},parsed);
   await stalePage.goto(LAB_URL);assert.equal(await stalePage.locator('#observation').inputValue(),'');assert.equal(await stalePage.locator('#observation').isDisabled(),false);assert.equal(await stalePage.locator('#profileDialog').isVisible(),true);assert.equal(await stalePage.evaluate(()=>activeProfile),null);await login(stalePage,'另一位學生','S4X2-02','other@example.edu.hk');assert.equal(await stalePage.evaluate(()=>state.profile.email),'other@example.edu.hk');await staleContext.close();
   // Cancel keeps the current attempt; accepting reload saves it, returns to
@@ -217,7 +224,7 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   await reloadToLogin(page);assert.equal(await page.evaluate(id=>storedRecords().find(r=>r.id===id).form.observation,beforeReloadId),'重新登入後可開始新探究');
   await login(page,'陳小明','S4X1-05','p012@example.edu.hk');assert.notEqual(await page.evaluate(()=>state.id),beforeReloadId);assert.equal(await page.locator('#phase-1').isVisible(),true);assert.equal(await page.locator('#observation').inputValue(),'');assert.equal(await page.locator('#observation').isDisabled(),false);assert.equal(await page.locator('#downloadPDF').isDisabled(),true);
   await page.locator('#observation').fill('重新載入後的新探究');await page.locator('#orientationNext').click();assert.equal(await page.locator('#phase-2').isVisible(),true);
-  const other=await browser.newContext({viewport:{width:1280,height:900}}),teacher=await other.newPage();teacher.on('pageerror',e=>errors.push(e.message));await teacher.goto(LAB_URL);await login(teacher,'教師','教師',TEACHER);
+  const other=await testContext({viewport:{width:1280,height:900}}),teacher=await other.newPage();teacher.on('pageerror',e=>errors.push(e.message));await teacher.goto(LAB_URL);await login(teacher,'教師','教師',TEACHER);
   await teacher.locator('#importRecords').setInputFiles('/tmp/vl2-record.json');await teacher.waitForFunction(()=>document.querySelector('#importStatus').textContent.includes('已處理 1'));assert.match(await teacher.locator('#teacherData').innerText(),/陳小明/);
   const legacy=structuredClone(parsed);legacy.id+='-legacy';delete legacy.uiVersion;legacy.form.evidence='先前版本的證據文字';delete legacy.form.leafComparison;legacy.variables.iv=['光照強度'];legacy.profile.name='舊版同學';await fs.writeFile('/tmp/vl2-legacy-import.json',JSON.stringify(legacy));
   await teacher.locator('#importRecords').setInputFiles('/tmp/vl2-legacy-import.json');await teacher.waitForFunction(()=>document.querySelector('#teacherData').textContent.includes('舊版同學'));assert.equal(await teacher.evaluate(()=>storedRecords().find(r=>r.profile.name==='舊版同學').form.evidence),'先前版本的證據文字');
