@@ -473,8 +473,8 @@ function normaliseRateInput(input){
 }
 function renderCalculations() {
   $('#calculationGrid').innerHTML=IDS.map(id=>{
-    const c=CONDITIONS[id],start=state.measurements[0]?.values?.[id],end=state.measurements[30]?.values?.[id];
-    return `<div class="calc-card"><strong>裝置${id} · ${c.leaves?'帶葉':'不帶葉'}<span class="calc-condition">（光距：${c.distance} cm ＝ 光強度：${c.light} lux）</span></strong><p class="calc-readings">你的讀數：0 分鐘 ${esc(start??'未記錄')} cm；30 分鐘 ${esc(end??'未記錄')} cm。</p><label class="field">平均上移速度（cm/min）<input type="number" id="rate-${id}" data-rate="${id}" step="0.01" min="-0.54" max="0.54" value="${esc(state.calculations[id]??'')}" ${state.submitted?'disabled':''}></label></div>`;
+    const c=CONDITIONS[id],end=state.measurements[30]?.values?.[id];
+    return `<div class="calc-card"><strong>裝置${id} · ${c.leaves?'帶葉':'不帶葉'}（光距：${c.distance} cm）</strong><p class="calc-readings">你的讀數：30 分鐘 ${esc(end??'未記錄')} cm。</p><label class="field">平均上移速度（cm/min）<input type="number" id="rate-${id}" data-rate="${id}" step="0.01" min="-0.54" max="0.54" value="${esc(state.calculations[id]??'')}" ${state.submitted?'disabled':''}></label></div>`;
   }).join('');
   $$('[data-rate]').forEach(input=>{
     input.oninput=()=>{state.calculations[input.dataset.rate]=input.value;scheduleSave();};
