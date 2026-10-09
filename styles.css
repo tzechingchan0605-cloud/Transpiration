@@ -32,3 +32,5 @@
 
 .language-dialog-button{float:right;margin:0 28px 12px 12px}.student-chip{flex-wrap:wrap}#languageButton{white-space:nowrap}html[lang="en"] .hero h1{font-size:36px}html[lang="en"] .fixed-axis{overflow-wrap:anywhere}html[lang="en"] .fill-sentence select{max-width:100%}html[lang="en"] .specimen-meta{min-height:3.4em}
 @media(max-width:600px){.topbar{height:auto;min-height:80px;padding:12px 0;align-items:flex-start}.student-chip{justify-content:flex-end;gap:5px;max-width:52%}.language-dialog-button{margin-right:22px}html[lang="en"] .hero h1{font-size:30px}html[lang="en"] .steps{gap:5px}html[lang="en"] .step{font-size:10px}html[lang="en"] .timer-bar{flex-wrap:wrap}}
+
+.control-purpose-hint{color:#777;line-height:1.6}

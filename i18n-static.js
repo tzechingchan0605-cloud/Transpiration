@@ -69,6 +69,7 @@ window.VL2_I18N_STATIC = {
   "04 · 對照組設計": "04 · Plan a control setup",
   "探究的對照組": "The control setup",
   "若想知道葉片是否參與水分運輸，你會如何設計比較裝置？": "How would you plan a comparison setup to find out whether leaves help with water transport?",
+  "（提示：對照組主要功能是作為比較的基準，用來確認實驗中的改變是由獨立變量所引起，而非其他外在因素的干擾，因此對照組不包含獨立變量的處理條件）": "(Hint: the control group provides a basis for comparison. It helps check whether the change in the experiment is caused by the independent variable rather than other external factors. The control group therefore does not receive the treatment being tested.)",
   "（提示：此對照裝置與實驗裝置有何不同之處？）": "(Hint: how is the control setup different from the experiment setup?)",
   "05 · 實驗裝置設計": "05 · Plan the experiment setups",
   "繪畫並標示你的四個裝置": "Draw and label your four setups",
