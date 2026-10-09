@@ -979,7 +979,11 @@ function refreshProfileUI(){
 }
 function reportFilename(record){
   const safe=value=>String(value||'未填寫').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'_').trim();
-  return `VL2_${window.VL2I18n.language==='en'?'Red_Water_Trace_in_Celery':'西芹的紅色水跡'}_${safe(record.profile?.classInfo)}_${safe(record.profile?.name)}`;
+  // The existing login combines class and student number. Remove only an
+  // explicit trailing numeric student number; preserve the saved profile.
+  const classInfo=String(record.profile?.classInfo||'').trim();
+  const className=classInfo.replace(/(?:\s*[-_/#]\s*\d+|\s*[（(]\s*\d+\s*[）)]|\s+\d+)\s*$/,'').trim()||classInfo;
+  return `VL2_${safe(className)}_${safe(record.profile?.name)}`;
 }
 async function printRecord(record){
   renderReport(record);

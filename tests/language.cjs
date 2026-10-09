@@ -210,6 +210,7 @@ async function assertEnglish(page,stage,scope='body'){
   await page.evaluate(()=>{window.print=()=>{window.__printed=(window.__printed||0)+1;};});
   for(const [code,lang] of [['zh','zh'],['en','en']]){
    await invariantSwitch(page,code);await page.locator('#downloadPDF').click();await page.waitForFunction(()=>!!window.__printed);
+   assert.equal(await page.title(),'VL2_'+STUDENT.classInfo+'_'+STUDENT.name,'PDF filename is identical in Chinese and English');
    const report=await page.locator('#printReport').innerText();
    for(const value of Object.values(ANSWERS))assert(report.includes(value),'PDF retains original student text: '+value);
    assert(report.includes(STUDENT.name));
