@@ -12,7 +12,7 @@ const STUDENT={name:'光強度同學',classInfo:'S4X1-語言',email:'language-is
 const ANSWERS={observation:'我觀察到……光強度（lux）；I observe a red trace.',reason:'主動改變的因素；My original reason stays in English.',controlPlan:'裝置D 不帶葉，與裝置B 比較。structure-report-water; celery-report-before-stem.',setupDescription:'裝置A：10 cm；裝置B：20 cm；裝置C：30 cm；裝置D不帶葉。',reflection:'木質導管、蒸騰拉力與水勢。My reflection keeps both languages.'};
 const artifacts=process.env.LANGUAGE_ARTIFACTS||'/tmp/vl2-language';
 const han=/[\u3400-\u9fff]/;
-const APPROVED_CHINESE=['蒸騰','蒸騰拉力','葉柄','木質導管','韌皮部','葉肉細胞','柵狀葉肉細胞','海綿葉肉細胞','表皮細胞','保衞細胞','氣孔','角質層','維管束'];
+const APPROVED_CHINESE=['蒸騰','蒸騰拉力','葉柄','木質導管','韌皮部','葉肉細胞','柵狀葉肉細胞','海綿葉肉細胞','表皮細胞','保衞細胞','氣孔','角質層','維管束','蒸發','水汽','水膜','氣室','葉綠體','液泡','木質部','氣孔張開','草本莖','光強度','濕度','浸入深度','蒸騰速率','可測試的','坐標'];
 
 async function localServer(){
  if(process.env.LAB_URL)return {url:process.env.LAB_URL,close:async()=>{}};
@@ -193,6 +193,16 @@ async function assertEnglish(page,stage,scope='body'){
   }
   for(const term of ['water potential','osmosis','diffusion'])assert(!new RegExp(term+'\\s*\\([^)]*[\\u3400-\\u9fff]','i').test(science),'unapproved word has no Chinese support: '+term);
   assert(!/transpiration\s*\(蒸騰\)\s*pull/i.test(science),'transpiration pull gets one complete approved translation');
+  const vocabularyChecks=await page.evaluate(()=>{
+   const examples=['evaporation','evaporate','evaporates','evaporated','evaporating','water vapour','water film','water films','air space','air spaces','chloroplast','chloroplasts','vacuole','vacuoles','xylem','stomatal opening','herbaceous stem','herbaceous stems','light intensity','humidity','depth of immersion','transpiration rate','transpiration rates','testable','coordinate','coordinates'];
+   return examples.map(text=>({text,once:VL2I18n.translate(text,'en'),twice:VL2I18n.translate(VL2I18n.translate(text,'en'),'en')}));
+  });
+  for(const item of vocabularyChecks){assert(/\([\u3400-\u9fff]+\)/.test(item.once),'newly approved word gets Chinese: '+item.text);assert.equal(item.twice,item.once,'Chinese glosses do not duplicate: '+item.text);}
+  assert(!/transpiration\s*\(蒸騰\)\s*rate/i.test(learningProse),'transpiration rate uses a single complete gloss');
+  assert(!/xylem\s*\(木質部\)\s*vessels?/i.test(science),'xylem vessel keeps its complete scientific label');
+  assert(learningProse.includes('transpiration rate (蒸騰速率)'));
+  assert(learningProse.includes('water film (水膜)'));
+
   await page.locator('#reflection').fill(ANSWERS.reflection);await invariantSwitch(page,'zh');await invariantSwitch(page,'en');
   await page.locator('#saveReflection').click();assert.equal(await page.locator('#reflection').isDisabled(),true);assert.equal(await page.locator('#downloadPDF').isDisabled(),false);
   await invariantSwitch(page,'zh');await invariantSwitch(page,'en');await assertEnglish(page,'reflection-submitted');

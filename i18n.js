@@ -20,11 +20,27 @@ window.VL2I18n = (() => {
     {term:'petiole',zh:'葉柄',pattern:'petioles?'},
     {term:'phloem',zh:'韌皮部',pattern:'phloem'},
     {term:'stoma / stomata',zh:'氣孔',pattern:'stomata|stoma'},
-    {term:'cuticle',zh:'角質層',pattern:'cuticles?'}
-  ];
+    {term:'cuticle',zh:'角質層',pattern:'cuticles?'},
+    {term:'evaporation / evaporate',zh:'蒸發',pattern:'evaporat(?:ion|e[sd]?|ing)'},
+    {term:'water vapour',zh:'水汽',pattern:'water vapour'},
+    {term:'water film',zh:'水膜',pattern:'water films?'},
+    {term:'air space',zh:'氣室',pattern:'air spaces?'},
+    {term:'chloroplast',zh:'葉綠體',pattern:'chloroplasts?'},
+    {term:'vacuole',zh:'液泡',pattern:'vacuoles?'},
+    {term:'xylem',zh:'木質部',pattern:'xylem'},
+    {term:'stomatal opening',zh:'氣孔張開',pattern:'stomatal openings?'},
+    {term:'herbaceous stem',zh:'草本莖',pattern:'herbaceous stems?'},
+    {term:'light intensity',zh:'光強度',pattern:'light intensit(?:y|ies)'},
+    {term:'humidity',zh:'濕度',pattern:'humidity'},
+    {term:'depth of immersion',zh:'浸入深度',pattern:'depth of immersion'},
+    {term:'transpiration rate',zh:'蒸騰速率',pattern:'transpiration rates?'},
+    {term:'testable',zh:'可測試的',pattern:'testable'},
+    {term:'coordinates',zh:'坐標',pattern:'coordinates?'}
+  ].sort((a,b)=>b.term.length-a.term.length);
   const vocabularyPattern = new RegExp('\\b('+approvedVocabulary.map(v=>'(?:'+v.pattern+')').join('|')+')\\b','gi');
-  const withVocabulary = text => text.replace(vocabularyPattern, word => {
+  const withVocabulary = text => text.replace(vocabularyPattern, (word, matched, offset, source) => {
     const entry = approvedVocabulary.find(v=>new RegExp('^(?:'+v.pattern+')$','i').test(word));
+    if(source.slice(offset+word.length).startsWith(` (${entry.zh})`))return word;
     return `${word} (${entry.zh})`;
   });
   const escapeRegex = text => text.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');

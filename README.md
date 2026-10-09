@@ -19,7 +19,7 @@ python -m http.server 8000 --bind 0.0.0.0
 
 英文的一般指示使用簡單英文，例如 `experiment setup`、`the factor changed on purpose`；保留 `Independent variable`、`Dependent variable`、`Controlled variables`，並附簡單英文解釋。生物專有詞保持科學準確。
 
-英文介面只為以下已批准術語附中文括號，依句子調整大小寫和單複數；較長術語優先完整配對，例如 `transpiration pull (蒸騰拉力)`。其餘詞彙不附中文。
+英文介面只為以下已批准術語附中文括號（包含後續新增的 15 項），依句子調整大小寫和單複數；較長術語優先完整配對，例如 `transpiration pull (蒸騰拉力)`。其餘詞彙不附中文。
 
 | 英文術語 | 已批准中文 |
 | --- | --- |
@@ -36,6 +36,21 @@ python -m http.server 8000 --bind 0.0.0.0
 | stoma / stomata | 氣孔 |
 | cuticle | 角質層 |
 | vascular bundle | 維管束 |
+| evaporation / evaporate | 蒸發 |
+| water vapour | 水汽 |
+| water film | 水膜 |
+| air space | 氣室 |
+| chloroplast | 葉綠體 |
+| vacuole | 液泡 |
+| xylem | 木質部 |
+| stomatal opening | 氣孔張開 |
+| herbaceous stem | 草本莖 |
+| light intensity | 光強度 |
+| humidity | 濕度 |
+| depth of immersion | 浸入深度 |
+| transpiration rate | 蒸騰速率 |
+| testable | 可測試的 |
+| coordinates | 坐標 |
 
 介面文字、動態狀態、圖示標籤、替代文字及所有 `placeholder` 會隨語言切換。學生的姓名、理由、設計、反思和其他自由作答保留原文；選項順序、答案 `value`、探究 ID、原始快照、操作事件、計時、繪圖、圖點、鎖定及雲端待同步紀錄保持不變。語言只作用於目前頁面的顯示，不會為切換建立新的探究、保存事件或發出同步請求。英文科學圖的標籤會換行並調整字體，中文可恢復原標籤。
 
