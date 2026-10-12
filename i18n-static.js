@@ -64,6 +64,8 @@ window.VL2_I18N_STATIC = {
   "辨認實驗變量": "Identify the variables",
   "在每類中選擇適合的因素。現在保存你的想法，遞交後再查看參考回饋。": "Choose the factors that fit each variable type. Save your ideas now. You can view feedback after you submit.",
   "03 · 實驗前提": "03 · Experiment assumptions",
+  "不用精緻地繪畫所有特徵，簡單繪畫並標示清楚便可。": "You do not need to draw every feature in detail. A simple drawing with clear labels is enough.",
+  "假設是指未經證實而被視為正確的條件，用於確保實驗結果的有效性。": "An assumption is a condition accepted as true without being proven. It is used to help ensure that the experiment results are valid.",
   "此探究的假設是什麼？": "What assumptions does this investigation use?",
   "請選出所有適用的假設，可選多於一項。": "Choose all the assumptions that apply. You may choose more than one.",
   "04 · 對照組設計": "04 · Plan a control setup",

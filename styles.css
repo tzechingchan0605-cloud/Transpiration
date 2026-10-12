@@ -34,3 +34,5 @@
 @media(max-width:600px){.topbar{height:auto;min-height:80px;padding:12px 0;align-items:flex-start}.student-chip{justify-content:flex-end;gap:5px;max-width:52%}.language-dialog-button{margin-right:22px}html[lang="en"] .hero h1{font-size:30px}html[lang="en"] .steps{gap:5px}html[lang="en"] .step{font-size:10px}html[lang="en"] .timer-bar{flex-wrap:wrap}}
 
 .control-purpose-hint{color:#777;line-height:1.6}
+
+.design-reminder{color:#777;line-height:1.6}
