@@ -6,7 +6,7 @@ window.VL2I18n = (() => {
   let language = 'zh';
   const originals = new WeakMap(), attributes = new WeakMap();
   const attributeNames = ['placeholder','aria-label','aria-description','alt','title'];
-  const exact = {...window.VL2_I18N_STATIC, ...window.VL2_I18N_DYNAMIC?.exact};
+  const exact = {...window.VL2_I18N_STATIC, ...window.VL2_I18N_PAPER, ...window.VL2_I18N_DYNAMIC?.exact};
   const approvedVocabulary = [
     {term:'transpiration pull',zh:'蒸騰拉力',pattern:'transpiration pull'},
     {term:'palisade mesophyll cell',zh:'柵狀葉肉細胞',pattern:'palisade mesophyll cells?'},

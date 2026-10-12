@@ -127,3 +127,16 @@ node tests/smoke.cjs
 量度互動驗證：`node tests/measurements.cjs`（涵蓋恆定速度、0.5 cm 模擬讀數、Enter 操作、舊資料保留及獨立手機瀏覽器；不連接正式收集端）。
 
 語言隔離驗證：`node tests/language.cjs`（需 Playwright、Chromium 和 Python `pypdf`；自動啟動本機伺服器）。涵蓋直接中英文切換、所有輸入框提示、完整介面及動態 SVG、批准詞彙、作答／原始快照／繪圖／圖點／事件／計時／鎖定保存、實際雙語 PDF、逐位元一致的中文 Excel、手機、教師示範，以及使用真正前端同步程式配合隔離收集端的離線／補傳驗證。所有測試覆寫正式雲端設定，並攔截 Apps Script 連線；測試紀錄不會上傳正式收集端。`tests/cloud.cjs` 另以實際 Apps Script 程式及 Google 服務替身驗證跨裝置收集。這些是本機隔離測試，並非正式 Google 部署驗證。
+
+## 教師紙本對照組工作紙 PDF
+
+教師儀表板新增「下載紙本對照組工作紙 PDF」，可獨立選繁中／英文、預覽及直接下載真正 PDF。A 3 頁、B 4 頁、C 2 頁、D 8 頁，完整教師套裝 17 頁；完整套裝中 A 為 1–3、B 為 4–7、C 為 8–9、D 為 10–17。先派 A，保存原始設計後才派 B，原探究答案固定後才派 C，D 只供教師。兩項灰色提示同步於網站和紙本；題目、選項、模型、圖示及 rubric 共用目前 VL2 來源。
+
+PDF 使用版本化檔名 `VL2_A_zh_v1_<revision>.pdf` 等；姓名／班別及學號只在 A、C 首頁，文字及修訂欄為兩條橫線。下載不改學生／教師示範答案、紀錄或 Excel，不需要新增 Apps Script。詳見 [材料、頁碼、派發及研究核對說明](paperwork/README.md)。
+
+```sh
+node paperwork/build.cjs
+node paperwork/build.cjs --check
+node tests/paperwork.cjs
+python tests/paperwork_pdf.py
+```

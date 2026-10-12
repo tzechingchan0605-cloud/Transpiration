@@ -318,6 +318,8 @@
   };
 
   const patterns = [
+    ['{pages} 頁 · 套裝第 {first}–{last} 頁','{pages} pages · pack pages {first}–{last}'],
+    ['{pages} 頁','{pages} pages'],
     ['裝置{id} · 帶葉（光距：{distance} cm）', 'Setup {id} · With leaves (lamp distance: {distance} cm)'],
     ['裝置{id} · 不帶葉（光距：{distance} cm）', 'Setup {id} · Without leaves (lamp distance: {distance} cm)'],
     ['裝置{id} · 帶葉 · {distance} cm', 'Setup {id} · With leaves · {distance} cm'],

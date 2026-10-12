@@ -1,0 +1,30 @@
+name: Verify VL2 paper materials
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm install --no-save --package-lock=false playwright@1.62.1
+      - run: npx playwright install --with-deps chromium
+      - run: python -m pip install PyMuPDF==1.26.6
+      - run: echo "CHROMIUM_PATH=$(node -p 'require("playwright").chromium.executablePath()')" >> "$GITHUB_ENV"
+      - run: node paperwork/build.cjs --check
+      - run: node tests/paperwork.cjs
+      - run: python tests/paperwork_pdf.py
+      - run: node paperwork/build.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VL2-bilingual-paper-materials
+          path: paperwork/generated/

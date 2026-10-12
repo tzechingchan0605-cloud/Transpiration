@@ -10,6 +10,7 @@ const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const IDS = ['A','B','C','D'];
+const MEASUREMENT_TIMES = [0,10,20,30];
 const CONDITIONS = {
   A: {distance:10, light:1200, leaves:true},
   B: {distance:20, light:300, leaves:true},
@@ -39,6 +40,13 @@ const ANSWER_LABELS = {
   leafComparison:{faster:'相同 20 cm 光照距離下，裝置B（帶葉）比裝置D（不帶葉）快。',slower:'相同 20 cm 光照距離下，裝置B（帶葉）比裝置D（不帶葉）慢。',same:'相同 20 cm 光照距離下，裝置B（帶葉）與裝置D（不帶葉）的速度相近。'},
   leafConclusion:{promotes:'葉片有助水分向上運輸。',prevents:'葉片阻止水分向上運輸。',unrelated:'葉片與水分向上運輸沒有關係。'},
   limitations:{indirect:'紅色水跡可作為植物吸水及水分向上運輸的線索，不能代表葉片蒸發水分的速度，即蒸騰速率。',direct:'水跡上移速度就是葉片散失水汽的速率，可直接當作蒸騰速率。',proof:'只要帶葉組比不帶葉組快，就已完全證明水汽只經氣孔散失。'}
+};
+const REFERENCE_TEXT = {
+  "observation": "過了一段時間後，紅色水跡沿西芹長柄內的部分區域向上延伸。",
+  "hypothesis": "此題沒有固定答案；假說應能透過改變光強度和量度水跡上移速度來測試。",
+  "reason": "說明你預期光照與水分運輸有何關係；預測毋須猜中結果。",
+  "control": "裝置D 不帶葉，與帶葉的裝置B 比較；兩者皆為 20 cm 光照距離，其餘條件相同，主要差別是葉片有無。",
+  "design": "材料：西芹 ×4、檯燈 ×4、紅色水杯 ×4、30 cm 尺子 ×4、剪刀 ×1、計時器 ×1。三株帶葉西芹的燈距為 10、20、30 cm；不帶葉組與其中一個帶葉組保持相同燈距。各浸入紅色水 2 cm。"
 };
 const answerText=(field,value)=>ANSWER_LABELS[field]?.[value]||value||'未回答';
 const defaults = ()=>Object.fromEntries(FIELD_IDS.map(id=>[id,id==='graphMax'?'0.5':id==='xAxis'?'light':id==='yAxis'?'rate':'']));
@@ -129,7 +137,7 @@ function isRecord(record) {
     Array.isArray(record.assumptions) && record.assumptions.every(id=>ASSUMPTIONS.some(a=>a.id===id)) && Array.isArray(record.events) && record.events.every(e=>e&&typeof e.type==='string') &&
     record.setup && record.measurements && record.calculations && record.graph?.points &&
     record.model && IDS.every(id => Array.isArray(record.model[id]) && record.model[id].length===4 && record.model[id].every(Number.isFinite)) &&
-    [0,10,20,30].includes(record.currentTime) && [1,2,3,4].includes(record.phase) &&
+    MEASUREMENT_TIMES.includes(record.currentTime) && [1,2,3,4].includes(record.phase) &&
     [1,2,3,4].includes(record.unlocked) && record.phaseDurations && [1,2,3,4].every(p=>Number.isFinite(record.phaseDurations[p])&&record.phaseDurations[p]>=0) &&
     typeof record.submitted==='boolean' && record.ruler &&
     IDS.every(id => Number.isFinite(record.ruler[id]?.x) && Number.isFinite(record.ruler[id]?.y)) &&
@@ -194,7 +202,7 @@ function incomplete(message, selector) {
 }
 
 // SVG illustrations are drawn locally: no external images, fonts or network calls.
-function celerySVG(id,height=0,leafy=true,withRuler=false) {
+function celerySVG(id,height=0,leafy=true,withRuler=false,rulerX=0) {
   const unique = `celery-${id}`;
   const front=330-height*18;
   const leafMarkup=leafy?`<g fill="#78a66a" stroke="#527e4f" stroke-width="1.4">
@@ -223,7 +231,7 @@ function celerySVG(id,height=0,leafy=true,withRuler=false) {
     <path d="M49 330 H186" stroke="#668d74" stroke-dasharray="4 3" stroke-width="1"/>
     <text x="44" y="326" text-anchor="end" fill="#6e8873" font-size="9">水面</text>
     <text x="124" y="402" text-anchor="middle" fill="#7e9181" font-size="10">浸入深度 2 cm · 虛擬剖視</text>
-    ${withRuler?`<g class="ruler" data-ruler="${id}" transform="translate(${state.ruler[id].x},0)"><rect x="188" y="28" width="40" height="321" rx="3" fill="#f8e9beee" stroke="#c7b27e"/><text x="211" y="22" text-anchor="middle" fill="#8a774d" font-size="9">cm</text>${ticks}<path d="M188 330h40" stroke="#b85a4e" stroke-width="1.5"/></g>`:''}
+    ${withRuler?`<g class="ruler" data-ruler="${id}" transform="translate(${rulerX},0)"><rect x="188" y="28" width="40" height="321" rx="3" fill="#f8e9beee" stroke="#c7b27e"/><text x="211" y="22" text-anchor="middle" fill="#8a774d" font-size="9">cm</text>${ticks}<path d="M188 330h40" stroke="#b85a4e" stroke-width="1.5"/></g>`:''}
   </svg>`;
 }
 function renderEquipment() {
@@ -315,7 +323,7 @@ function designMissing() {
 function renderBench() {
   $('#labBench').innerHTML=IDS.map(id=>{
     const c=CONDITIONS[id];
-    return `<article class="specimen-card" data-id="${id}"><div class="specimen-head"><span class="specimen-letter">裝置${id}</span><span>${c.distance} cm</span></div><div class="specimen-meta">${c.leaves?'帶葉':'不帶葉'} · 光強度：${c.light} lux</div>${celerySVG(id,state.model[id][state.currentTime/10],c.leaves,true)}<div class="ruler-buttons"><button data-move="${id}" data-dx="-3" aria-label="裝置${id} 尺子左移">← 左移</button><button data-move="${id}" data-dx="3" aria-label="裝置${id} 尺子右移">右移 →</button><button data-align="${id}">移近長柄</button></div></article>`;
+    return `<article class="specimen-card" data-id="${id}"><div class="specimen-head"><span class="specimen-letter">裝置${id}</span><span>${c.distance} cm</span></div><div class="specimen-meta">${c.leaves?'帶葉':'不帶葉'} · 光強度：${c.light} lux</div>${celerySVG(id,state.model[id][state.currentTime/10],c.leaves,true,state.ruler[id].x)}<div class="ruler-buttons"><button data-move="${id}" data-dx="-3" aria-label="裝置${id} 尺子左移">← 左移</button><button data-move="${id}" data-dx="3" aria-label="裝置${id} 尺子右移">右移 →</button><button data-align="${id}">移近長柄</button></div></article>`;
   }).join('');
   $$('.ruler').forEach(ruler=>{
     const id=ruler.dataset.ruler;let drag=null;
@@ -348,7 +356,7 @@ function setRuler(id,x) {
   const p=state.ruler[id];$(`[data-ruler="${id}"]`).setAttribute('transform',`translate(${p.x},${p.y})`);
 }
 function renderMeasurements() {
-  const times=[0,10,20,30].filter(t=>t<=state.currentTime);
+  const times=MEASUREMENT_TIMES.filter(t=>t<=state.currentTime);
   $('#dataBody').innerHTML=times.map(time=>{
     const row=state.measurements[time];
     const disabled=state.submitted||time!==state.currentTime||state.running;
@@ -405,7 +413,7 @@ function invalidateAnalysis() {
     $$('.step').find(el=>el.dataset.phase==='4').disabled=true;
   }
 }
-function allMeasurements() {return[0,10,20,30].every(t=>state.measurements[t]?.confirmed);}
+function allMeasurements() {return MEASUREMENT_TIMES.every(t=>state.measurements[t]?.confirmed);}
 function updateTimer() {
   $('#timeDisplay').innerHTML=`${String(state.currentTime).padStart(2,'0')} <small>分鐘</small>`;
   if(!state.running)$('#timerFill').style.width=(state.currentTime/30*100)+'%';
@@ -413,7 +421,7 @@ function updateTimer() {
   $('#timerButton').disabled=state.submitted||state.running||!confirmed||state.currentTime===30;
   $('#recordMeasurements').disabled=state.submitted||state.running;
   $('#timerStatus').textContent=state.running?'四個裝置同步運行中……':state.currentTime===30&&confirmed?'30 分鐘量度已完成':confirmed?'本輪已記錄，可以繼續':'到達量度時間：請量度四個裝置';
-  $('#measurementProgress').textContent=`${[0,10,20,30].filter(t=>state.measurements[t]?.confirmed).length} / 4 個量度時間`;
+  $('#measurementProgress').textContent=`${MEASUREMENT_TIMES.filter(t=>state.measurements[t]?.confirmed).length} / 4 個量度時間`;
   $('#experimentNext').disabled=state.running||!allMeasurements();
   $('#initialReadingReminder').hidden=state.currentTime!==0||confirmed;
   $$('[data-move],[data-align]').forEach(button=>button.disabled=state.submitted||state.running);
@@ -754,7 +762,7 @@ function renderReport(record) {
   const refs={iv:['光強度'],dv:[VARIABLE_NAMES[1]],cv:VARIABLE_NAMES.slice(2)};
   const variables=VARIABLE_GROUPS.map(([id,title])=>reportAnswer(title,record.variables[id].join('、'),refs[id].join('、'),record.variables[id].length?sameChoices(record.variables[id],refs[id]):null)).join('');
   const assumptions=ASSUMPTIONS.map(item=>reportAnswer(item.text,record.assumptions.includes(item.id)?'已選擇':'未選擇',(item.valid?'應選擇。':'不應選擇。')+item.reference,record.assumptions.length?record.assumptions.includes(item.id)===item.valid:null)).join('');
-  const measurements=[0,10,20,30].map(t=>`<tr><td>${t}</td>${IDS.map(id=>{
+  const measurements=MEASUREMENT_TIMES.map(t=>`<tr><td>${t}</td>${IDS.map(id=>{
     const raw=record.measurements[t]?.values?.[id], answered=raw!==undefined&&raw!==''&&Number.isFinite(+raw), reference=record.model[id][t/10];
     return `<td>${answered?esc((+raw).toFixed(1)):'未回答'} ${answerMark(answered?Math.abs(+raw-reference)<=.25:null)}<small>參考：${reference.toFixed(1)}</small></td>`;
   }).join('')}</tr>`).join('');
@@ -771,8 +779,8 @@ function renderReport(record) {
   const choice=(field,title,key,reference)=>reportAnswer(title,f[field]?answerText(field,f[field]):'',reference??ANSWER_LABELS[field][key],f[field]&&key?f[field]===key:null,!!f[field]&&!Object.hasOwn(ANSWER_LABELS[field],f[field]));
   const total=Math.round(Object.values(record.phaseDurations).reduce((sum,n)=>sum+n,0));
   $('#printReport').innerHTML=`<header class="report-cover"><span class="report-logo">✦</span><div><p>IBL 虛擬實驗室 · S4 生物 · 模組 2</p><h1>西芹的紅色水跡</h1><strong>個人學習紀錄</strong></div></header><div class="report-meta"><span>姓名：<span data-user-text>${esc(record.profile?.name)}</span></span><span>班別及學號：<span data-user-text>${esc(record.profile?.classInfo||'—')}</span></span><span>電郵：<span data-user-text>${esc(record.profile?.email||'—')}</span></span><span>探究遞交：${esc(dateText(record.submittedAt))}</span><span>反思提交：${esc(dateText(record.reflectionSubmittedAt))}</span><span>有效操作時間：約 ${Math.floor(total/60)} 分 ${total%60} 秒</span></div>
-    <section class="report-section"><h2>01 · 了解情境</h2><div class="report-card"><p class="card-kicker">研究情境</p><div class="report-scene"><div><p>開始時</p>${celerySVG('report-before',0,true)}</div><div><p>過了一段時間</p>${celerySVG('report-after',7,true)}</div></div>${reportAnswer('主要探究問題','在其他條件相同下，光強度如何影響帶葉西芹中紅色水跡向上移動的速度？')}${freeAnswer('你的初步觀察',f.observation,'過了一段時間後，紅色水跡沿西芹長柄內的部分區域向上延伸。')}${reportAnswer('構造辨認','西芹長柄是葉柄，外觀像莖，內含木質部。')}</div></section>
-    <section class="report-section"><h2>02 · 設計探究</h2><div class="report-card"><p class="card-kicker">我的假說</p>${reportAnswer('實驗前的原始假說',hypothesisText(record),'此題沒有固定答案；假說應能透過改變光強度和量度水跡上移速度來測試。')}${freeAnswer('原始假說理由',initial.reason,'說明你預期光照與水分運輸有何關係；預測毋須猜中結果。')}</div><div class="report-card"><p class="card-kicker">我的公平測試設計</p>${variables}</div><div class="report-card"><p class="card-kicker">此探究的假設是什麼？</p>${assumptions}</div><div class="report-card">${freeAnswer('探究的對照組',f.controlPlan,'裝置D 不帶葉，與帶葉的裝置B 比較；兩者皆為 20 cm 光照距離，其餘條件相同，主要差別是葉片有無。')}${freeAnswer('我的實驗裝置設計',f.setupDescription,'材料：西芹 ×4、檯燈 ×4、紅色水杯 ×4、30 cm 尺子 ×4、剪刀 ×1、計時器 ×1。三株帶葉西芹的燈距為 10、20、30 cm；不帶葉組與其中一個帶葉組保持相同燈距。各浸入紅色水 2 cm。')}${setupImage}</div></section>
+    <section class="report-section"><h2>01 · 了解情境</h2><div class="report-card"><p class="card-kicker">研究情境</p><div class="report-scene"><div><p>開始時</p>${celerySVG('report-before',0,true)}</div><div><p>過了一段時間</p>${celerySVG('report-after',7,true)}</div></div>${reportAnswer('主要探究問題','在其他條件相同下，光強度如何影響帶葉西芹中紅色水跡向上移動的速度？')}${freeAnswer('你的初步觀察',f.observation,REFERENCE_TEXT.observation)}${reportAnswer('構造辨認','西芹長柄是葉柄，外觀像莖，內含木質部。')}</div></section>
+    <section class="report-section"><h2>02 · 設計探究</h2><div class="report-card"><p class="card-kicker">我的假說</p>${reportAnswer('實驗前的原始假說',hypothesisText(record),REFERENCE_TEXT.hypothesis)}${freeAnswer('原始假說理由',initial.reason,REFERENCE_TEXT.reason)}</div><div class="report-card"><p class="card-kicker">我的公平測試設計</p>${variables}</div><div class="report-card"><p class="card-kicker">此探究的假設是什麼？</p>${assumptions}</div><div class="report-card">${freeAnswer('探究的對照組',f.controlPlan,REFERENCE_TEXT.control)}${freeAnswer('我的實驗裝置設計',f.setupDescription,REFERENCE_TEXT.design)}${setupImage}</div></section>
     <section class="report-section"><h2>03 · 進行探究與收集數據</h2><div class="report-card"><p>你的量度記錄（cm）</p><table><thead><tr><th>時間（min）</th>${IDS.map(id=>`<th>裝置${id} · ${CONDITIONS[id].leaves?'帶葉':'不帶葉'}<br>${CONDITIONS[id].distance} cm（光強度：${CONDITIONS[id].light} lux）</th>`).join('')}</tr></thead><tbody>${measurements}</tbody></table></div></section>
     <section class="report-section"><h2>04 · 分析與結論</h2><div class="report-card"><p class="card-kicker">計算平均上移速度</p><p>參考計算方法：平均上移速度＝（30 分鐘高度 − 0 分鐘高度）÷ 30 分鐘</p>${calculations}</div><div class="report-card"><p class="card-kicker">我的圖表：光照與紅色水跡上移速度</p><div class="report-graph"><svg viewBox="0 0 760 460" role="img" aria-label="學生圖表">${graphMarkup(record)}</svg></div>${points}<p>標點按你的計算檢核；計算是否正確另列於上方。曲線呈現三點之間的趨勢，並不能證明其間所有光強度的精確結果。</p></div><div class="report-card">${choice('claim','主張：光照與水跡上移速度有甚麼關係？','increase')}${choice('leafComparison','相同光照距離下，裝置B（帶葉）與裝置D（不帶葉）的速度比較',comparable?comparison:null,comparable?`按你計算的數值：裝置B ${(+b).toFixed(rateDigits(record))}、裝置D ${(+d).toFixed(rateDigits(record))} cm/min。${ANSWER_LABELS.leafComparison[comparison]}`:'先完成裝置B 和裝置D 的平均上移速度計算，再比較兩者。')}${choice('leafConclusion','帶葉與不帶葉的比較顯示葉片有何作用？','promotes')}${choice('limitations','這些數據還不能直接證明甚麼？','indirect')}</div></section>
     <section class="report-section"><h2>學習重點：葉與莖的內部構造</h2><div class="report-card">${structureDiagram('report')}${window.VL2I18n.sourceHTML($('.learning-points'))}</div></section><section class="report-section"><h2>學習反思</h2><div class="report-card">${reportAnswer('你的原始假說',hypothesisText(record))}${freeAnswer('原始假說是否獲數據支持？請運用學習重點修訂或完善假說解釋，並連結你的數據。',f.reflection,'比較原始預測與量度結果，指出支持或不支持的數據，再修訂解釋。例如：若原先預測光強度增加會令水跡變慢，但帶葉組在較強光照下上移較快，則原始預測不獲支持；可修訂為光照通常促進氣孔開啟及蒸騰，並促進水分沿木質部向上運輸。水跡仍只是間接線索。')}</div></section><footer class="report-footer">✓／✕ 為有標準答案項目的檢核；開放題只附參考答案，不自動評分。這些檢核不等同 SPS 評分。學習重點參照課本第 11.1 節（頁 11-3 至 11-8）。水跡為教學模擬，不是直接蒸騰速率量度。紀錄識別碼：${esc(record.id)}</footer>`;
@@ -858,14 +866,14 @@ function scoringWorkbook(records){
   const col=Object.fromEntries(columns.map(([id],i)=>[id,colName(i)])),rows=[columns.map(([,label,group])=>excelCell(label,group))];
   const round=n=>Math.round(n*100)/100;
   records.forEach((r,index)=>{
-    const n=index+2,ref=id=>col[id]+n,vars=r.variables,readings=[0,10,20,30].flatMap(t=>IDS.map(id=>{const v=r.measurements[t]?.values?.[id];return r.measurements[t]?.confirmed&&v!==undefined&&v!==''&&Number.isFinite(+v)&&Math.abs(+v-r.model[id][t/10])<=.25;}));
+    const n=index+2,ref=id=>col[id]+n,vars=r.variables,readings=MEASUREMENT_TIMES.flatMap(t=>IDS.map(id=>{const v=r.measurements[t]?.values?.[id];return r.measurements[t]?.confirmed&&v!==undefined&&v!==''&&Number.isFinite(+v)&&Math.abs(+v-r.model[id][t/10])<=.25;}));
     const rateCorrect=IDS.map(id=>{const v=r.calculations[id];return v!==undefined&&v!==''&&Number.isFinite(+v)&&Number.isFinite(expectedRate(r,id))&&Math.abs(+v-expectedRate(r,id))<=rateTolerance(r);});
     const b=r.calculations.B,d=r.calculations.D,comparable=b!==undefined&&d!==undefined&&b!==''&&d!==''&&Number.isFinite(+b)&&Number.isFinite(+d);
     const comparison=+b>+d+.0005?'faster':+b<+d-.0005?'slower':'same';
     const conclusionCorrect=[r.form.claim==='increase',comparable&&r.form.leafComparison===comparison,r.form.leafConclusion==='promotes',r.form.limitations==='indirect'];
     const pointCorrect=IDS.map(id=>{const p=r.graph.points[id],v=r.calculations[id];return p&&v!==undefined&&v!==''&&Number.isFinite(+v)&&p.x===CONDITIONS[id].light&&Math.abs(p.y-(+v))<.00051;});
     const graphConnected=r.graph.connected&&['A','B','C'].every(id=>pointCorrect[IDS.indexOf(id)]);
-    const values={id:r.id,name:r.profile?.name,class:r.profile?.classInfo,status:reflectionComplete(r)?'已完成':r.submitted?'待提交反思':'進行中',measure:round(readings.filter(Boolean).length/16*2),iv:sameChoices(vars.iv,[VARIABLE_NAMES[0]])?1:0,dv:sameChoices(vars.dv,[VARIABLE_NAMES[1]])?1:0,cv:round(VARIABLE_NAMES.slice(2).filter(v=>vars.cv.includes(v)).length/5*2*(vars.cv.some(v=>!VARIABLE_NAMES.slice(2).includes(v))?0:1)),assumptions:sameChoices(r.assumptions,ASSUMPTIONS.filter(a=>a.valid).map(a=>a.id))?1:0,rounds:[0,10,20,30].filter(t=>r.measurements[t]?.confirmed&&IDS.every(id=>{const v=r.measurements[t].values?.[id];return v!==undefined&&v!==''&&Number.isFinite(+v)&&+v>=0&&+v<=16;})).length*.5,rates:rateCorrect.filter(Boolean).length*.5,conclusions:conclusionCorrect.filter(Boolean).length*.5,graph:round(pointCorrect.filter(Boolean).length*.375+(graphConnected?.5:0))};
+    const values={id:r.id,name:r.profile?.name,class:r.profile?.classInfo,status:reflectionComplete(r)?'已完成':r.submitted?'待提交反思':'進行中',measure:round(readings.filter(Boolean).length/16*2),iv:sameChoices(vars.iv,[VARIABLE_NAMES[0]])?1:0,dv:sameChoices(vars.dv,[VARIABLE_NAMES[1]])?1:0,cv:round(VARIABLE_NAMES.slice(2).filter(v=>vars.cv.includes(v)).length/5*2*(vars.cv.some(v=>!VARIABLE_NAMES.slice(2).includes(v))?0:1)),assumptions:sameChoices(r.assumptions,ASSUMPTIONS.filter(a=>a.valid).map(a=>a.id))?1:0,rounds:MEASUREMENT_TIMES.filter(t=>r.measurements[t]?.confirmed&&IDS.every(id=>{const v=r.measurements[t].values?.[id];return v!==undefined&&v!==''&&Number.isFinite(+v)&&+v>=0&&+v<=16;})).length*.5,rates:rateCorrect.filter(Boolean).length*.5,conclusions:conclusionCorrect.filter(Boolean).length*.5,graph:round(pointCorrect.filter(Boolean).length*.375+(graphConnected?.5:0))};
     const manual=columns.filter(c=>c[3]!==undefined).map(([id])=>ref(id));
     const sum=(ids,required)=>`IF(COUNT(${required.map(ref).join(',')})=${required.length},ROUND(SUM(${ids.map(ref).join(',')}),2),"待評")`;
     const formulas={observing:sum(['observation','measure'],['observation']),classifying:`SUM(${ref('iv')},${ref('dv')},${ref('cv')})`,designing:sum(['hypothesis','assumptions','control'],['hypothesis','control']),conducting:sum(['rounds','setup'],['setup']),inferring:`SUM(${ref('rates')},${ref('conclusions')})`,communicating:sum(['graph','communication'],['communication']),sps:`IF(COUNT(${['observing','classifying','designing','conducting','inferring','communicating'].map(ref).join(',')})=6,ROUND(SUM(${['observing','classifying','designing','conducting','inferring','communicating'].map(ref).join(',')}),2),"待評")`,knowledge:sum(['evaporation','transport','light','revision'],['evaporation','transport','light','revision']),overall:`IF(AND(COUNT(${ref('sps')},${ref('knowledge')})=2,${ref('status')}="已完成"),ROUND(SUM(${ref('sps')},${ref('knowledge')}),2),"待評／未完成")`,marking:`IF(AND(COUNT(${manual.join(',')})=${manual.length},${ref('status')}="已完成"),"評分完成","待教師評分／學生未完成")`};
@@ -909,7 +917,7 @@ async function exportExcel(){
     const f=r.form,initial=r.initialDesign?.form||f;
     const count=type=>r.events.filter(e=>e.type===type).length;
     rows.push([r.id,r.profile?.name,r.profile?.classInfo,r.profile?.email,r.submitted?'已遞交':'進行中',dateText(r.createdAt),dateText(r.submittedAt),f.observation,PREDICTIONS[initial.prediction],initial.reason,PREDICTIONS[f.prediction],f.reason,r.variables.iv.join('、'),'光強度',r.variables.dv.join('、'),'紅色水跡上升高度／平均上移速度',r.variables.cv.join('、'),VARIABLE_NAMES.slice(2).join('、'),r.assumptions.map(id=>ASSUMPTIONS.find(a=>a.id===id)?.text||id).join('；'),ASSUMPTIONS.filter(a=>a.valid).map(a=>a.text).join('；'),f.controlPlan,'同一光照距離，帶葉與不帶葉比較，其餘條件相同。',f.setupDescription,'光強度（lux）','紅色水跡平均上移速度（cm/min）',answerText('claim',f.claim),ANSWER_LABELS.claim.increase,answerText('leafComparison',f.leafComparison),answerText('leafConclusion',f.leafConclusion),ANSWER_LABELS.leafConclusion.promotes,answerText('limitations',f.limitations),ANSWER_LABELS.limitations.indirect,f.reflection,Math.round(Object.values(r.phaseDurations).reduce((a,b)=>a+b,0)),...[1,2,3,4].map(p=>Math.round(r.phaseDurations[p])),count('measurements_recorded')+count('measurements_reconfirmed'),count('rate_calculated'),count('graph_point_plotted'),r.events.filter(e=>e.type==='answer_changed'&&['claim','leafComparison','leafConclusion','limitations'].includes(e.field)).length]);
-    [0,10,20,30].forEach(t=>IDS.forEach(id=>{const c=CONDITIONS[id];data.push([r.id,r.profile?.name,t,`裝置${id}`,c.distance,c.light,c.leaves?'帶葉':'不帶葉',r.measurements[t]?.firstValues?.[id]??'',r.measurements[t]?.values?.[id]??'',r.model[id][t/10].toFixed(1),r.calculations[id]??'',r.measurements[30]?.confirmed?expectedRate(r,id).toFixed(rateDigits(r)):'',r.graph.points[id]?.x??'',r.graph.points[id]?.y??'']);}));
+    MEASUREMENT_TIMES.forEach(t=>IDS.forEach(id=>{const c=CONDITIONS[id];data.push([r.id,r.profile?.name,t,`裝置${id}`,c.distance,c.light,c.leaves?'帶葉':'不帶葉',r.measurements[t]?.firstValues?.[id]??'',r.measurements[t]?.values?.[id]??'',r.model[id][t/10].toFixed(1),r.calculations[id]??'',r.measurements[30]?.confirmed?expectedRate(r,id).toFixed(rateDigits(r)):'',r.graph.points[id]?.x??'',r.graph.points[id]?.y??'']);}));
     r.events.forEach(e=>events.push([r.id,r.profile?.name,e.type,dateText(e.at),e.phase,JSON.stringify(e)]));
     designs.push([r.profile?.name,r.profile?.classInfo,r.profile?.email,f.setupDescription,r.setup.image?'圖像如下':'文字設計']);
     const match=/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.exec(r.setup.image||'');
@@ -948,7 +956,7 @@ async function exportExcel(){
 function formatDuration(seconds){const value=Math.round(seconds);return`${Math.floor(value/60)} 分 ${value%60} 秒`;}
 function observationAccuracy(record){
   let correct=0,total=0;
-  for(const t of [0,10,20,30])if(record.measurements[t]?.confirmed)for(const id of IDS){total++;if(Math.abs(+record.measurements[t].values[id]-record.model[id][t/10])<=.25)correct++;}
+  for(const t of MEASUREMENT_TIMES)if(record.measurements[t]?.confirmed)for(const id of IDS){total++;if(Math.abs(+record.measurements[t].values[id]-record.model[id][t/10])<=.25)correct++;}
   return`${correct} / ${total}`;
 }
 let previewRecord=null;
@@ -1034,7 +1042,7 @@ FIELD_IDS.forEach(id=>{
   });
 });
 $('#profileForm').onsubmit=event=>{
-  event.preventDefault();const name=$('#profileName').value.trim();if(!name){$('#profileName').focus();return;}
+  event.preventDefault();window.VL2Paperwork?.close();const name=$('#profileName').value.trim();if(!name){$('#profileName').focus();return;}
   const classInfo=$('#profileClass').value.trim(),email=$('#profileEmail').value.trim().toLowerCase();
   if(!classInfo||!email)return;
   clearInterval(timerHandle);state.running=false;save();clearTimeout(saveTimer);const profile={name,classInfo,email};
@@ -1148,4 +1156,16 @@ $('#studentGraph').addEventListener('click',event=>{
 $('#studentGraph').addEventListener('keydown',event=>{
   if(state.submitted||!['Enter',' '].includes(event.key))return;
   const mark=event.target.closest('[data-graph-point]');if(mark){event.preventDefault();selectPlotDevice(mark.dataset.graphPoint,true);}
+});
+
+// Read-only curriculum source. No profile, freshState(), save(), clock or events.
+window.VL2InquiryContent=()=>({
+  moduleId:MODULE_ID,version:'VL2-ui2-paper1',fields:FIELD_IDS.filter(id=>!['xAxis','yAxis','graphMax'].includes(id)),
+  ids:[...IDS],times:[...MEASUREMENT_TIMES],conditions:structuredClone(CONDITIONS),model:structuredClone(SIMULATION_HEIGHTS),
+  variableNames:[...VARIABLE_NAMES],variableGroups:structuredClone(VARIABLE_GROUPS),assumptions:structuredClone(ASSUMPTIONS),
+  references:structuredClone(REFERENCE_TEXT),answers:{claim:'increase',leafComparison:'faster',leafConclusion:'promotes',limitations:'indirect'},
+  rubric:scoringWorkbook([]).rubric.rows.map(row=>row.map(cell=>cell&&typeof cell==='object'?cell.value:cell)),
+  specimen:(id,height,leaves,ruler=false)=>celerySVG(id,height,leaves,ruler,0),
+  anatomy:()=>structureDiagram('paper'),
+  blankGraph:()=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 460">${graphMarkup({form:{xAxis:'light',yAxis:'rate',graphMax:'0.5'},graph:{points:{},connected:false}},true,false)}</svg>`
 });

@@ -1,0 +1,845 @@
+{
+  "module": "VL2",
+  "version": "VL2-ui2-paper1",
+  "materialVersion": 1,
+  "revision": "3dc99fe6a1",
+  "sourceDigest": "12cfae915b1a2d21b1199c246aa86ffa0fde390873a7ee29c22821dc3c69a4b5",
+  "snapshotDigest": "aafd8b3aa11cf47aa9a0268199a9133224176c6694245b3fe2b743efe282255e",
+  "inputs": {
+    "app.js": "03ff3af006b68508e53ee6c864d8c49f1fe1e94e9a7343eab84263a670105e47",
+    "i18n-dynamic.js": "ca34f4d5b5aa70905cf95ca3755816db57d940a2a5914ff68aed79de0b80180e",
+    "i18n-paper.js": "b3e644c0fc1d438a1b4fa3b853f471ad72191f35063f185655582c542f29a9d3",
+    "i18n-static.js": "4960cc4312cc28c96b88bd1030394b56528abf7adb710754014528eb262e8509",
+    "i18n-svg.js": "135cda99f743c5c1538303802acb11419254995dc3e486cdccedbdba92988b1b",
+    "i18n.js": "77ab94c44039431d85f4c41353acea847021b8511c1f6dacb56026cec90cab40",
+    "index.html": "8d2670cba9262376c77eada44ebfabc47fe1bb25ed6ff8c022356bc0e7194b01",
+    "paperwork/build.cjs": "f0cae4a0fa683af0137796a73b53937321ca759e6d16c2fba35ad167ada27336",
+    "paperwork/client.js": "ad8750160199c3c68d40f5c9712cabdc953e91a8d87116256e5b14be3f1d179e",
+    "paperwork/fonts/NotoSansHK-paper.otf": "c08ec159dac41ea62badda847f0826d37eb8d7bc5543736036993e292271a119",
+    "paperwork/print.css": "4ee17e6775ca03409a497c3cb0bf367e6171b265cf82632bb23198d93daec9b9",
+    "paperwork/source.js": "01107b6a0e0873c9520d37ea0d890359b9cef4e8aee1c2a34b7c9ea3c50aa179",
+    "paperwork/texts.js": "d69d3ce2284c7f51d05f8bb7a4df69cb1269a00dfb90edde7bf73fd511d966e2",
+    "styles.css": "3cdad9c0c44dff5fc9eddfbaf1ac2d92174b290da201f17fca4225e4b329f7cb"
+  },
+  "reference": "VL1 v3 layout; VL2 current content",
+  "languages": {
+    "zh": {
+      "files": {
+        "A": {
+          "path": "paperwork/generated/VL2_A_zh_v1_3dc99fe6a1.pdf",
+          "name": "VL2_紙本對照組_A_繁中_v1_3dc99fe6a1.pdf",
+          "pages": 3,
+          "bytes": 204487,
+          "sha256": "e18a22197194f23dc7c2ae586505bb6f535f21cb3a2f5ecd2b624705a91c53dd",
+          "layout": [
+            {
+              "part": "A",
+              "page": 1,
+              "identity": 1,
+              "writingLines": [
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 2,
+              "questions": []
+            },
+            {
+              "part": "A",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 1,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "A",
+              "page": 3,
+              "identity": 0,
+              "writingLines": [
+                2,
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            }
+          ]
+        },
+        "B": {
+          "path": "paperwork/generated/VL2_B_zh_v1_3dc99fe6a1.pdf",
+          "name": "VL2_紙本對照組_B_繁中_v1_3dc99fe6a1.pdf",
+          "pages": 4,
+          "bytes": 233264,
+          "sha256": "ef9657da893a02d276f65d1d030ac9400e93b2621824b76046f2a735e2f7c39f",
+          "layout": [
+            {
+              "part": "B",
+              "page": 1,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 4,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 8,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 3,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 4,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 4,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 4,
+              "liquidSurfaces": 0,
+              "questions": [
+                "claim",
+                "leafComparison",
+                "leafConclusion",
+                "limitations"
+              ]
+            }
+          ]
+        },
+        "C": {
+          "path": "paperwork/generated/VL2_C_zh_v1_3dc99fe6a1.pdf",
+          "name": "VL2_紙本對照組_C_繁中_v1_3dc99fe6a1.pdf",
+          "pages": 2,
+          "bytes": 370973,
+          "sha256": "5ff5326ac5c03b19fa76b546c04d95d44e9164419219f0ab510dd116a5ffac85",
+          "layout": [
+            {
+              "part": "C",
+              "page": 1,
+              "identity": 1,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "C",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            }
+          ]
+        },
+        "D": {
+          "path": "paperwork/generated/VL2_D_zh_v1_3dc99fe6a1.pdf",
+          "name": "VL2_紙本對照組_D_繁中_v1_3dc99fe6a1.pdf",
+          "pages": 8,
+          "bytes": 286162,
+          "sha256": "43f34e131b16d2257a8235ab64748919196474dfdf447c451608d7996a729eed",
+          "layout": [
+            {
+              "part": "D",
+              "page": 1,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 3,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 4,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 5,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 6,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 7,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 8,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            }
+          ]
+        },
+        "all": {
+          "path": "paperwork/generated/VL2_all_zh_v1_3dc99fe6a1.pdf",
+          "name": "VL2_紙本對照組_完整教師列印套裝_繁中_v1_3dc99fe6a1.pdf",
+          "pages": 17,
+          "bytes": 649187,
+          "sha256": "3521b043e6b611bd56c854f07326e6075e69d30076fb595c7fbf603375b906ea",
+          "layout": [
+            {
+              "part": "A",
+              "page": 1,
+              "identity": 1,
+              "writingLines": [
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 2,
+              "questions": []
+            },
+            {
+              "part": "A",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 1,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "A",
+              "page": 3,
+              "identity": 0,
+              "writingLines": [
+                2,
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 1,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 4,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 8,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 3,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 4,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 4,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 4,
+              "liquidSurfaces": 0,
+              "questions": [
+                "claim",
+                "leafComparison",
+                "leafConclusion",
+                "limitations"
+              ]
+            },
+            {
+              "part": "C",
+              "page": 1,
+              "identity": 1,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "C",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 1,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 3,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 4,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 5,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 6,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 7,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 8,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            }
+          ]
+        }
+      },
+      "ranges": {
+        "A": [
+          1,
+          3
+        ],
+        "B": [
+          4,
+          7
+        ],
+        "C": [
+          8,
+          9
+        ],
+        "D": [
+          10,
+          17
+        ]
+      }
+    },
+    "en": {
+      "files": {
+        "A": {
+          "path": "paperwork/generated/VL2_A_en_v1_3dc99fe6a1.pdf",
+          "name": "VL2_ControlGroup_A_EN_v1_3dc99fe6a1.pdf",
+          "pages": 3,
+          "bytes": 66151,
+          "sha256": "84ca3c7d3df5f28d56d94da49789a8c8b27a4798a0b58d291e775665de12e485",
+          "layout": [
+            {
+              "part": "A",
+              "page": 1,
+              "identity": 1,
+              "writingLines": [
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 2,
+              "questions": []
+            },
+            {
+              "part": "A",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 1,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "A",
+              "page": 3,
+              "identity": 0,
+              "writingLines": [
+                2,
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            }
+          ]
+        },
+        "B": {
+          "path": "paperwork/generated/VL2_B_en_v1_3dc99fe6a1.pdf",
+          "name": "VL2_ControlGroup_B_EN_v1_3dc99fe6a1.pdf",
+          "pages": 4,
+          "bytes": 110698,
+          "sha256": "a925470bcc605c11f544a385a1fb3a7abbbb68ed9da914e2a61b5623ff09734f",
+          "layout": [
+            {
+              "part": "B",
+              "page": 1,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 4,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 8,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 3,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 4,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 4,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 4,
+              "liquidSurfaces": 0,
+              "questions": [
+                "claim",
+                "leafComparison",
+                "leafConclusion",
+                "limitations"
+              ]
+            }
+          ]
+        },
+        "C": {
+          "path": "paperwork/generated/VL2_C_en_v1_3dc99fe6a1.pdf",
+          "name": "VL2_ControlGroup_C_EN_v1_3dc99fe6a1.pdf",
+          "pages": 2,
+          "bytes": 266182,
+          "sha256": "768f362c77eb23d55a9d004d74d133caef0834b014208b45112b913345f31783",
+          "layout": [
+            {
+              "part": "C",
+              "page": 1,
+              "identity": 1,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "C",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            }
+          ]
+        },
+        "D": {
+          "path": "paperwork/generated/VL2_D_en_v1_3dc99fe6a1.pdf",
+          "name": "VL2_ControlGroup_D_EN_v1_3dc99fe6a1.pdf",
+          "pages": 8,
+          "bytes": 94429,
+          "sha256": "622d93e1608be9e7cd0a106b5058d8d7a728d01ae1ccb9f83a3d12f43e9b194d",
+          "layout": [
+            {
+              "part": "D",
+              "page": 1,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 3,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 4,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 5,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 6,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 7,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 8,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            }
+          ]
+        },
+        "all": {
+          "path": "paperwork/generated/VL2_all_en_v1_3dc99fe6a1.pdf",
+          "name": "VL2_ControlGroup_CompleteTeacherPack_EN_v1_3dc99fe6a1.pdf",
+          "pages": 17,
+          "bytes": 418039,
+          "sha256": "732a3c3f63523324b45e22d557073c82b99cbac0867dc5442ebff64fb4236c73",
+          "layout": [
+            {
+              "part": "A",
+              "page": 1,
+              "identity": 1,
+              "writingLines": [
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 2,
+              "questions": []
+            },
+            {
+              "part": "A",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 1,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "A",
+              "page": 3,
+              "identity": 0,
+              "writingLines": [
+                2,
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 1,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 4,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 8,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 3,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 4,
+              "questions": []
+            },
+            {
+              "part": "B",
+              "page": 4,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 4,
+              "liquidSurfaces": 0,
+              "questions": [
+                "claim",
+                "leafComparison",
+                "leafConclusion",
+                "limitations"
+              ]
+            },
+            {
+              "part": "C",
+              "page": 1,
+              "identity": 1,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "C",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [
+                2
+              ],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 1,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 2,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 3,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 4,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 5,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 6,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 7,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            },
+            {
+              "part": "D",
+              "page": 8,
+              "identity": 0,
+              "writingLines": [],
+              "circles": 0,
+              "liquidSurfaces": 0,
+              "questions": []
+            }
+          ]
+        }
+      },
+      "ranges": {
+        "A": [
+          1,
+          3
+        ],
+        "B": [
+          4,
+          7
+        ],
+        "C": [
+          8,
+          9
+        ],
+        "D": [
+          10,
+          17
+        ]
+      }
+    }
+  }
+}
