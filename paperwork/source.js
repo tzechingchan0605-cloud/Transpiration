@@ -48,6 +48,16 @@
       if(surface){surface.classList.add('liquid-surface');surface.setAttribute('stroke','#333');surface.setAttribute('stroke-width','2');}
       root.querySelectorAll('.ruler text').forEach(el=>{el.setAttribute('font-size','15');el.setAttribute('fill','#111');});
       root.querySelectorAll('.ruler path').forEach(el=>el.setAttribute('stroke','#333'));
+      // English labels must stay within each small SVG, not just the PDF page.
+      if(lang==='en'){
+        const texts=[...root.querySelectorAll('text')];
+        const water=texts.find(el=>el.getAttribute('x')==='44'&&el.getAttribute('y')==='326');
+        water.setAttribute('font-size','11');water.innerHTML='<tspan x="44" dy="-12">Water</tspan><tspan x="44" dy="12">level</tspan>';
+        const foot=texts.find(el=>el.getAttribute('y')==='402');
+        const parts=foot.textContent.split(' · ');foot.setAttribute('font-size','10');foot.setAttribute('y','398');
+        foot.innerHTML=parts.map((line,i)=>`<tspan x="124" dy="${i?14:0}">${esc(line)}</tspan>`).join('');
+        root.setAttribute('viewBox','0 0 240 425');
+      }
       return root.outerHTML;
     };
     const graph=fragment(core.blankGraph(),lang);
@@ -91,9 +101,13 @@
     const actualFields=[...q('main').querySelectorAll('textarea[id],select[id],input[id]')].filter(el=>!['hidden','file','checkbox'].includes(el.type)).map(el=>el.id).filter(id=>id!=='plotDevice'&&!/^(rate-[A-D]|point-[xy]-[A-D])$/.test(id));
     if(JSON.stringify(actualFields.slice().sort())!==JSON.stringify(core.fields.slice().sort()))throw new Error('Question fields changed: update paper mapping');
     return {
-      moduleId:core.moduleId,version:core.version,language:lang,questionIds:core.fields,
+      moduleId:core.moduleId,version:'VL2-paper-selfstudy-v2',sharedVersion:core.version,language:lang,questionIds:core.fields,
+      paper:Object.fromEntries(Object.entries(window.VL2PaperCurriculum).map(([key,pair])=>[key,Array.isArray(pair[0])?pair[lang==='zh'?0:1].map(t):t(pair[lang==='zh'?0:1])])),
+      alignment:window.VL2PaperAlignment.map(([original,page,treatment,task,goal,reason])=>({original,page,treatment:t(treatment.split('|')[lang==='zh'?0:1]),task,goal:t(goal.split('|')[lang==='zh'?0:1]),reason:t(reason.split('|')[lang==='zh'?0:1])})),
+      feedback:window.VL2PaperFeedback.map(row=>row.map(pair=>t(pair[lang==='zh'?0:1]))),
+      practice:{before:specimen('paper-practice-before',1,true,true),after:specimen('paper-practice-after',5,true,true)},
       labels:(()=>{const localise=value=>Array.isArray(value)?t(value[lang==='zh'?0:1]):Object.fromEntries(Object.entries(value).map(([key,item])=>[key,typeof item==='string'?t(item):localise(item)]));const labels={...window.VL2PaperLabels};delete labels.names;delete labels.steps;return {...localise(labels),names:Object.fromEntries(Object.entries(window.VL2PaperLabels.names[lang]).map(([key,value])=>[key,t(value)])),steps:window.VL2PaperLabels.steps.map(pair=>t(pair[lang==='zh'?0:1]))};})(),
-      title:t('西芹的紅色水跡'),
+      title:t(window.VL2PaperCurriculum.title[lang==='zh'?0:1]),
       context:{heading:tx('.scene-note'),before:specimen('paper-before',0,true),after:specimen('paper-after',7,true),afterLabel:tx('.scene-arrow small'),note:html('.anatomy-note'),caption:tx('.scene-card .caption'),
         taskHeading:tx('.prompt-card .card-kicker'),taskTitle:tx('.prompt-card h3'),paragraphs:[...clone(q('.prompt-card')).children].filter(el=>el.tagName==='P'&&!el.classList.contains('card-kicker')).map(el=>t(el.textContent)),question:html('.question-box')},
       observation:{label:label('observation'),hint:t(clone(q('#observation')).getAttribute('placeholder'))},

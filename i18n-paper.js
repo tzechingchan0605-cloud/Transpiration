@@ -104,5 +104,10 @@ window.VL2_I18N_PAPER = {
   "紙本材料未能載入或版本不一致，請重新載入網站；若仍未成功，請重新產生材料。": "Materials could not load or their version is out of date. Reload the website; if this continues, rebuild the materials.",
   "PDF 已下載。": "PDF downloaded.",
   "PDF 下載失敗，請重試；現有學生紀錄不受影響。": "PDF download failed. Please retry. Existing student records are unchanged.",
-  "預覽已開啟；手機如未能顯示，可直接下載 PDF。": "Preview opened. If your phone cannot display it, download the PDF directly."
+  "預覽已開啟；手機如未能顯示，可直接下載 PDF。": "Preview opened. If your phone cannot display it, download the PDF directly.",
+  "兩組各 15–20 分鐘。同時派 A、B，A 從開始可閱讀；完成並保留 B 答案後才派 C。D 及完整套裝只供教師。": "Allow 15\u201320 minutes per group. Give A and B together; A is readable from the start. Give C after completing and keeping B answers. D and the full pack are teacher-only.",
+  "A · 自學概念與示例": "A \u00b7 Concepts and worked examples",
+  "B · 練習與獨立應用": "B \u00b7 Practice and independent application",
+  "C · 核對答案與修正": "C \u00b7 Check answers and correct mistakes",
+  "D · 教師指引、答案及評分": "D \u00b7 Teacher guide, answers and scoring"
 };
