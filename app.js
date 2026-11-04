@@ -5,14 +5,20 @@ const RECORDS_KEY = 'transpirationLab.records.v1';
 const PROFILE_KEY = 'transpirationLab.profile.v1';
 const TEACHER_EMAIL = 'tzechingchan0605@gmail.com';
 const MODULE_ID = 'VL_BIO_TRANSPIRATION';
-const QUESTION_VERSION='VL2-Q3';
-const RUBRIC_VERSION='VL2-R3';
+const QUESTION_VERSION='VL2-Q4';
+const RUBRIC_VERSION='VL2-R4';
 const REFLECTION_QUESTION='綜合實驗結果與學習重點，解釋光強度及葉片如何影響水分運輸，並說明蒸騰與蒸騰拉力的形成。';
 const REFLECTION_REFERENCE='其他條件相同且供水充足時，較強光照通常有利氣孔張開。葉肉細胞表面的水膜蒸發，水汽進入氣室，再經氣孔沿濃度梯度擴散離開葉片，形成蒸騰。失水使葉肉細胞水勢下降，水分由木質導管補充；水從導管被移走形成蒸騰拉力，帶動水分沿木質導管向上運輸。葉片提供蒸騰的主要表面；帶葉裝置通常比同距不帶葉裝置呈現較快的水跡上移。水跡速度是間接指標，不能直接等同蒸騰速率。';
-const isCurrentQuestion=r=>r.questionVersion===QUESTION_VERSION;
+const isCurrentQuestion=r=>['VL2-Q3','VL2-Q4'].includes(r.questionVersion);
+const isSplit=r=>r.flowVersion==='split-1';
+const benchIDs=()=>isSplit(state)?(state.labStage==='main'?['A','B','C']:['B','D']):IDS;
+const entryIDs=()=>isSplit(state)?(state.labStage==='main'?['A','B','C']:['D']):IDS;
+const roundConfirmed=t=>isSplit(state)&&state.labStage==='main'?!!state.measurements[t]?.mainConfirmed:!!state.measurements[t]?.confirmed;
+const stageComplete=()=>MEASUREMENT_TIMES.every(roundConfirmed);
 const PAGE_TITLE=document.title;
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
+const legacyLabHTML=Object.fromEntries(['#phase-3 .phase-heading h2','#phase-3 .phase-heading p','.data-card thead','.data-card .muted','#experimentNext','#recordMeasurements','#initialReadingReminder'].map(sel=>[sel,$(sel).innerHTML]));
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const IDS = ['A','B','C','D'];
 const MEASUREMENT_TIMES = [0,10,20,30];
@@ -72,7 +78,7 @@ function freshState(profile = null) {
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
   const model = structuredClone(SIMULATION_HEIGHTS);
   return {
-    schemaVersion:1, uiVersion:2, questionVersion:QUESTION_VERSION, rubricVersion:RUBRIC_VERSION, rateDecimals:2, moduleId:MODULE_ID, id:crypto.randomUUID(), profile,
+    schemaVersion:1, uiVersion:2, flowVersion:'split-1', labStage:'main', questionVersion:QUESTION_VERSION, rubricVersion:RUBRIC_VERSION, rateDecimals:2, moduleId:MODULE_ID, id:crypto.randomUUID(), profile,
     createdAt:new Date().toISOString(), savedAt:null, submittedAt:null, reflectionSubmittedAt:null,
     phase:1, unlocked:1, submitted:false, seed, model,
     form:defaults(),
@@ -135,7 +141,7 @@ let drawingChanged = false;
 let drawingTool = 'pencil';
 
 function isRecord(record) {
-  return record && record.schemaVersion===1 && record.moduleId===MODULE_ID &&
+  return record && (!isSplit(record)||['main','extensionDesign','extension','complete'].includes(record.labStage)) && record.schemaVersion===1 && record.moduleId===MODULE_ID &&
     typeof record.id==='string' && record.id.length<100 &&
     record.form && FIELD_IDS.every(id => typeof record.form[id]==='string') &&
     record.variables && VARIABLE_GROUPS.every(([id]) => Array.isArray(record.variables[id]) && record.variables[id].every(v=>VARIABLE_NAMES.includes(v))) &&
@@ -181,7 +187,7 @@ function save() {
 function scheduleSave() { clearTimeout(saveTimer); saveTimer=setTimeout(save,400); }
 function log(type,details={}) {
   if(isTeacher())return;
-  state.events.push({type,at:new Date().toISOString(),phase:state.phase,...details});
+  state.events.push({type,at:new Date().toISOString(),phase:state.phase,...(isSplit(state)?{investigation:state.labStage}:{}),...details});
   scheduleSave();
 }
 function phase(number) {
@@ -240,7 +246,7 @@ function celerySVG(id,height=0,leafy=true,withRuler=false,rulerX=0) {
   </svg>`;
 }
 function renderEquipment() {
-  const material=(name,count,art)=>`<figure class="equipment"><svg viewBox="0 0 100 100" role="img" aria-label="${name}">${art}</svg><figcaption>${name} ×${count}</figcaption></figure>`;
+  const material=(name,count,art)=>`<figure class="equipment"><svg viewBox="0 0 100 100" role="img" aria-label="${name}">${art}</svg><figcaption>${name} ×${isSplit(state)&&count===4?3:count}</figcaption></figure>`;
   $('#equipmentBank').innerHTML=[
     material('西芹',4,'<path d="M47 89L45 36h10l4 53Z" fill="#b7cb8c" stroke="#6d9559"/><g fill="#78a76b" stroke="#57814f"><path d="M47 38C12 29 18 5 35 16C41 4 54 15 49 23Z"/><path d="M52 40C85 37 92 13 74 16C68 3 55 15 59 25Z"/></g>'),
     material('檯燈',4,'<path d="M20 85h40M39 84V51L53 29" fill="none" stroke="#7f9a93" stroke-width="5" stroke-linecap="round"/><path class="lamp-beam" d="M69 12L98 3V65L61 40Z" fill="#f7dba555"/><path d="M40 22L61 40 69 12Z" fill="#edca82" stroke="#ba9e68" stroke-width="2"/>'),
@@ -317,7 +323,7 @@ function initCanvas() {
   };
 }
 function designMissing() {
-  const required=[['prediction','請完成結果預測。'],['reason','請寫下預測理由。'],['controlPlan','請寫下你的對照裝置設計。']];
+  const required=[['prediction','請完成結果預測。'],['reason','請寫下預測理由。'],...(!isSplit(state)?[['controlPlan','請寫下你的對照裝置設計。']]:[])];
   for(const [id,message] of required) if(!$('#'+id).value.trim()) return[message,'#'+id];
   if(!VARIABLE_GROUPS.every(([id])=>state.variables[id].length))return['請在三類變量中各選擇至少一項。','#variableQuiz button'];
   if(!state.assumptions.length)return['請選擇至少一項實驗假設。','#assumptionChoices input'];
@@ -325,8 +331,15 @@ function designMissing() {
   return null;
 }
 
+function syncFlowLayout(){
+ $('#setupDescription').placeholder=isSplit(state)?'可補充繪圖標示，或以文字完整描述三個帶葉裝置，作為繪圖的替代。':'可補充繪圖標示，或以文字完整描述四個裝置，作為繪圖的替代。';
+ const card=$('#controlPlan').closest('article');
+ if(isSplit(state))$('#extensionDesign').insertBefore(card,$('#confirmExtension'));
+ else {for(const [sel,html]of Object.entries(legacyLabHTML))$(sel).innerHTML=html;const stack=$('#phase-2 .design-stack');stack.insertBefore(card,stack.lastElementChild);$('#extensionDesign').hidden=true;}
+}
 function renderBench() {
-  $('#labBench').innerHTML=IDS.map(id=>{
+  $('#labBench').style.setProperty('--bench-columns',benchIDs().length);
+  $('#labBench').innerHTML=benchIDs().map(id=>{
     const c=CONDITIONS[id];
     return `<article class="specimen-card" data-id="${id}"><div class="specimen-head"><span class="specimen-letter">裝置${id}</span><span>${c.distance} cm</span></div><div class="specimen-meta">${c.leaves?'帶葉':'不帶葉'} · 光強度：${c.light} lux</div>${celerySVG(id,state.model[id][state.currentTime/10],c.leaves,true,state.ruler[id].x)}<div class="ruler-buttons"><button data-move="${id}" data-dx="-3" aria-label="裝置${id} 尺子左移">← 左移</button><button data-move="${id}" data-dx="3" aria-label="裝置${id} 尺子右移">右移 →</button><button data-align="${id}">移近長柄</button></div></article>`;
   }).join('');
@@ -365,15 +378,15 @@ function renderMeasurements() {
   $('#dataBody').innerHTML=times.map(time=>{
     const row=state.measurements[time];
     const disabled=state.submitted||time!==state.currentTime||state.running;
-    return `<tr class="${row?.confirmed?'saved-row':'current-row'}"><td>${time} ${row?.confirmed?'✓':''}</td>${IDS.map(id=>`<td><div class="measurement-input"><input type="number" min="0" max="16" step="any" inputmode="decimal" enterkeyhint="${id==='D'?'done':'next'}" data-time="${time}" data-measure="${id}" aria-label="${time} 分鐘裝置${id} 水跡高度（cm）" value="${esc(row?.values?.[id]??'')}" ${disabled?'disabled':''}><span class="measurement-arrows"><button data-adjust-time="${time}" data-adjust-id="${id}" data-amount="0.5" aria-label="${time} 分鐘裝置${id} 讀數增加 0.5 cm" ${disabled?'disabled':''}>▴</button><button data-adjust-time="${time}" data-adjust-id="${id}" data-amount="-0.5" aria-label="${time} 分鐘裝置${id} 讀數減少 0.5 cm" ${disabled?'disabled':''}>▾</button></span></div></td>`).join('')}</tr>`;
+    return `<tr class="${(isSplit(state)&&state.labStage==='main'?row?.mainConfirmed:row?.confirmed)?'saved-row':'current-row'}"><td>${time} ${(isSplit(state)&&state.labStage==='main'?row?.mainConfirmed:row?.confirmed)?'✓':''}</td>${benchIDs().map(id=>`<td><div class="measurement-input"><input type="number" min="0" max="16" step="any" inputmode="decimal" enterkeyhint="${id===entryIDs().at(-1)?'done':'next'}" data-time="${time}" data-measure="${id}" aria-label="${time} 分鐘裝置${id} 水跡高度（cm）" value="${esc(row?.values?.[id]??'')}" ${disabled||!entryIDs().includes(id)?'disabled':''}><span class="measurement-arrows"><button data-adjust-time="${time}" data-adjust-id="${id}" data-amount="0.5" aria-label="${time} 分鐘裝置${id} 讀數增加 0.5 cm" ${disabled||!entryIDs().includes(id)?'disabled':''}>▴</button><button data-adjust-time="${time}" data-adjust-id="${id}" data-amount="-0.5" aria-label="${time} 分鐘裝置${id} 讀數減少 0.5 cm" ${disabled||!entryIDs().includes(id)?'disabled':''}>▾</button></span></div></td>`).join('')}</tr>`;
   }).join('');
   $$('[data-measure]').forEach(input=>{
     input.oninput=()=>{
       const time=+input.dataset.time,id=input.dataset.measure;
       if(!state.measurements[time])state.measurements[time]={values:{},firstValues:null,confirmed:false};
       state.measurements[time].values[id]=input.value;
-      if(state.measurements[time].confirmed){
-        state.measurements[time].confirmed=false;
+      if(roundConfirmed(time)){
+        state.measurements[time].confirmed=false;if(isSplit(state)&&state.labStage==='main')state.measurements[time].mainConfirmed=false;
         toast('本輪讀數已修改，請再次確認並記錄。');
       }
       invalidateAnalysis();updateTimer();scheduleSave();
@@ -419,27 +432,43 @@ function invalidateAnalysis() {
   }
 }
 function allMeasurements() {return MEASUREMENT_TIMES.every(t=>state.measurements[t]?.confirmed);}
+function renderSplitChrome(){
+  const design=state.labStage==='extensionDesign',main=state.labStage==='main';
+  $('#extensionDesign').hidden=!design;
+  for(const sel of ['.timer-bar','#labBench','.data-card','.ruler-guide','#initialReadingReminder'])$(sel).hidden=design;
+  $('#phase-3 .phase-heading h2').textContent=main?'主探究：光強度（A／B／C）':'延伸探究：葉片有無（B／D）';
+  $('#phase-3 .phase-heading p').textContent=main?'只改變光強度，三個帶葉裝置同步運行。':'B 讀數沿用主探究並鎖定；重播 B／D 動畫，只記錄 D。';
+  $('.data-card thead').innerHTML='<tr><th>時間（min）</th>'+benchIDs().map(id=>'<th>'+id+(id==='B'&&!main?' · 沿用主探究':'')+'</th>').join('')+'</tr>';
+  $('#experimentNext').hidden=design;
+  $('.data-card .muted').textContent=main?'記錄 A／B／C；保留首次讀數，修訂亦會記錄。':'B 沿用主探究並鎖定，只記錄 D；不會覆寫 B。';
+  $('#experimentNext').textContent=main?'完成主探究，進入延伸探究 →':'計算與分析我的數據 →';
+  $('#recordMeasurements').textContent=main?'確認並記錄 A／B／C 讀數':'確認並記錄 D 讀數';
+  $('#timerStatus').textContent=state.running?'裝置同步運行中……':roundConfirmed(state.currentTime)?'本輪讀數已記錄':'請記錄本輪讀數';
+  $('#initialReadingReminder').textContent=main?'先記錄 A／B／C 的 0 分鐘讀數。':'B 沿用主探究；先記錄 D 的 0 分鐘讀數。';
+  VL2I18n.apply($('#phase-3'));
+}
 function updateTimer() {
   $('#timeDisplay').innerHTML=`${String(state.currentTime).padStart(2,'0')} <small>分鐘</small>`;
   if(!state.running)$('#timerFill').style.width=(state.currentTime/30*100)+'%';
-  const confirmed=!!state.measurements[state.currentTime]?.confirmed;
+  const confirmed=roundConfirmed(state.currentTime);
   $('#timerButton').disabled=state.submitted||state.running||!confirmed||state.currentTime===30;
   $('#recordMeasurements').disabled=state.submitted||state.running;
   $('#timerStatus').textContent=state.running?'四個裝置同步運行中……':state.currentTime===30&&confirmed?'30 分鐘量度已完成':confirmed?'本輪已記錄，可以繼續':'到達量度時間：請量度四個裝置';
-  $('#measurementProgress').textContent=`${MEASUREMENT_TIMES.filter(t=>state.measurements[t]?.confirmed).length} / 4 個量度時間`;
-  $('#experimentNext').disabled=state.running||!allMeasurements();
+  $('#measurementProgress').textContent=`${MEASUREMENT_TIMES.filter(roundConfirmed).length} / 4 個量度時間`;
+  $('#experimentNext').disabled=state.running||!stageComplete();
+  if(isSplit(state))renderSplitChrome();
   $('#initialReadingReminder').hidden=state.currentTime!==0||confirmed;
   $$('[data-move],[data-align]').forEach(button=>button.disabled=state.submitted||state.running);
 }
 function runInterval() {
-  if(state.submitted||state.running||!state.measurements[state.currentTime]?.confirmed||state.currentTime>=30)return;
+  if(state.submitted||state.running||!roundConfirmed(state.currentTime)||state.currentTime>=30)return;
   const from=state.currentTime,to=from+10;
   state.running=true;updateTimer();renderMeasurements();log('interval_started',{from,to});
   scrollToElement('#labBench');
   const started=performance.now(),duration=matchMedia('(prefers-reduced-motion: reduce)').matches?600:3000;
   timerHandle=setInterval(()=>{
     const p=Math.min(1,(performance.now()-started)/duration);
-    IDS.forEach(id=>{
+    benchIDs().forEach(id=>{
       const start=state.model[id][from/10],end=state.model[id][to/10],height=start+(end-start)*p;
       const columns=$$(`#specimen-${id} .dye-column`);
       columns.forEach(column=>{
@@ -450,23 +479,23 @@ function runInterval() {
     $('#timeDisplay').innerHTML=`${String(Math.floor(from+10*p)).padStart(2,'0')} <small>分鐘</small>`;
     if(p===1){
       clearInterval(timerHandle);state.currentTime=to;state.running=false;
-      log('measurement_time_reached',{time:to});renderMeasurements();save();toast(`${to} 分鐘：請量度並記錄四個裝置。`);
+      log('measurement_time_reached',{time:to});renderMeasurements();save();toast(isSplit(state)?`${to} 分鐘：請量度並記錄${state.labStage==='main'?' A／B／C':' D'}。`:`${to} 分鐘：請量度並記錄四個裝置。`);
     }
   },50);
 }
 function recordMeasurements() {
   if(state.submitted||state.running)return;
-  const time=state.currentTime,inputs=$$(`[data-time="${time}"][data-measure]`);
-  if(inputs.length!==4)return;
+  const time=state.currentTime,inputs=$$(`[data-time="${time}"][data-measure]`).filter(input=>entryIDs().includes(input.dataset.measure));
+  if(inputs.length!==entryIDs().length)return;
   for(const input of inputs){
     if(!validMeasurement(input)){
-      incomplete('請填寫四項 0 至 16 cm 的讀數，保留一位小數。',`[data-time="${time}"][data-measure="${input.dataset.measure}"]`);return;
+      incomplete('請填寫本輪所有 0 至 16 cm 的讀數，保留一位小數。',`[data-time="${time}"][data-measure="${input.dataset.measure}"]`);return;
     }
   }
   const values=Object.fromEntries(inputs.map(input=>[input.dataset.measure,(+input.value).toFixed(1)]));
   const row=state.measurements[time]||{};
-  state.measurements[time]={...row,values,firstValues:row.firstValues||{...values},confirmed:true};
-  log(row.firstValues?'measurements_reconfirmed':'measurements_recorded',{time,values:{...values},ruler:structuredClone(state.ruler)});
+  state.measurements[time]={...row,values:{...row.values,...values},firstValues:{...values,...row.firstValues},confirmed:!isSplit(state)||state.labStage!=='main',...(isSplit(state)&&state.labStage==='main'?{mainConfirmed:true}: {})};
+  log(entryIDs().every(id=>row.firstValues?.[id]!==undefined)?'measurements_reconfirmed':'measurements_recorded',{time,values:{...values},ruler:structuredClone(state.ruler),investigation:isSplit(state)?state.labStage:'legacy'});
   $('#measurementStatus').textContent=`✓ ${time} 分鐘讀數已記錄`;
   renderMeasurements();save();if(time<30)scrollToElement('.timer-bar');
 }
@@ -618,7 +647,7 @@ function conclusionMissing() {
 }
 function sameChoices(selected,expected){return selected.length===expected.length&&expected.every(x=>selected.includes(x));}
 function applyLock() {
-  $$('#phase-1 input,#phase-1 textarea,#phase-1 button,#phase-2 input,#phase-2 textarea,#phase-2 select,#phase-2 button,#phase-3 input,#phase-3 button,#phase-4 input,#phase-4 textarea,#phase-4 select,#phase-4 button').forEach(el=>{
+  $$('#phase-3 textarea,#phase-3 select,#phase-1 input,#phase-1 textarea,#phase-1 button,#phase-2 input,#phase-2 textarea,#phase-2 select,#phase-2 button,#phase-3 input,#phase-3 button,#phase-4 input,#phase-4 textarea,#phase-4 select,#phase-4 button').forEach(el=>{
     if(el.closest('#learningReveal')||el.id==='newInvestigation'||el.dataset.back)return;
     if(state.submitted)el.disabled=true;
     else if(!el.matches('[data-measure],[data-adjust-id]'))el.disabled=false;
@@ -785,8 +814,8 @@ function renderReport(record) {
   const total=Math.round(Object.values(record.phaseDurations).reduce((sum,n)=>sum+n,0));
   $('#printReport').innerHTML=`<header class="report-cover"><span class="report-logo">✦</span><div><p>IBL 虛擬實驗室 · S4 生物 · 模組 2</p><h1>西芹的紅色水跡</h1><strong>個人學習紀錄</strong></div></header><div class="report-meta"><span>姓名：<span data-user-text>${esc(record.profile?.name)}</span></span><span>班別及學號：<span data-user-text>${esc(record.profile?.classInfo||'—')}</span></span><span>電郵：<span data-user-text>${esc(record.profile?.email||'—')}</span></span><span>探究遞交：${esc(dateText(record.submittedAt))}</span><span>反思提交：${esc(dateText(record.reflectionSubmittedAt))}</span><span>有效操作時間：約 ${Math.floor(total/60)} 分 ${total%60} 秒</span></div>
     <section class="report-section"><h2>01 · 了解情境</h2><div class="report-card"><p class="card-kicker">研究情境</p><div class="report-scene"><div><p>開始時</p>${celerySVG('report-before',0,true)}</div><div><p>過了一段時間</p>${celerySVG('report-after',7,true)}</div></div>${reportAnswer('主要探究問題','在其他條件相同下，光強度如何影響帶葉西芹中紅色水跡向上移動的速度？')}${freeAnswer('你的初步觀察',f.observation,REFERENCE_TEXT.observation)}${reportAnswer('構造辨認','西芹長柄是葉柄，外觀像莖，內含木質部。')}</div></section>
-    <section class="report-section"><h2>02 · 設計探究</h2><div class="report-card"><p class="card-kicker">我的假說</p>${reportAnswer('實驗前的原始假說',hypothesisText(record),REFERENCE_TEXT.hypothesis)}${freeAnswer('原始假說理由',initial.reason,REFERENCE_TEXT.reason)}</div><div class="report-card"><p class="card-kicker">我的公平測試設計</p>${variables}</div><div class="report-card"><p class="card-kicker">此探究的假設是什麼？</p>${assumptions}</div><div class="report-card">${freeAnswer('探究的對照組',f.controlPlan,REFERENCE_TEXT.control)}${freeAnswer('我的實驗裝置設計',f.setupDescription,REFERENCE_TEXT.design)}${setupImage}</div></section>
-    <section class="report-section"><h2>03 · 進行探究與收集數據</h2><div class="report-card"><p>你的量度記錄（cm）</p><table><thead><tr><th>時間（min）</th>${IDS.map(id=>`<th>裝置${id} · ${CONDITIONS[id].leaves?'帶葉':'不帶葉'}<br>${CONDITIONS[id].distance} cm（光強度：${CONDITIONS[id].light} lux）</th>`).join('')}</tr></thead><tbody>${measurements}</tbody></table></div></section>
+    <section class="report-section"><h2>02 · 設計探究</h2><div class="report-card"><p class="card-kicker">我的假說</p>${reportAnswer('實驗前的原始假說',hypothesisText(record),REFERENCE_TEXT.hypothesis)}${freeAnswer('原始假說理由',initial.reason,REFERENCE_TEXT.reason)}</div><div class="report-card"><p class="card-kicker">我的公平測試設計</p>${variables}</div><div class="report-card"><p class="card-kicker">此探究的假設是什麼？</p>${assumptions}</div><div class="report-card">${isSplit(record)?'':freeAnswer('探究的對照組',f.controlPlan,REFERENCE_TEXT.control)}${freeAnswer('我的實驗裝置設計',f.setupDescription,isSplit(record)?'三株帶葉西芹：A 10 cm、B 20 cm、C 30 cm；相同葉面積、紅色水、浸入深度與量尺／計時安排。':REFERENCE_TEXT.design)}${setupImage}${isSplit(record)?'<p>主探究設計：A／B／C；對照設計屬 B／D 延伸探究。</p>':''}</div></section>
+    <section class="report-section"><h2>03 · 進行探究與收集數據</h2><div class="report-card">${isSplit(record)?'<p>A／B／C 主探究先完成；延伸沿用 B，只新增 D。</p>'+freeAnswer('延伸探究：葉片有無會否影響吸水及水分向上運輸？',f.controlPlan,REFERENCE_TEXT.control):''}<p>你的量度記錄（cm）</p><table><thead><tr><th>時間（min）</th>${IDS.map(id=>`<th>裝置${id} · ${CONDITIONS[id].leaves?'帶葉':'不帶葉'}<br>${CONDITIONS[id].distance} cm（光強度：${CONDITIONS[id].light} lux）</th>`).join('')}</tr></thead><tbody>${measurements}</tbody></table></div></section>
     <section class="report-section"><h2>04 · 分析與結論</h2><div class="report-card"><p class="card-kicker">計算平均上移速度</p><p>參考計算方法：平均上移速度＝（30 分鐘高度 − 0 分鐘高度）÷ 30 分鐘</p>${calculations}</div><div class="report-card"><p class="card-kicker">我的圖表：光照與紅色水跡上移速度</p><div class="report-graph"><svg viewBox="0 0 760 460" role="img" aria-label="學生圖表">${graphMarkup(record)}</svg></div>${points}<p>標點按你的計算檢核；計算是否正確另列於上方。曲線呈現三點之間的趨勢，並不能證明其間所有光強度的精確結果。</p></div><div class="report-card">${choice('claim','主張：光照與水跡上移速度有甚麼關係？','increase')}${choice('leafComparison','相同光照距離下，裝置B（帶葉）與裝置D（不帶葉）的速度比較',comparable?comparison:null,comparable?`按你計算的數值：裝置B ${(+b).toFixed(rateDigits(record))}、裝置D ${(+d).toFixed(rateDigits(record))} cm/min。${ANSWER_LABELS.leafComparison[comparison]}`:'先完成裝置B 和裝置D 的平均上移速度計算，再比較兩者。')}${choice('leafConclusion','帶葉與不帶葉的比較顯示葉片有何作用？','promotes')}${choice('limitations','這些數據還不能直接證明甚麼？','indirect')}</div></section>
     <section class="report-section"><h2>學習重點：葉與莖的內部構造</h2><div class="report-card">${structureDiagram('report')}${window.VL2I18n.sourceHTML($('.learning-points'))}</div></section><section class="report-section"><h2>學習反思</h2><div class="report-card">${reportAnswer('你的原始假說',hypothesisText(record))}${freeAnswer(isCurrentQuestion(record)?REFLECTION_QUESTION:'原始假說是否獲數據支持？請運用學習重點修訂或完善假說解釋，並連結你的數據。',f.reflection,isCurrentQuestion(record)?REFLECTION_REFERENCE:'比較原始預測與量度結果，指出支持或不支持的數據，再修訂解釋。例如：若原先預測光強度增加會令水跡變慢，但帶葉組在較強光照下上移較快，則原始預測不獲支持；可修訂為光照通常促進氣孔開啟及蒸騰，並促進水分沿木質部向上運輸。水跡仍只是間接線索。')}</div></section><footer class="report-footer">✓／✕ 為有標準答案項目的檢核；開放題只附參考答案，不自動評分。這些檢核不等同 SPS 評分。學習重點參照課本第 11.1 節（頁 11-3 至 11-8）。水跡為教學模擬，不是直接蒸騰速率量度。紀錄識別碼：${esc(record.id)}</footer>`;
   window.VL2I18n.apply($('#printReport'));
@@ -862,16 +891,16 @@ function scoringWorkbook(records){
     ['id','紀錄識別碼','identity'],['name','姓名','identity'],['class','班別及學號','identity'],['status','完成狀態','identity'],
     ['observation','觀察｜初步觀察・教師評分（0–2）','observing',2],['measure','觀察｜量尺讀數・自動（0–2）','observing'],['observing','SPS 觀察（0–4）','observing'],
     ['iv','分類｜獨立變量・自動（0–1）','classifying'],['dv','分類｜因變量・自動（0–1）','classifying'],['cv','分類｜控制變量・自動（0–2）','classifying'],['classifying','SPS 分類（0–4）','classifying'],
-    ['hypothesis','設計｜可測試假說及理由・教師評分（0–2）','designing',2],['assumptions','設計｜假設選擇・自動（0–1）','designing'],['control','設計｜對照裝置・教師評分（0–1）','designing',1],['designing','SPS 設計探究（0–4）','designing'],
-    ['rounds','實作｜量度記錄品質 Q3人工／歷史四輪自動（0–2）','conducting',2],['setup','實作｜裝置方案・教師評分（0–2）','conducting',2],['conducting','SPS 進行實驗（0–4）','conducting'],
+    ['hypothesis','設計｜可測試假說及理由・教師評分（0–2）','designing',2],['assumptions','設計｜假設選擇・自動（0–1）','designing'],['control','設計｜延伸對照裝置 Q4／歷史對照・教師評分（0–1）','designing',1],['designing','SPS 設計探究（0–4）','designing'],
+    ['rounds','實作｜量度記錄品質 Q3–4人工／歷史四輪自動（0–2）','conducting',2],['setup','實作｜Q4主探究三裝置／歷史四裝置・教師評分（0–2）','conducting',2],['conducting','SPS 進行實驗（0–4）','conducting'],
     ['rates','推論｜平均速度計算・自動（0–2）','inferring'],['conclusions','推論｜四項結論・自動（0–2）','inferring'],['inferring','SPS 推論（0–4）','inferring'],
     ['graph','溝通｜標點及連線・自動（0–2）','communicating'],['communication','溝通｜書面表達・教師評分（0–2）','communicating',2],['communicating','SPS 溝通（0–4）','communicating'],['sps','SPS 總分（0–24）','score'],
-    ['evaporation','新知識｜蒸騰與氣孔・教師評分（0–2）','knowledge',2],['transport','新知識｜木質部及蒸騰拉力・教師評分（0–2）','knowledge',2],['light','新知識｜光強度影響・教師評分（0–2）','knowledge',2],['revision','歷史反思｜修訂原始解釋 Q1–2（0–2）','knowledge',2],['leaf','新反思｜葉片與同距比較 Q3（0–2）','knowledge',2],['knowledge','新知識學習分數（0–8）','knowledge'],['overall','整體分數（0–32）','score'],['marking','評分狀態','score'],['questionVersion','題目版本','identity'],['rubricVersion','評分規準版本','identity']
+    ['evaporation','新知識｜蒸騰與氣孔・教師評分（0–2）','knowledge',2],['transport','新知識｜木質部及蒸騰拉力・教師評分（0–2）','knowledge',2],['light','新知識｜光強度影響・教師評分（0–2）','knowledge',2],['revision','歷史反思｜修訂原始解釋 Q1–2（0–2）','knowledge',2],['leaf','新反思｜葉片與同距比較 Q3–4（0–2）','knowledge',2],['knowledge','新知識學習分數（0–8）','knowledge'],['overall','整體分數（0–32）','score'],['marking','評分狀態','score'],['questionVersion','題目版本','identity'],['rubricVersion','評分規準版本','identity']
   ];
   const col=Object.fromEntries(columns.map(([id],i)=>[id,colName(i)])),rows=[columns.map(([,label,group])=>excelCell(label,group))];
   const round=n=>Math.round(n*100)/100;
   records.forEach((r,index)=>{
-    const n=index+2,ref=id=>col[id]+n,vars=r.variables,readings=MEASUREMENT_TIMES.flatMap(t=>IDS.map(id=>{const v=r.measurements[t]?.values?.[id];return r.measurements[t]?.confirmed&&v!==undefined&&v!==''&&Number.isFinite(+v)&&Math.abs(+v-r.model[id][t/10])<=.25;}));
+    const n=index+2,ref=id=>col[id]+n,vars=r.variables,readings=MEASUREMENT_TIMES.flatMap(t=>IDS.map(id=>{const v=r.measurements[t]?.values?.[id];return (isSplit(r)&&id!=='D'?r.measurements[t]?.mainConfirmed:r.measurements[t]?.confirmed)&&v!==undefined&&v!==''&&Number.isFinite(+v)&&Math.abs(+v-r.model[id][t/10])<=.25;}));
     const rateCorrect=IDS.map(id=>{const v=r.calculations[id];return v!==undefined&&v!==''&&Number.isFinite(+v)&&Number.isFinite(expectedRate(r,id))&&Math.abs(+v-expectedRate(r,id))<=rateTolerance(r);});
     const b=r.calculations.B,d=r.calculations.D,comparable=b!==undefined&&d!==undefined&&b!==''&&d!==''&&Number.isFinite(+b)&&Number.isFinite(+d);
     const comparison=+b>+d+.0005?'faster':+b<+d-.0005?'slower':'same';
@@ -895,9 +924,9 @@ function scoringWorkbook(records){
   add('classifying','變量分類',4,'自動','獨立：光強度（1）；因變量：紅色水跡上升高度／平均上移速度（1）；五項控制變量（2）。','控制變量：每項 0.4；誤選獨立／因變量作控制變量則該欄 0 分。','未回答或分類錯誤。');
   add('designing','可測試假說及理由',2,'教師填寫','明確預測改變光強度後水跡速度如何改變，並給出與現象相關的理由；不要求預測結果正確。','1：假說可測試，但理由缺漏或不清晰。','沒有可測試的假說；只抄結論而無實驗前預測。');
   add('designing','實驗假設選擇',1,'自動','只選溫度不改變、帶葉組總葉面積相同、濕度及氣流相同三項。','全組正確才給分；不另計部分分。','錯選、漏選或未作答。');
-  add('designing','對照裝置設計',1,'教師填寫','帶葉／不帶葉裝置使用相同燈距，其餘條件保持相同。','此項只給 0 或 1 分。','沒有控制葉片以外的因素，或未作答。');
+  add('designing','歷史 Q1–3：對照裝置設計',1,'教師填寫','帶葉／不帶葉裝置使用相同燈距，其餘條件保持相同。','此項只給 0 或 1 分。','沒有控制葉片以外的因素，或未作答。');
   add('conducting','歷史 Q1–2：四輪完整量度',2,'自動','0、10、20、30 min 各有四個有效、已確認讀數。','每輪 0.5；量度準確度另計於觀察，不重複計。','沒有完整確認的量度輪次。');
-  add('conducting','實驗裝置方案',2,'教師填寫','圖像／文字顯示四株、三種帶葉燈距及同距不帶葉對照、紅色水及量尺／時間量度安排。','1：方案基本可操作，但缺少一項主要安排。','不能操作、無關或未完成。');
+  add('conducting','歷史 Q1–3：實驗裝置方案',2,'教師填寫','圖像／文字顯示四株、三種帶葉燈距及同距不帶葉對照、紅色水及量尺／時間量度安排。','1：方案基本可操作，但缺少一項主要安排。','不能操作、無關或未完成。');
   add('inferring','平均上移速度計算',2,'自動','四組（30 min 高度 − 0 min 高度）÷ 30；每組正確 0.5。','依學生最後確認讀數計算，新紀錄保留兩位小數，允許 0.0051 cm/min 捨入差異；舊紀錄依原有三位小數及 0.00051 容差檢核。','無正確計算；不使用模型高度取代學生讀數評算術。');
   add('inferring','四項結論',2,'自動','光強度增加速度通常增加；B/D 比較與學生計算相符；葉片促進運輸；水跡為間接線索。','每個正確選項 0.5。B/D 資料不足不得分。','錯誤／未回答。');
   add('communicating','圖表標點及連線',2,'自動','四點 X = 各組 lux、Y = 學生自己計算速度（每點 0.375）；正確 A/B/C 三點已連線（0.5）。','以未四捨五入的點數計分再保留兩位小數；不把 D 連入帶葉曲線。','無正確標點或連線。計算錯誤另計於推論，圖表以其計算檢核。');
@@ -906,12 +935,15 @@ function scoringWorkbook(records){
   add('knowledge','歷史 Q1–2：木質部及蒸騰拉力',2,'教師填寫','修訂解釋中連結蒸騰產生蒸騰拉力，使水份沿木質導管向上運輸。','1：正確提及木質部運輸或蒸騰拉力，但沒有連結。','未用此概念或有核心錯誤。');
   add('knowledge','歷史 Q1–2：光強度影響',2,'教師填寫','修訂解釋中連結較強光照通常促進氣孔開啟、蒸騰及水分向上運輸，避免稱水跡速度就是蒸騰速率。','1：正確描述較強光照與較快水跡的關係，但沒有機制。','關係相反、直接等同蒸騰速率或未運用概念。');
   add('knowledge','歷史 Q1–2：運用概念修訂原始解釋',2,'教師填寫','指出原始假說是否獲自己數據支持，以數據及學習重點修訂／完善解釋；原始假說正確也可得滿分。','1：有判斷或修訂，但欠缺數據／概念連結。','只抄學習重點，未檢驗原始假說，或未提交反思。');
-  add('knowledge','Q3：蒸騰與氣孔',2,'教師填寫','水膜蒸發進入氣室（1）；水汽沿濃度梯度經氣孔擴散（1）。','每個獨立因果點 1 分，接受等義表述。','無關或核心錯誤；不按關鍵字數目。');
-  add('knowledge','Q3：木質部及蒸騰拉力',2,'教師填寫','失水令葉肉水勢下降而由木質部補水（1）；水移走形成拉力，沿木質導管上運（1）。','每個獨立因果點 1 分；不重複計分。','主動泵水、韌皮部上運或無關。');
-  add('knowledge','Q3：光強度影響',2,'教師填寫','其他條件相同，較強光通常促進氣孔張開（1）；連結較快水汽散失／蒸騰及水分上運（1）。','只正確說明一環節得 1 分。','未回答或核心錯誤。');
-  add('knowledge','Q3：葉片與同距比較',2,'教師填寫','帶葉比同距不帶葉水跡上移較快（1）；葉片提供蒸騰主要表面，失水有助牽引水分（1）。','此處只評葉片作用，不重複給蒸騰機制分。','無關；不能僅憑無葉比較證明氣孔機制。');
-  add('conducting','Q3：量度記錄品質',2,'教師填寫','各時點與裝置辨識、單位及可追溯記錄清楚（1）；使用水面零點及一致讀尺方法（1）。','依記錄、初末讀數及實驗方案判斷；資料不足留待評，缺答經教師判斷填0。','不得把點擊、完成率或用時當能力分；讀數準確度另評。');
-  add('reference','混合版本',0,'逐列版本','Q3 使用葉片欄，修訂原始解釋為不適用；Q1–2 相反，保留舊規準及四輪自動分。','空白待評；0已評零分；不適用不阻擋總分。貼入負數、超上限、小數或文字會令總分待評。','歷史學生原文、快照、研究ID及事件不改寫。');
+  add('knowledge','Q3–4：蒸騰與氣孔',2,'教師填寫','水膜蒸發進入氣室（1）；水汽沿濃度梯度經氣孔擴散（1）。','每個獨立因果點 1 分，接受等義表述。','無關或核心錯誤；不按關鍵字數目。');
+  add('knowledge','Q3–4：木質部及蒸騰拉力',2,'教師填寫','失水令葉肉水勢下降而由木質部補水（1）；水移走形成拉力，沿木質導管上運（1）。','每個獨立因果點 1 分；不重複計分。','主動泵水、韌皮部上運或無關。');
+  add('knowledge','Q3–4：光強度影響',2,'教師填寫','其他條件相同，較強光通常促進氣孔張開（1）；連結較快水汽散失／蒸騰及水分上運（1）。','只正確說明一環節得 1 分。','未回答或核心錯誤。');
+  add('knowledge','Q3–4：葉片與同距比較',2,'教師填寫','帶葉比同距不帶葉水跡上移較快（1）；葉片提供蒸騰主要表面，失水有助牽引水分（1）。','此處只評葉片作用，不重複給蒸騰機制分。','無關；不能僅憑無葉比較證明氣孔機制。');
+  add('conducting','Q3–4：量度記錄品質',2,'教師填寫','各時點與裝置辨識、單位及可追溯記錄清楚（1）；使用水面零點及一致讀尺方法（1）。','依記錄、初末讀數及實驗方案判斷；資料不足留待評，缺答經教師判斷填0。','不得把點擊、完成率或用時當能力分；讀數準確度另評。');
+  add('conducting','Q4：主探究裝置方案',2,'教師填寫','只評 A／B／C 三個帶葉裝置、不同燈距、量尺／計時與公平條件。','基本可操作但缺少主要安排得1；不要求在主探究設計D。','無關或缺答。');
+  add('designing','Q4：延伸對照設計',1,'教師填寫','確認需比較帶葉B與不帶葉D，兩者20cm光照距離及其他條件相同；清楚設計可視為已表達需要對照。','只給0或1，不因未另寫「需要」而重複扣分。','無同距帶葉／不帶葉比較。');
+  add('reference','Q4：量度及沿用',0,'版本說明','A／B／C主探究12個讀數；延伸只新增D四個讀數。B沿用並鎖定，不重算為新的量度作答機會。','原始、首次、最後讀數、主探究快照及事件保留；總分SPS24＋反思8不變。','完成兩部分才開放原有分析與結論。');
+  add('reference','混合版本',0,'逐列版本','Q3–4 使用葉片欄，修訂原始解釋為不適用；Q1–2 相反，保留舊規準及四輪自動分。','空白待評；0已評零分；不適用不阻擋總分。貼入負數、超上限、小數或文字會令總分待評。','歷史學生原文、快照、研究ID及事件不改寫。');
   add('score','配分與完成條件',32,'公式彙總','六項 SPS 各 4 分，共 24；新知識四項各 2，共 8；整體 32。教師填完該列所有適用評分格及學生完成反思，整體分數才顯示。','人工評分格空白＝待評，與填 0 分不同。公式由 Excel 開啟時重算；教師在此檔填分後請保存。','新下載 Excel 不會讀取之前檔案內的人工分數；分數只存於教師保存的 Excel。');
   add('reference','色彩與研究使用',0,'說明','底色區分 SPS 類別及新知識；綠字正確／滿分，紅字錯誤／零分，橙字部分得分，未評中性色。','人工答案在填分後依公式變色。PDF 不顯示任何分數；活動紀錄不是 SPS 分數。','本 rubric 為 VL2 初稿；正式縱向比較前需對四個模組統一準則、配分及評分者校準。');
   return {sheet:{name:'教師評分',rows,validations},rubric:{name:'評分準則',rows:rubric},col};
@@ -923,7 +955,7 @@ async function exportExcel(){
   save();const records=teacherRecords();
   if(!records.length){toast('目前沒有可匯出的研究紀錄。');return;}
   const headings=['紀錄識別碼','姓名','班別及學號','電郵','狀態','建立時間','遞交時間','初步觀察','原始預測','原始理由','目前預測','目前理由','獨立變量－學生答案','獨立變量－參考答案','因變量－學生答案','因變量－參考答案','控制變量－學生答案','控制變量－參考答案','假設－學生答案','假設－參考答案','對照裝置設計－學生答案','對照裝置設計－參考答案','裝置文字設計','X軸','Y軸','光強度關係－學生答案','光強度關係－參考答案','葉片比較－學生答案','葉片作用－學生答案','葉片作用－參考答案','實驗限制－學生答案','實驗限制－參考答案','反思','總有效秒數','階段一有效秒數','階段二有效秒數','階段三有效秒數','階段四有效秒數','記錄量度次數','計算作答次數','標點次數','結論作答次數','題目版本','評分規準版本'];
-  const rows=[headings],data=[['紀錄識別碼','姓名','模擬時間（min）','裝置','光照距離（cm）','光強度（lux）','葉片','首次讀數（cm）','最後讀數（cm）','模型參考高度（cm）','學生平均速度（cm/min）','依學生數據計算的速度（cm/min）','圖點 X坐標','圖點 Y坐標']];
+  const rows=[headings],data=[['紀錄識別碼','姓名','模擬時間（min）','裝置','光照距離（cm）','光強度（lux）','葉片','首次讀數（cm）','最後讀數（cm）','模型參考高度（cm）','學生平均速度（cm/min）','依學生數據計算的速度（cm/min）','圖點 X坐標','圖點 Y坐標','探究／沿用來源']];
   const events=[['紀錄識別碼','姓名','事件','時間（香港）','階段','事件詳情']];
   const designs=[['姓名','班別及學號','電郵','文字設計','裝置設計圖']];
   const images=[];
@@ -931,7 +963,7 @@ async function exportExcel(){
     const f=r.form,initial=r.initialDesign?.form||f;
     const count=type=>r.events.filter(e=>e.type===type).length;
     rows.push([r.id,r.profile?.name,r.profile?.classInfo,r.profile?.email,r.submitted?'已遞交':'進行中',dateText(r.createdAt),dateText(r.submittedAt),f.observation,PREDICTIONS[initial.prediction],initial.reason,PREDICTIONS[f.prediction],f.reason,r.variables.iv.join('、'),'光強度',r.variables.dv.join('、'),'紅色水跡上升高度／平均上移速度',r.variables.cv.join('、'),VARIABLE_NAMES.slice(2).join('、'),r.assumptions.map(id=>ASSUMPTIONS.find(a=>a.id===id)?.text||id).join('；'),ASSUMPTIONS.filter(a=>a.valid).map(a=>a.text).join('；'),f.controlPlan,'同一光照距離，帶葉與不帶葉比較，其餘條件相同。',f.setupDescription,'光強度（lux）','紅色水跡平均上移速度（cm/min）',answerText('claim',f.claim),ANSWER_LABELS.claim.increase,answerText('leafComparison',f.leafComparison),answerText('leafConclusion',f.leafConclusion),ANSWER_LABELS.leafConclusion.promotes,answerText('limitations',f.limitations),ANSWER_LABELS.limitations.indirect,f.reflection,Math.round(Object.values(r.phaseDurations).reduce((a,b)=>a+b,0)),...[1,2,3,4].map(p=>Math.round(r.phaseDurations[p])),count('measurements_recorded')+count('measurements_reconfirmed'),count('rate_calculated'),count('graph_point_plotted'),r.events.filter(e=>e.type==='answer_changed'&&['claim','leafComparison','leafConclusion','limitations'].includes(e.field)).length,r.questionVersion||'VL2-Q1–2',r.rubricVersion||'VL2-R1–2']);
-    MEASUREMENT_TIMES.forEach(t=>IDS.forEach(id=>{const c=CONDITIONS[id];data.push([r.id,r.profile?.name,t,`裝置${id}`,c.distance,c.light,c.leaves?'帶葉':'不帶葉',r.measurements[t]?.firstValues?.[id]??'',r.measurements[t]?.values?.[id]??'',r.model[id][t/10].toFixed(1),r.calculations[id]??'',r.measurements[30]?.confirmed?expectedRate(r,id).toFixed(rateDigits(r)):'',r.graph.points[id]?.x??'',r.graph.points[id]?.y??'']);}));
+    MEASUREMENT_TIMES.forEach(t=>IDS.forEach(id=>{const c=CONDITIONS[id];data.push([r.id,r.profile?.name,t,`裝置${id}`,c.distance,c.light,c.leaves?'帶葉':'不帶葉',r.measurements[t]?.firstValues?.[id]??'',r.measurements[t]?.values?.[id]??'',r.model[id][t/10].toFixed(1),r.calculations[id]??'',r.measurements[30]?.confirmed?expectedRate(r,id).toFixed(rateDigits(r)):'',r.graph.points[id]?.x??'',r.graph.points[id]?.y??'',isSplit(r)?(id==='D'?'延伸新增':'主探究'+(id==='B'?'；延伸沿用':'')):'歷史同步量度']);}));
     r.events.forEach(e=>events.push([r.id,r.profile?.name,e.type,dateText(e.at),e.phase,JSON.stringify(e)]));
     designs.push([r.profile?.name,r.profile?.classInfo,r.profile?.email,f.setupDescription,r.setup.image?'圖像如下':'文字設計']);
     const match=/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.exec(r.setup.image||'');
@@ -1025,7 +1057,7 @@ function init() {
   refreshProfileUI();
   $('#sceneBefore').innerHTML=celerySVG('before',0,true);
   $('#sceneAfter').innerHTML=celerySVG('after',7,true);
-  renderEquipment();
+  syncFlowLayout();renderEquipment();
   $('#mechanismDiagram').innerHTML=structureDiagram();
   renderVariables();initCanvas();renderBench();renderMeasurements();renderCalculations();renderPoints();renderGraph();
   $('#setupStatus').textContent=state.setup.saved?'✓ 裝置設計已儲存':'';
@@ -1086,11 +1118,21 @@ $('#designNext').onclick=()=>{
 };
 $$('.step').forEach(button=>button.onclick=()=>phase(+button.dataset.phase));
 $$('[data-back]').forEach(button=>button.onclick=()=>phase(+button.dataset.back));
+$('#confirmExtension').onclick=()=>{
+ if(!isSplit(state)||state.labStage!=='extensionDesign')return;
+ if(!$('#controlPlan').value.trim()){incomplete('請寫下你的對照裝置設計。','#controlPlan');return;}
+ readForm();state.initialControl={value:state.form.controlPlan,at:new Date().toISOString()};state.labStage='extension';state.currentTime=0;
+ log('extension_design_confirmed',{controlPlan:state.form.controlPlan,reusedB:true});renderBench();renderMeasurements();updateTimer();save();scrollToElement('.timer-bar');
+};
 $('#timerButton').onclick=runInterval;
 $('#recordMeasurements').onclick=recordMeasurements;
 $('.ruler-guide').addEventListener('toggle',()=>{if($('.ruler-guide').open){state.hintsUsed++;log('ruler_guide_opened');}});
 $('#experimentNext').onclick=()=>{
+  if(isSplit(state)&&state.labStage==='main'){
+    if(!stageComplete())return;state.mainSnapshot=structuredClone(state.measurements);state.labStage='extensionDesign';state.currentTime=0;log('main_investigation_completed',{snapshot:structuredClone(state.mainSnapshot)});renderBench();renderMeasurements();updateTimer();save();scrollToElement('#extensionDesign');return;
+  }
   if(!allMeasurements())return;
+  if(isSplit(state)){state.labStage='complete';log('extension_investigation_completed',{reusedB:true});}
   state.unlocked=4;phase(4);save();
 };
 $('#connectPoints').onclick=()=>{
@@ -1174,7 +1216,7 @@ $('#studentGraph').addEventListener('keydown',event=>{
 
 // Read-only curriculum source. No profile, freshState(), save(), clock or events.
 window.VL2InquiryContent=()=>({
-  moduleId:MODULE_ID,version:'VL2-Q3-R3',fields:FIELD_IDS.filter(id=>!['xAxis','yAxis','graphMax'].includes(id)),
+  moduleId:MODULE_ID,version:'VL2-Q4-R4',fields:FIELD_IDS.filter(id=>!['xAxis','yAxis','graphMax'].includes(id)),
   ids:[...IDS],times:[...MEASUREMENT_TIMES],conditions:structuredClone(CONDITIONS),model:structuredClone(SIMULATION_HEIGHTS),
   variableNames:[...VARIABLE_NAMES],variableGroups:structuredClone(VARIABLE_GROUPS),assumptions:structuredClone(ASSUMPTIONS),
   references:structuredClone(REFERENCE_TEXT),answers:{claim:'increase',leafComparison:'faster',leafConclusion:'promotes',limitations:'indirect'},

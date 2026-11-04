@@ -1,4 +1,4 @@
-# VL2／WS2 教學大綱與研究安排 · Q3／R3
+# VL2／WS2 教學大綱與研究安排 · Q4／R4
 
 學習目標：辨識光強度探究的獨立、因及控制變量；設計同距帶葉／不帶葉公平比較；讀取水跡尺度、按自己的初末數據計算平均速度及作圖；理解間接指標與直接蒸騰量度的分別；以蒸發、擴散、滲透、水勢下降、木質部運輸及蒸騰拉力建立因果解釋。
 
@@ -21,3 +21,8 @@ Curriculum checking uses the repository's existing textbook citation (11.1, pp.1
 西芹長柄是葉柄。葉肉水膜蒸發與氣孔擴散不同；滲透補水與木質部拉力上運不同。水跡速度為間接指標；無葉比較不能單獨證明氣孔機制。真實燈距實驗須監測溫度，三點趨勢不能支持未測範圍精確外推。
 
 A celery stalk is a petiole. Evaporation and stomatal diffusion differ; osmotic replacement differs from xylem transport under tension. Trace speed is indirect; leaf removal alone does not prove a stomatal mechanism. Monitor temperature in real lamp experiments and do not extrapolate an exact curve from three points.
+
+
+Q4／R4 分拆探究：主探究只設計及量度三個帶葉裝置 A／B／C（光強度為唯一IV）；完成12個讀數後才呈現 B／D 延伸探究的對照設計。延伸以葉片有無為唯一IV，B沿用並鎖定主探究讀數，動畫顯示B／D，只新增D四個讀數。兩部分完成後才開放原有計算、作圖、分析及結論。無須替主探究另加無光組；延伸D為帶葉B的同距無葉對照。B不是獨立重複實驗。
+
+Q4/R4 separates two investigations. Design and measure leafy A/B/C first, varying light intensity only (12 readings). Next answer the extension control-design question, varying leaf presence only. Replay B/D, retaining locked main-investigation B and recording only four D readings. Complete both before the unchanged calculation, graph and analysis tasks. No extra dark setup is required for the light-level comparison; leafless D controls the equal-distance B/D comparison. B is shared data, not an independent replicate. Main snapshot, extension initial control response and stage-tagged events are retained; the Excel data sheet identifies reused B and extension D. SPS24 + reflection8 remains32; Q3 and older records keep their historical design rubrics.

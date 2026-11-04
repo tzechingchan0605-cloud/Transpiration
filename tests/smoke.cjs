@@ -1,10 +1,11 @@
+// Q3 four-device regression; tests/split.cjs covers the current Q4 two-investigation flow.
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
 const {execFileSync}=require('node:child_process');
 const LAB_URL=process.env.LAB_URL||'http://127.0.0.1:8000';
 const TEACHER='tzechingchan0605@gmail.com';
-async function login(p,name,cl,email){for(const[id,v]of Object.entries({profileName:name,profileClass:cl,profileEmail:email}))await p.locator('#'+id).fill(v);await p.locator('#profileForm button[type=submit]').click();}
+async function login(p,name,cl,email){for(const[id,v]of Object.entries({profileName:name,profileClass:cl,profileEmail:email}))await p.locator('#'+id).fill(v);await p.locator('#profileForm button[type=submit]').click();await p.evaluate(()=>{delete state.flowVersion;delete state.labStage;state.questionVersion='VL2-Q3';state.rubricVersion='VL2-R3';init();});}
 async function reloadToLogin(p){p.once('dialog',async d=>{assert.equal(d.type(),'beforeunload');await d.accept();});await p.reload();assert.equal(await p.locator('#profileDialog').isVisible(),true);assert.equal(await p.locator('#profileName').inputValue(),'');assert.equal(await p.locator('#observation').inputValue(),'');assert.equal(await p.locator('#teacherButton').isVisible(),false);assert.equal(await p.locator('main').evaluate(el=>el.inert),true);}
 async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(svg=>{const c=[...svg.querySelectorAll('.dye-column')];return c.length===2&&['y','height','fill','width'].every(a=>c[0].getAttribute(a)===c[1].getAttribute(a));}),true);}
 (async()=>{

@@ -94,7 +94,7 @@ PDF 的題目、說明及圖示跟隨介面語言，學生答案、班別及姓�
 
 指定電郵只用作教師介面切換；中央全班紀錄另由獨立教師雲端密碼保護，不以輸入電郵當作中央身份驗證。學生電郵為自行填寫。共用瀏覽器的本機紀錄仍由使用者管理；清除資料會刪除尚未同步的答案。部署後須按設定文件進行真實手機與電腦驗收。
 
-### 教師 Excel 評分 · VL2-Q3／VL2-R3
+### 教師 Excel 評分 · VL2-Q4／VL2-R4
 
 SPS六項各4分，共24；整合反思8分，共32。新反思按蒸騰／氣孔、木質部／拉力、光強度、葉片與同距比較各2分，不要求修訂原始假說。新探究量度記錄品質由教師評0–2，不把完成四輪、點擊、速度或用時直接作能力分；歷史四輪自動分及舊反思規準保留。
 
@@ -110,7 +110,7 @@ node --check app.js
 node tests/smoke.cjs
 ```
 
-測試腳本覆蓋完整探究、輸入閘門、0.5 cm 箭嘴步幅、一位小數、尺子水平拖動、水跡一致性、自動捲動、固定圖表軸、曲線、選項結論、遞交鎖定、反思提交及 PDF 解鎖、重新載入確認的取消／接受、空白登入頁及全新探究、原始假說引用、報告 ✓／✕ 與開放題參考答案、師生切換及重新登入、共用電郵與舊版缺少電郵的學生隔離、已提交／未提交學生重新登入後全新探究及舊紀錄保留、單一圖例、檯燈向前光束、PDF、帶圖 Excel、教師評分配分／公式／底色／顏色、JSON 匯入、舊紀錄及手機版面。可用 `LAB_URL` 指定測試服務 URL，`CHROMIUM_PATH` 指定已安裝瀏覽器路徑。
+`tests/split.cjs`覆蓋現行Q4中英文主／延伸完整設計與量度、B沿用鎖定及分析閘門；`tests/split_excel.py`核對其真實Excel。`tests/smoke.cjs`以Q3歷史流程驗證完整探究、輸入閘門、0.5 cm 箭嘴步幅、一位小數、尺子水平拖動、水跡一致性、自動捲動、固定圖表軸、曲線、選項結論、遞交鎖定、反思提交及 PDF 解鎖、重新載入確認的取消／接受、空白登入頁及全新探究、原始假說引用、報告 ✓／✕ 與開放題參考答案、師生切換及重新登入、共用電郵與舊版缺少電郵的學生隔離、已提交／未提交學生重新登入後全新探究及舊紀錄保留、單一圖例、檯燈向前光束、PDF、帶圖 Excel、教師評分配分／公式／底色／顏色、JSON 匯入、舊紀錄及手機版面。可用 `LAB_URL` 指定測試服務 URL，`CHROMIUM_PATH` 指定已安裝瀏覽器路徑。
 
 跨裝置同步測試（Google 服務替身，不代表已部署）：`node tests/cloud.cjs`。
 
@@ -120,14 +120,19 @@ node tests/smoke.cjs
 
 量度互動驗證：`node tests/measurements.cjs`（涵蓋恆定速度、0.5 cm 模擬讀數、Enter 操作、舊資料保留及獨立手機瀏覽器；不連接正式收集端）。
 
-語言隔離驗證：`node tests/language.cjs`（需 Playwright、Chromium 和 Python `pypdf`；自動啟動本機伺服器）。涵蓋直接中英文切換、所有輸入框提示、完整介面及動態 SVG、批准詞彙、作答／原始快照／繪圖／圖點／事件／計時／鎖定保存、實際雙語 PDF、逐位元一致的中文 Excel、手機、教師示範，以及使用真正前端同步程式配合隔離收集端的離線／補傳驗證。所有測試覆寫正式雲端設定，並攔截 Apps Script 連線；測試紀錄不會上傳正式收集端。`tests/cloud.cjs` 另以實際 Apps Script 程式及 Google 服務替身驗證跨裝置收集。這些是本機隔離測試，並非正式 Google 部署驗證。
+語言隔離驗證（Q3歷史四裝置流程回歸，現行Q4雙語流程另由split測試覆蓋）：`node tests/language.cjs`（需 Playwright、Chromium 和 Python `pypdf`；自動啟動本機伺服器）。涵蓋直接中英文切換、所有輸入框提示、完整介面及動態 SVG、批准詞彙、作答／原始快照／繪圖／圖點／事件／計時／鎖定保存、實際雙語 PDF、逐位元一致的中文 Excel、手機、教師示範，以及使用真正前端同步程式配合隔離收集端的離線／補傳驗證。所有測試覆寫正式雲端設定，並攔截 Apps Script 連線；測試紀錄不會上傳正式收集端。`tests/cloud.cjs` 另以實際 Apps Script 程式及 Google 服務替身驗證跨裝置收集。這些是本機隔離測試，並非正式 Google 部署驗證。
 
 ## WS2 教材
 
 教師儀表板「下載 WS2 教材」僅五類：學生PDF、學生Word、完整連答案PDF、完整連答案Word、D教師PDF。每語學生及答案各四頁A4，三PDF可預覽，Word直接下載；開啟面板後切換介面語言亦跟隨並清除舊預覽。檔案有MIME、bytes、SHA-256及來源fingerprint，缺檔／損毀／過時拒絕下載，不以中文代替英文。
 
-v4使用VL原生完整構造圖、情境及裝置SVG；三色文字步驟與圖上標記配對，兩語維持四頁。變量→前提→對照的共通題型次序與WS1一致；題幹行距參考WS1實際Word樣式。作圖提供四組lux、置中圖題及兩軸題。
+v5使用VL原生完整構造圖、情境及裝置SVG；三色文字步驟與圖上標記配對，兩語維持四頁。變量→前提→對照的共通題型次序與WS1一致；題幹行距參考WS1實際Word樣式。作圖提供四組lux、置中圖題及兩軸題。
 
 版面及題型參照使用者最終WS1：需知及概念圖→研究情境與公平比較→讀尺／計算／作圖及分析→整合解釋。IV/DV/CV每列保留全部七選項、順序與多選，前提及提示逐字沿用現行VL。不添加理由追問或額外練習。完整答案版保留所有題圖，答案以藍色標示，兩版需知皆有紅色粗體概念詞。
 
 學生開始可讀需知，無課前講授、不操作VL；首次答案保存後才派答案版，以另一色修正。兩組15–20分鐘為試教目標，非完成保證。D另列完整答案、逐題配對、各項分與缺答處理、版本及科學限制。舊A/B/C及完整教師套裝移除。詳細重建、派發及驗證指令見[paperwork/README.md](paperwork/README.md)。
+
+
+Q4／R4 分拆探究：主探究只設計及量度三個帶葉裝置 A／B／C（光強度為唯一IV）；完成12個讀數後才呈現 B／D 延伸探究的對照設計。延伸以葉片有無為唯一IV，B沿用並鎖定主探究讀數，動畫顯示B／D，只新增D四個讀數。兩部分完成後才開放原有計算、作圖、分析及結論。無須替主探究另加無光組；延伸D為帶葉B的同距無葉對照。B不是獨立重複實驗。
+
+Q4/R4 separates two investigations. Design and measure leafy A/B/C first, varying light intensity only (12 readings). Next answer the extension control-design question, varying leaf presence only. Replay B/D, retaining locked main-investigation B and recording only four D readings. Complete both before the unchanged calculation, graph and analysis tasks. No extra dark setup is required for the light-level comparison; leafless D controls the equal-distance B/D comparison. B is shared data, not an independent replicate. Main snapshot, extension initial control response and stage-tagged events are retained; the Excel data sheet identifies reused B and extension D. SPS24 + reflection8 remains32; Q3 and older records keep their historical design rubrics.

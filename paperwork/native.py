@@ -90,7 +90,7 @@ def specimen(asset,lang,view=None):
 
 def scene(m,lang):
  r=E.Element(Q('svg'),nsmap={None:NS});r.set('viewBox','0 0 510 100');r.set('width','510pt');r.set('height','100pt')
- sources=[m['native']['sceneBefore'],m['native']['sceneAfter']]+m['native']['setups']
+ sources=[m['native']['sceneBefore'],m['native']['sceneAfter']]+m['native']['setups'][:3]
  for i,a in enumerate(sources):
   x=i*85;n=specimen(a,lang);n.set('x',str(x+23));n.set('y','18');n.set('width','38');n.set('height','64.92');r.append(n)
   top=(['開始時','一段時間後'] if lang=='zh' else ['At the start','After some time'])[i] if i<2 else a['id']+' · '+str(m['experiment']['setups'][i-2]['distance'])+' cm'
@@ -132,4 +132,30 @@ def readings(m,lang):
    n.set('x',str(x+44+i*21));n.set('y','33.6');n.set('width','20');n.set('height','115.2');r.append(n)
    t=E.SubElement(r,Q('text'),x=str(x+54+i*21),y='164',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle'});t.text=str(f['time'])
  t=E.SubElement(r,Q('text'),x='255',y='179',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle'});t.text='時間（min）' if lang=='zh' else 'Time (min)'
+ return E.tostring(r).decode()
+
+def compact_readings(m,lang,ids):
+ """Native xylem/ruler paths, with a shared readable scale for each group."""
+ r=E.Element(Q('svg'),nsmap={None:NS});w=120*len(ids)
+ r.set('viewBox',f'0 0 {w} 132');r.set('width',f'{w}pt');r.set('height','132pt')
+ for j,id in enumerate(ids):
+  original_index='ABCD'.index(id);x=j*120
+  t=E.SubElement(r,Q('text'),x=str(x+60),y='12',**{'font-family':'Noto Sans CJK TC','font-size':'12','text-anchor':'middle','fill':'#206B73'});t.text=id
+  a=m['native']['frames'][0]['diagrams'][original_index];raw=root(a,lang);g=next(el for el in raw.iter(Q('g')) if el.get('class')=='ruler')
+  ruler=E.SubElement(r,Q('svg'),x=str(x),y='24',width='39',height='83.46',viewBox='188 28 150 321',overflow='visible');ruler.append(copy.deepcopy(g));g=ruler[0]
+  for el in list(g.iter(Q('text'))):
+   value=''.join(el.itertext())
+   if value not in ['0','4','8','12','16']:el.getparent().remove(el);continue
+   el.set('font-size',str(11/.26));el.set('x','210');el.text=None
+   for c in list(el):el.remove(c)
+   el.text=value+(' cm' if value=='16' else '')
+  for i,f in enumerate(m['native']['frames']):
+   n=specimen(f['diagrams'][original_index],lang,'100 42 50 288')
+   for child in list(n):
+    stem=child.tag==Q('path') and (child.get('fill','').startswith('url(') or child.get('opacity')=='.5')
+    dye=child.tag==Q('g') and child.get('clip-path')
+    if child.tag!=Q('defs') and not stem and not dye:n.remove(child)
+   n.set('x',str(x+43+i*18));n.set('y','27.64');n.set('width','13');n.set('height','74.88');r.append(n)
+   t=E.SubElement(r,Q('text'),x=str(x+49.5+i*18),y='116',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle'});t.text=str(f['time'])
+ t=E.SubElement(r,Q('text'),x=str(w/2),y='130',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle'});t.text='時間（min）' if lang=='zh' else 'Time (min)'
  return E.tostring(r).decode()

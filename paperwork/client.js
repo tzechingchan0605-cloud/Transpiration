@@ -9,13 +9,13 @@
  function clearPreview(){byId('paperPreview').removeAttribute('src');byId('paperPreview').hidden=true;if(previewURL)URL.revokeObjectURL(previewURL);previewURL=null;}
  function close(){generation++;manifest=null;byId('paperPanel').hidden=true;clearPreview();}
  function languageChanged(){generation++;clearPreview();if(!byId('paperPanel').hidden&&!manifest)void open();}
- function render(){if(!manifest||!authorised())return;byId('paperContentVersion').textContent=manifest.version;byId('paperMaterialVersion').textContent=`v4 · ${manifest.revision}`;byId('paperPanel').querySelectorAll('[data-paper-download],[data-paper-preview]').forEach(b=>b.disabled=false);VL2I18n.apply(byId('paperPanel'));}
+ function render(){if(!manifest||!authorised())return;byId('paperContentVersion').textContent=manifest.version;byId('paperMaterialVersion').textContent=`v5 · ${manifest.revision}`;byId('paperPanel').querySelectorAll('[data-paper-download],[data-paper-preview]').forEach(b=>b.disabled=false);VL2I18n.apply(byId('paperPanel'));}
  async function open(){
   if(!authorised())return false;clearPreview();manifest=null;const token=++generation;byId('paperPanel').hidden=false;byId('paperPanel').querySelectorAll('[data-paper-download],[data-paper-preview]').forEach(b=>b.disabled=true);status('正在準備紙本材料……');
   try{
    const r=await fetch('paperwork/generated/manifest.json',{cache:'no-store'});if(!r.ok)throw Error('manifest');const data=await r.json();
-   if(data.module!=='VL2'||data.version!=='VL2-WS2-v4'||data.materialVersion!==4||await digest(new TextEncoder().encode(JSON.stringify({zh:getVL2PaperSource('zh'),en:getVL2PaperSource('en')})))!==data.sourceDigest)throw Error('stale');
-   for(const lang of ['zh','en'])for(const key of keys){const f=data.languages?.[lang]?.files?.[key],ext=pdfs.includes(key)?'pdf':'docx';if(!f||!new RegExp(`^paperwork/generated/VL2_${key}_${lang}_v4_[a-f0-9]{10}\\.${ext}$`).test(f.path)||!f.name.endsWith('.'+ext)||!Number.isInteger(f.bytes)||f.bytes<100||!/^[a-f0-9]{64}$/.test(f.sha256))throw Error('invalid');}
+   if(data.module!=='VL2'||data.version!=='VL2-WS2-v5'||data.materialVersion!==5||await digest(new TextEncoder().encode(JSON.stringify({zh:getVL2PaperSource('zh'),en:getVL2PaperSource('en')})))!==data.sourceDigest)throw Error('stale');
+   for(const lang of ['zh','en'])for(const key of keys){const f=data.languages?.[lang]?.files?.[key],ext=pdfs.includes(key)?'pdf':'docx';if(!f||!new RegExp(`^paperwork/generated/VL2_${key}_${lang}_v5_[a-f0-9]{10}\\.${ext}$`).test(f.path)||!f.name.endsWith('.'+ext)||!Number.isInteger(f.bytes)||f.bytes<100||!/^[a-f0-9]{64}$/.test(f.sha256))throw Error('invalid');}
    if(token!==generation||!authorised())return false;manifest=data;render();status('教材已準備好。');return true;
   }catch{if(token===generation&&authorised())status('紙本材料未能載入或版本不一致，請重新載入網站；若仍未成功，請重新產生材料。');return false;}
  }

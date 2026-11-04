@@ -1,3 +1,4 @@
+// Q3 four-device regression; tests/split.cjs covers the current Q4 two-investigation flow.
 // Real measurement controls and animations; never send synthetic pupils to Google.
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
@@ -21,7 +22,7 @@ const LAB_URL=process.env.LAB_URL||'http://127.0.0.1:8000';
       await page.locator('#profileForm button[type=submit]').click();
       // The full inquiry gates are covered by smoke.cjs. This test isolates the
       // actual phase-3 input controls and runInterval animation without guessing answers.
-      await page.evaluate(()=>{state.unlocked=3;phase(3);renderBench();renderMeasurements();});
+      await page.evaluate(()=>{delete state.flowVersion;delete state.labStage;state.questionVersion='VL2-Q3';state.rubricVersion='VL2-R3';syncFlowLayout();state.unlocked=3;phase(3);renderBench();renderMeasurements();});
     }
     const input=(page,time,id)=>page.locator(`[data-time="${time}"][data-measure="${id}"]`);
     async function assertFocus(locator,message){assert.equal(await locator.evaluate(el=>el===document.activeElement),true,message);}

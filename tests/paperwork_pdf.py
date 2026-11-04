@@ -13,7 +13,7 @@ for lang in ['zh','en']:
     assert z.testzip() is None
     xml=E.fromstring(z.read('word/document.xml'));text=''.join(xml.xpath('//w:t/text()',namespaces=ns))
     # Paragraphs, options, tables and answer lines remain actual Word elements.
-    assert len(xml.xpath('//w:tbl',namespaces=ns))==3
+    assert len(xml.xpath('//w:tbl',namespaces=ns))==6
     assert len(xml.xpath('//w:p',namespaces=ns))>40
     assert xml.xpath('//w:rPr/w:color[@w:val="BC2927"]',namespaces=ns)
     if key=='studentWord':
@@ -26,12 +26,12 @@ for lang in ['zh','en']:
     for c in src[lang]['assumptions']['choices']:assert c['text'] in text
     assert src[lang]['assumptions']['reminder'] in text
     for h in src[lang]['control']['hints']:assert h in text
-    assert text.index('1. '+('辨識實驗變量' if lang=='zh' else 'Identify the variables')) < text.index('2. '+('選出公平比較' if lang=='zh' else 'Select the assumptions')) < text.index('3. '+('探究的對照組' if lang=='zh' else 'A comparison setup'))
+    assert text.index('1. '+('辨識主探究' if lang=='zh' else 'Identify variables')) < text.index('2. '+('選出公平比較' if lang=='zh' else 'Select the assumptions')) < text.index('3. '+('主探究' if lang=='zh' else 'Main investigation')) < text.index('4. '+('葉片有無' if lang=='zh' else 'Presence of leaves'))
     assert src[lang]['reflection']['question'] in text
     if lang=='zh':
      assert '帶葉的裝置B的水跡平均上移速度比不帶葉的裝置D' in text
      assert '但無法代表葉片的蒸騰速率（即水分由氣孔散失的速度）' in text
-     assert '下圖顯示4個裝置中植物木質部在不同時間點的吸水情況' in text
+     assert '下圖顯示3個帶葉裝置中植物木質部在不同時間點的吸水情況' in text
     # No tiny visible text in document XML.
     assert all(int(x.get('{'+ns['w']+'}val'))>=22 for x in xml.xpath('//w:sz',namespaces=ns))
     if lang=='en':
@@ -51,10 +51,10 @@ for lang in ['zh','en']:
    spans=[s for b in first.get_text('dict')['blocks'] if 'lines' in b for l in b['lines'] for s in l['spans']]
    assert any(s['color']==0xBC2927 and 'Bold' in s['font'] for s in spans)
    if key=='studentPDF':
-    rules=[(i,dr) for i,page in enumerate(d) for dr in page.get_drawings() if dr.get('color') and all(abs(c-.2)<.01 for c in dr['color']) and dr.get('width',0)>=.9 and dr['rect'].width>500 and dr['rect'].height<2]
+    rules=[(i,dr) for i,page in enumerate(d) for dr in page.get_drawings() if dr.get('color') and all(abs(c-.2)<.01 for c in dr['color']) and dr.get('width',0)>=.9 and dr['rect'].width>300 and dr['rect'].height<2]
     positions=sorted(set((i,round(dr['rect'].y0,1)) for i,dr in rules))
     assert len(positions)==9,(lang,positions)
-    for page in [1,3]:
+    for page in [2,3]:
      ys=[y for i,y in positions if i==page]
      assert all(25<ys[k+1]-ys[k]<27 for k in range(len(ys)-1)),ys
    full=''.join(x.get_text() for x in d)
@@ -84,3 +84,13 @@ for lang in ['zh','en']:
  assert list(map(float,y))==list(map(float,expected))
  assert len(y)==32 and sum('cm' in ''.join(e.itertext()) for e in reading.xpath('./s:svg/s:g/s:text',namespaces=ns2))==4
  print('PASS:',lang,'full native anatomy/path provenance, three matched step colours, 16 native xylem frames and cm labels')
+
+# Current split-page print diagrams retain all 16 native frames and unclipped top scale labels.
+for lang in ["zh","en"]:
+ for ids in ["ABC","D"]:
+  diagram=E.fromstring(native.compact_readings(src[lang],lang,ids).encode())
+  assert len(diagram.xpath("//s:rect[@class='dye-column']",namespaces=ns2))==8*len(ids)
+  rulers=diagram.xpath("./s:svg[s:g[@class='ruler']]",namespaces=ns2)
+  assert len(rulers)==len(ids) and all(r.get("overflow")=="visible" for r in rulers)
+  assert sum("16 cm" in "".join(r.itertext()) for r in rulers)==len(ids)
+print("PASS: current ABC and D native print frames, readable centimetre labels and unclipped ruler tops")

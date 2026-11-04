@@ -18,7 +18,7 @@
    });
    return {svg:svg.outerHTML,labels};
   };
-  return {moduleId:core.moduleId,version:'VL2-WS2-v4',sharedVersion:core.version,language:lang,
+  return {moduleId:core.moduleId,version:'VL2-WS2-v5',sharedVersion:core.version,language:lang,
    variables:{groups:core.variableGroups.map(([id,title,definition])=>({id,title:t(title),definition:t(definition)})),choices:core.variableNames.map(id=>({id,text:t(id)}))},
    assumptions:{reminder:t(clone('#assumptionReminder').textContent),choices:core.assumptions.map(o=>({id:o.id,text:t(o.text)}))},
    control:{question:question('controlPlan'),hints:[...document.querySelector('#controlPlan').closest('article').querySelectorAll('.question-hint')].map(e=>t(VL2I18n.sourceHTML(e).replace(/<[^>]*>/g,'')))},

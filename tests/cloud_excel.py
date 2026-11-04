@@ -11,7 +11,7 @@ assert any('離線修改保留' in row for row in r[1:])
 assert any('原始理由' in row for row in r[1:])
 assert sum(len(sheet._images) for sheet in w.worksheets)>0
 score=w['教師評分']
-assert score.data_validations.count==sum(10 if row[-2]=='VL2-Q3' else 9 for row in list(score.values)[1:])
+assert score.data_validations.count==sum(10 if row[-2] in ('VL2-Q3','VL2-Q4') else 9 for row in list(score.values)[1:])
 assert any(c.data_type=='f' for row in score for c in row)
 assert any(c.fill.fgColor.rgb not in (None,'00000000','00FFFFFF') for row in s for c in row)
 print('PASS: actual central XLSX has both devices, two same-email attempts, restored answers, original reason, images, six sheets, scoring formulas, validation and category fills.')

@@ -1,3 +1,4 @@
+// Q3 four-device regression; tests/split.cjs covers the current Q4 two-investigation flow.
 // Real UI language checks. All contexts replace the production cloud config;
 // the cloud scenario uses an in-browser bridge with an in-memory collector.
 const {chromium}=require('playwright');
@@ -32,7 +33,7 @@ async function login(page,profile=STUDENT){
  await page.locator('#profileName').fill(profile.name);
  await page.locator('#profileClass').fill(profile.classInfo);
  await page.locator('#profileEmail').fill(profile.email);
- await page.locator('#profileForm button[type=submit]').click();
+ await page.locator('#profileForm button[type=submit]').click();await page.evaluate(()=>{delete state.flowVersion;delete state.labStage;state.questionVersion='VL2-Q3';state.rubricVersion='VL2-R3';init();});
 }
 
 // Capture only content which a language switch must preserve, including local
@@ -145,7 +146,7 @@ async function assertEnglish(page,stage,scope='body'){
   assert.equal(await page.locator('#profileName').inputValue(),STUDENT.name);await assertEnglish(page,'login');
   await switchLanguage(page,'zh','#loginLanguageButton');await switchLanguage(page,'en','#loginLanguageButton');
   assert.equal(await page.locator('#profileDialog').isVisible(),true,'direct switch keeps the login form open');
-  await page.locator('#profileForm button[type=submit]').click();
+  await page.locator('#profileForm button[type=submit]').click();await page.evaluate(()=>{delete state.flowVersion;delete state.labStage;state.questionVersion='VL2-Q3';state.rubricVersion='VL2-R3';init();});
   await page.locator('#orientationNext').click();await assertEnglish(page,'observation-required');
   await page.locator('#observation').fill(ANSWERS.observation);await invariantSwitch(page,'zh');await invariantSwitch(page,'en');
   await page.locator('#orientationNext').click();await assertEnglish(page,'design');
