@@ -15,7 +15,7 @@
 
 使用者確認必須維持四頁，允許原圖縮小；完整構造圖保留全部原生構造和連線，以高解像度印刷，原生圖內標籤隨圖縮放。沒有以新簡化構造圖代替。學生版不另放原圖的技術性「非按比例」圖注；實驗模型與科學限制列於D。
 
-正文與選項12pt、提示11pt。版面改參考WS1實際Word樣式：三段概念需知1.0倍（按使用者要求收緊）、一般題幹1.15倍；長選項與答案採較緊密的題目段落，變量表繁中固定20pt、英文17pt，避免四頁以外孤頁。數值表保持可填寫格；作答線#333333、1pt、26pt。部分標題13pt，僅略大於題目。
+正文與選項12pt、提示11pt。版面改參考WS1實際Word樣式：三段概念需知1.0倍（按使用者要求收緊）、一般題幹1.15倍；長選項與答案採較緊密的題目段落，變量表繁中固定20pt、英文16pt，避免四頁以外孤頁。數值表保持可填寫格；作答線#333333、1pt、26pt。部分標題13pt，僅略大於題目。
 
 ## 單一來源與重建
 
@@ -54,3 +54,5 @@ Q4／R4 分拆探究：主探究只設計及量度三個帶葉裝置 A／B／C�
 Q4/R4 separates two investigations. Design and measure leafy A/B/C first, varying light intensity only (12 readings). Next answer the extension control-design question, varying leaf presence only. Replay B/D, retaining locked main-investigation B and recording only four D readings. Complete both before the unchanged calculation, graph and analysis tasks. No extra dark setup is required for the light-level comparison; leafless D controls the equal-distance B/D comparison. B is shared data, not an independent replicate. Main snapshot, extension initial control response and stage-tagged events are retained; the Excel data sheet identifies reused B and extension D. SPS24 + reflection8 remains32; Q3 and older records keep their historical design rubrics.
 
 列印排版修訂：主探究三幅原生讀尺圖採全頁寬度，每幅各有「長度(cm)／時間(mins)」，圖下是可編輯的12格量度表。情境原生五圖分「觀察／實驗設計」，以直線分隔。原生構造圖的五個過程框行距由21.5增至28個SVG單位；三段概念需知收緊，騰出空間放大情境植物。繁中所有裝置代號均有「裝置」前綴。四份學生／答案版均維持四頁。
+
+最新讀圖支援：研究情境說明lux為光強度單位；主探究量尺0／4／8／12／16刻線及數字加粗，題幹提醒依印出的量尺讀取。葉柄切段保留原生幾何，以斷裂符號及虛線表示上方仍有延續。第4題全頁寬，第5／6題表格收窄至左欄、裝置D讀尺圖移至右欄；下方作圖區加高。第2頁數值表亦增加行高。

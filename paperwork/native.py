@@ -137,6 +137,18 @@ def readings(m,lang):
  t=E.SubElement(r,Q('text'),x='255',y='179',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle'});t.text='時間（min）' if lang=='zh' else 'Time (min)'
  return E.tostring(r).decode()
 
+def petiole_section(n,key):
+ """Keep the native petiole, but show an omitted continuation rather than a tip."""
+ defs=n.find(Q('defs'));clip_id='petiole-section-'+key
+ clip=E.SubElement(defs,Q('clipPath'),id=clip_id)
+ E.SubElement(clip,Q('polygon'),points='100,95 109,95 114,90 120,100 126,90 134,95 150,95 150,420 100,420')
+ body=E.SubElement(n,Q('g'),**{'clip-path':'url(#'+clip_id+')','class':'petiole-section'})
+ for child in list(n):
+  if child is not defs and child is not body:body.append(child)
+ E.SubElement(n,Q('path'),d='M108 95L114 90L120 100L126 90L133 95',fill='none',stroke='#6e8d58',**{'stroke-width':'1.7','class':'petiole-break'})
+ E.SubElement(n,Q('path'),d='M110 42V83 M128 42V83',fill='none',stroke='#6e8d58',**{'stroke-width':'1.3','stroke-dasharray':'5 6','class':'petiole-continuation'})
+ return n
+
 def compact_readings(m,lang,ids):
  if ids=='ABC':return main_readings(m,lang)
  """Native xylem/ruler paths, with a shared readable scale for each group."""
@@ -159,6 +171,7 @@ def compact_readings(m,lang,ids):
     stem=child.tag==Q('path') and (child.get('fill','').startswith('url(') or child.get('opacity')=='.5')
     dye=child.tag==Q('g') and child.get('clip-path')
     if child.tag!=Q('defs') and not stem and not dye:n.remove(child)
+   petiole_section(n,id+'-'+str(i))
    n.set('x',str(x+43+i*18));n.set('y','27.64');n.set('width','13');n.set('height','74.88');r.append(n)
    t=E.SubElement(r,Q('text'),x=str(x+49.5+i*18),y='116',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle'});t.text=str(f['time'])
  t=E.SubElement(r,Q('text'),x=str(w/2),y='130',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle'});t.text='時間（min）' if lang=='zh' else 'Time (min)'
@@ -171,14 +184,19 @@ def main_readings(m,lang):
   x=j*170
   def label(xx,yy,text,**attrs):
    t=E.SubElement(r,Q('text'),x=str(xx),y=str(yy),**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle',**attrs});t.text=text;return t
-  label(x+88,13,('裝置' if lang=='zh' else 'Setup ')+id,fill='#206B73')
+  label(x+88,12,('裝置' if lang=='zh' else 'Setup ')+id,fill='#206B73')
+  label(x+88,25,'（葉柄局部）' if lang=='zh' else '(petiole section)',fill='#54746c')
   label(x+9,79,'長度(cm)' if lang=='zh' else 'Length (cm)',transform=f'rotate(-90 {x+9} 79)')
   raw=root(m['native']['frames'][0]['diagrams'][j],lang);g=next(el for el in raw.iter(Q('g')) if el.get('class')=='ruler')
   ruler=E.SubElement(r,Q('svg'),x=str(x+17),y='24',width='57',height='121.98',viewBox='188 28 150 321',overflow='visible');ruler.append(copy.deepcopy(g))
+  for tick in ruler[0].iter(Q('path')):
+   match=re.fullmatch(r'M190 (\d+)h17',tick.get('d',''))
+   if match and int(match[1]) in [330,258,186,114,42]:
+    tick.set('stroke-width','4');tick.set('stroke','#333333');tick.set('class','major-reading-tick')
   for el in list(ruler[0].iter(Q('text'))):
    value=''.join(el.itertext())
    if value not in ['0','4','8','12','16']:el.getparent().remove(el);continue
-   el.set('font-size',str(11/.38));el.set('x','210');el.text=value
+   el.set('font-size',str(11/.38));el.set('font-weight','700');el.set('fill','#333333');el.set('x','210');el.text=value
    for child in list(el):el.remove(child)
   for i,f in enumerate(m['native']['frames']):
    n=specimen(f['diagrams'][j],lang,'100 42 50 288')
@@ -186,6 +204,7 @@ def main_readings(m,lang):
     stem=child.tag==Q('path') and (child.get('fill','').startswith('url(') or child.get('opacity')=='.5')
     dye=child.tag==Q('g') and child.get('clip-path')
     if child.tag!=Q('defs') and not stem and not dye:n.remove(child)
+   petiole_section(n,id+'-'+str(i))
    n.set('x',str(x+67+i*24));n.set('y','29.32');n.set('width','19');n.set('height','109.44');r.append(n)
    label(x+76.5+i*24,153,str(f['time']))
   label(x+97,171,'時間(mins)' if lang=='zh' else 'Time (mins)')

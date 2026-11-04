@@ -36,9 +36,20 @@ for lang in ['zh','en']:
     main_table=xml.xpath('(//w:tbl)[2]',namespaces=ns)[0]
     assert len(main_table.xpath('./w:tr',namespaces=ns))==4 and len(main_table.xpath('./w:tr[1]/w:tc',namespaces=ns))==5
     assert ('時間(mins)' if lang=='zh' else 'Time (mins)') in ''.join(main_table.xpath('.//w:t/text()',namespaces=ns))
+    for cell in main_table.xpath('./w:tr[position()>1]/w:tc',namespaces=ns):
+     assert int(cell.xpath('./w:p/w:pPr/w:spacing/@w:line',namespaces=ns)[0])>=440
+    side_by_side=xml.xpath('(//w:tbl)[3]',namespaces=ns)[0]
+    side_cells=side_by_side.xpath('./w:tr/w:tc',namespaces=ns)
+    assert len(side_cells)==2 and len(side_cells[0].xpath('./w:tbl',namespaces=ns))==2
+    assert '5.' in ''.join(side_cells[0].itertext()) and '6.' in ''.join(side_cells[0].itertext())
+    assert len(side_cells[1].xpath('.//w:drawing',namespaces=ns))==1
+    control_paragraph=next(p for p in xml.xpath('//w:body/w:p',namespaces=ns) if src[lang]['control']['question'] in ''.join(p.xpath('.//w:t/text()',namespaces=ns)))
+    assert not control_paragraph.xpath('ancestor::w:tc',namespaces=ns)
     if lang=='zh':
      assert not re.search(r'(?<!裝置)(?<![A-Za-z0-9])(?:A|B|C)(?![A-Za-z0-9])',text)
      assert '裝置A、裝置B、裝置C的植物的紅色水跡高度變化' in text
+    assert ('lux 是光強度的單位' if lang=='zh' else 'Light intensity is measured in lux.') in text
+    assert ('圖中印出的量尺刻度' if lang=='zh' else 'Use the printed ruler marks') in text
     # No tiny visible text in document XML.
     assert all(int(x.get('{'+ns['w']+'}val'))>=22 for x in xml.xpath('//w:sz',namespaces=ns))
     if lang=='en':
@@ -56,6 +67,8 @@ for lang in ['zh','en']:
    assert all(s['size']>=10.9 for s in spans),(p,[(s['text'],s['size']) for s in spans if s['size']<10.9])
    assert all(12<=s['bbox'][0]<=584 and s['bbox'][2]<=585 and s['bbox'][3]<=836 for s in spans),(p,'overflow')
   if key!='D':
+   page3_images=[b for b in d[2].get_text('dict')['blocks'] if b['type']==1]
+   assert max(b['bbox'][3]-b['bbox'][1] for b in page3_images)>219
    main_image=next(b for b in d[1].get_text('dict')['blocks'] if b['type']==1)
    assert main_image['bbox'][2]-main_image['bbox'][0]>500 and main_image['bbox'][3]-main_image['bbox'][1]>170
    table_label='時間(mins)' if lang=='zh' else 'Time (mins)'
@@ -107,9 +120,17 @@ for lang in ["zh","en"]:
  for ids in ["ABC","D"]:
   diagram=E.fromstring(native.compact_readings(src[lang],lang,ids).encode())
   assert len(diagram.xpath("//s:rect[@class='dye-column']",namespaces=ns2))==8*len(ids)
+  assert len(diagram.xpath('//s:g[@class="petiole-section"]',namespaces=ns2))==4*len(ids)
+  assert len(diagram.xpath('//s:path[@class="petiole-break"]',namespaces=ns2))==4*len(ids)
+  assert len(diagram.xpath('//s:path[@class="petiole-continuation"]',namespaces=ns2))==4*len(ids)
   rulers=diagram.xpath("./s:svg[s:g[@class='ruler']]",namespaces=ns2)
   assert len(rulers)==len(ids) and all(r.get("overflow")=="visible" for r in rulers)
   if ids=='ABC':
+   for ruler in rulers:
+    marks=ruler.xpath('.//s:path[@class="major-reading-tick"]',namespaces=ns2)
+    assert len(marks)==5 and all(t.get('stroke-width')=='4' and t.get('stroke')=='#333333' for t in marks)
+    assert {t.get('d') for t in marks}=={f'M190 {y}h17' for y in [330,258,186,114,42]}
+    assert all(t.get('font-weight')=='700' for t in ruler.xpath('.//s:text',namespaces=ns2))
    text_labels=diagram.xpath('./s:text/text()',namespaces=ns2)
    assert text_labels.count('長度(cm)' if lang=='zh' else 'Length (cm)')==3
    assert text_labels.count('時間(mins)' if lang=='zh' else 'Time (mins)')==3

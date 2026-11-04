@@ -4,6 +4,7 @@ import json,re,sys,subprocess,os,hashlib
 from pathlib import Path
 from docx import Document
 from docx.shared import Pt,Cm,RGBColor
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 import cairosvg
@@ -105,15 +106,15 @@ def scene(s):s.pic(native.scene(s.m,s.lang),'native-scene-'+s.lang)
 def apparatus(s):s.pic(native.apparatus(s.m,s.lang),'native-apparatus-'+s.lang)
 def rulers(s):s.pic(native.readings(s.m,s.lang),'native-readings-'+s.lang)
 def graph(s):
- body='';x0=63;y0=135;pw=420;ph=88
+ body='';x0=63;y0=175;pw=420;ph=128
  for i in range(7):
   x=x0+i*pw/6;body+=f'<path d="M{x} 47V{y0}" stroke="#CDD9DB" stroke-width=".5"/>'+txt(x,y0+16,str(i*200),11,'#333','middle')
  for i in range(6):
   y=y0-i*ph/5;body+=f'<path d="M{x0} {y}H483" stroke="#CDD9DB" stroke-width=".5"/>'+txt(x0-5,y+4,f'{i/10:.1f}',11,'#333','end')
  body+=txt(255,16,s.t('光強度與紅色水跡平均上移速度','Light intensity and average upward speed of the red water trace'),11,anchor='middle')
  label=s.t(['紅色水跡頂的平均上移速度','（cm/min）'],['Average upward speed of','the top of the red water trace','(cm/min)'])
- body+='<text x="25" y="91" transform="rotate(-90 25 91)" font-family="Noto Sans CJK TC" font-size="11" text-anchor="middle" fill="#206B73">'+''.join(f'<tspan x="25" dy="{(-6 if len(label)==2 else -13) if i==0 else 13}">{line}</tspan>' for i,line in enumerate(label))+'</text>'
- body+=txt(273,172,s.t('光強度（lux）','Light intensity (lux)'),11,anchor='middle')
+ body+='<text x="25" y="111" transform="rotate(-90 25 111)" font-family="Noto Sans CJK TC" font-size="11" text-anchor="middle" fill="#206B73">'+''.join(f'<tspan x="25" dy="{(-6 if len(label)==2 else -13) if i==0 else 13}">{line}</tspan>' for i,line in enumerate(label))+'</text>'
+ body+=txt(273,212,s.t('光強度（lux）','Light intensity (lux)'),11,anchor='middle')
  if s.answers:
   coords=[]
   for c in s.m['experiment']['setups']:
@@ -121,7 +122,7 @@ def graph(s):
    body+=f'<circle cx="{x}" cy="{y}" r="3" fill="#165CA5"/>'+txt(x-5 if id=='A' else x+5,y+(14 if id=='C' else -10 if id=='B' else -4),s.t('裝置'+id,'Setup '+id),11,'#165CA5','end' if id=='A' else 'start')
    if id!='D':coords.append((c['light'],x,y))
   coords.sort();(_,xa,ya),(_,xb,yb),(_,xc,yc)=coords;body+=f'<path d="M{xa} {ya} C{xa+15} {ya-18},{xb-15} {yb+4},{xb} {yb} S{xc-90} {yc+2},{xc} {yc}" fill="none" stroke="#165CA5" stroke-width="1.3"/>'
- s.pic(svg(510,180,body),f'graph-{s.lang}-{s.answers}')
+ s.pic(svg(510,220,body),f'graph-{s.lang}-{s.answers}')
 
 def worksheet(lang,answers):
  s=Sheet(lang,answers);m=s.m;T=s.t
@@ -136,8 +137,13 @@ def worksheet(lang,answers):
   p=s.p(str(n+1)+'. '+T(z,e),colour=native.COLOURS[n],bold=True,after=0);p.paragraph_format.line_spacing=1.0
  s.p(T('供水充足、其他條件相同時，較強光照通常促進氣孔張開。西芹長柄是葉柄。','With adequate water and other conditions equal, stronger light favours stomatal opening. A celery stalk is a petiole.'),concept=True)
  s.h(T('部分 1｜主探究：光強度與水分運輸','Part 1 | Light intensity and water transport'))
- s.p(T('園藝小組把帶葉西芹插入紅色水中。他們想知道：光照和葉片會否影響水分運輸？','The gardening club asks: do light and leaves affect upward water transport?'))
+ s.p(T('園藝小組把帶葉西芹插入紅色水中。他們想知道：光照和葉片會否影響水分運輸？（lux 是光強度的單位。）','The gardening club asks: do light and leaves affect upward water transport? Light intensity is measured in lux.'))
  scene(s)
+ # Make room for the unit note without shrinking any diagram or text.
+ for paragraph in s.d.paragraphs:
+  paragraph.paragraph_format.line_spacing=1.0
+  paragraph.paragraph_format.space_after=Pt(1)
+  if paragraph.style.name.startswith('Heading'):paragraph.paragraph_format.space_before=Pt(3);paragraph.paragraph_format.space_after=Pt(2)
  s.page()
  s.h(T('1. 辨識主探究 A／B／C 的實驗變量','1. Identify variables: setup A, setup B and setup C'))
  s.p(T('在每列剔選適當的因素；每類可選多於一項。','Tick the appropriate factors in each row. You may choose more than one per type.'))
@@ -153,11 +159,11 @@ def worksheet(lang,answers):
  if lang=='en':
   for row in tab.rows:
    for cell in row.cells:
-    for p in cell.paragraphs:p.paragraph_format.line_spacing=Pt(17)
+    for p in cell.paragraphs:p.paragraph_format.line_spacing=Pt(16);p.paragraph_format.space_after=Pt(0)
  if answers:
   for i,g in enumerate(m['variables']['groups'],1):
    cell=tab.cell(i,1);cell.text=''
-   p=cell.paragraphs[0];p.paragraph_format.line_spacing=Pt(17 if lang=='en' else 20);p.paragraph_format.space_after=Pt(1)
+   p=cell.paragraphs[0];p.paragraph_format.line_spacing=Pt(16 if lang=='en' else 20);p.paragraph_format.space_after=Pt(0 if lang=='en' else 1)
    for j,c in enumerate(m['variables']['choices']):
     ok=c['id'] in m['reference']['variables'][g['id']];s.runs(p,('☑ ' if ok else '□ ')+c['text']+'  ',12,BLUE if ok else None,ok)
  s.h(T('2. 選出公平比較所需的前提（可選多於一項）','2. Select the assumptions for a fair comparison (select all that apply)'))
@@ -165,11 +171,14 @@ def worksheet(lang,answers):
  for c in m['assumptions']['choices']:
   ok=next(x['valid'] for x in m['reference']['assumptions'] if x['id']==c['id']);s.p(('☑ ' if answers and ok else '□ ')+c['text'],colour=BLUE if answers and ok else None,bold=answers and ok,after=1)
  s.h(T('3. 主探究：A／B／C 量度記錄','3. Main investigation: setup A, setup B and setup C readings'))
- s.p(T('下圖顯示3個帶葉裝置中植物木質部在不同時間點的吸水情況，請讀取各時間點紅色水跡頂端的高度，並取至一位小數（cm）。','Read each red-trace height at each time to one decimal place (cm).'))
+ s.p(T('下圖顯示3個帶葉裝置中植物木質部在不同時間點的吸水情況。請按圖中印出的量尺刻度讀取紅色水跡頂端的高度，並取至一位小數（cm）。','Use the printed ruler marks; read heights to one decimal place (cm).'))
  caption=s.p(T('裝置A、裝置B、裝置C的植物的紅色水跡高度變化','Red water-trace height changes in setup A, setup B and setup C'),12,TEAL,True,after=0);caption.alignment=1;caption.paragraph_format.line_spacing=1.0
  s.pic(native.compact_readings(m,lang,'ABC'),'main-readings-'+lang,18)
  rows=[[T('時間(mins)','Time (mins)'),'0','10','20','30']]+[[T('裝置'+id,'Setup '+id)]+[f"{m['experiment']['model'][id][i]:.1f}" if answers else '' for i in range(4)] for id in 'ABC']
- s.table(rows,[3.6]*5,mark={(i,j) for i in range(1,4) for j in range(1,5)} if answers else None)
+ main_table=s.table(rows,[3.6]*5,mark={(i,j) for i in range(1,4) for j in range(1,5)} if answers else None)
+ for row_index,row in enumerate(main_table.rows):
+  for cell in row.cells:
+   for paragraph in cell.paragraphs:paragraph.paragraph_format.line_spacing=Pt(20 if row_index==0 else 24 if lang=='zh' else 22)
  # Give the enlarged figure and table the full width while keeping English at 12pt.
  if lang=='en':
   body=list(s.d.element.body);first=next(i for i,e in enumerate(body) if '1. Identify variables' in ''.join(e.itertext()))
@@ -177,22 +186,30 @@ def worksheet(lang,answers):
    if e.tag==qn('w:p'):
     from docx.text.paragraph import Paragraph
     p2=Paragraph(e,s.d);p2.paragraph_format.line_spacing=1.0;p2.paragraph_format.space_after=Pt(0)
-    if p2.style.name.startswith('Heading'):p2.paragraph_format.space_before=Pt(2)
+    if p2.style.name.startswith('Heading'):p2.paragraph_format.space_before=Pt(0)
  s.page()
  s.h(T('部分 2｜延伸探究：葉片與水分運輸','Part 2 | Leaves and water transport'))
  s.h(T('4. 葉片的存在會否影響吸水及水分向上運輸？','4. Does the presence of leaves affect water uptake and upward water transport?'))
- outer=s.d.add_table(rows=1,cols=2);outer.autofit=False;outer.columns[0].width=Cm(13.5);outer.columns[1].width=Cm(4.5)
- doc=s.d;s.d=CellWriter(outer.cell(0,0),13.5)
- s.p(m['control']['question'])
+ s.p(m['control']['question'].replace('? If so','? \nIf so') if lang=='en' else m['control']['question'])
  for h in m['control']['hints']:s.hint(h)
  s.answer(T(m['reference']['texts']['control'],'Compare leafy setup B with leafless setup D at the same 20 cm lamp distance, keeping other conditions equal.'),2)
- s.d=CellWriter(outer.cell(0,1),4.5);s.pic(native.compact_readings(m,lang,'D'),'extension-readings-'+lang,4.23);s.d=doc
+ outer=s.d.add_table(rows=1,cols=2);outer.autofit=False;outer.columns[0].width=Cm(13.5);outer.columns[1].width=Cm(4.5)
+ outer.cell(0,1).vertical_alignment=WD_CELL_VERTICAL_ALIGNMENT.CENTER
+ doc=s.d;s.d=CellWriter(outer.cell(0,0),13.5)
  s.h(T('5. 延伸量度記錄','5. Extension readings'))
  s.p(T('B 沿用第3題的讀數，只讀取及記錄不帶葉 D 的高度（一位小數，cm）。','Reuse setup B from item 3. Read and record only leafless setup D (one decimal place, cm).'))
- s.table([['min','0','10','20','30'],[T('裝置D','Setup D')]+[f"{m['experiment']['model']['D'][i]:.1f}" if answers else '' for i in range(4)]],[3.6]*5,mark={(1,i) for i in range(1,5)} if answers else None)
- s.h(T('6. 計算紅色水跡頂的平均上移速度','6. Calculate the average upward speed of the top of the red water trace'))
+ s.table([['min','0','10','20','30'],[T('裝置D','Setup D')]+[f"{m['experiment']['model']['D'][i]:.1f}" if answers else '' for i in range(4)]],[2.7]*5,mark={(1,i) for i in range(4+1) if i>0} if answers else None)
+ s.h(T('6. 計算紅色水跡頂的平均上移速度','6. Average upward speed of the red-trace top'))
  s.p(T('（30 min讀數 − 0 min讀數）÷ 30；結果保留兩位小數（cm/min）。','(30 min reading − 0 min reading) ÷ 30; give two decimal places (cm/min).'))
- s.table([[T('裝置'+id,'Setup '+id) for id in 'ABCD'],[m['reference']['rates'][id] if answers else '' for id in 'ABCD']],[4.5]*4,mark={(1,i) for i in range(4)} if answers else None)
+ s.table([[T('裝置'+id,'Setup '+id) for id in 'ABCD'],[m['reference']['rates'][id] if answers else '' for id in 'ABCD']],[3.375]*4,mark={(1,i) for i in range(4)} if answers else None)
+ # Required empty paragraphs after nested tables must not consume visible space.
+ for paragraph in outer.cell(0,0).paragraphs:
+  if not paragraph.text and not paragraph._p.xpath('.//w:drawing'):
+   paragraph.paragraph_format.line_spacing=Pt(1);paragraph.paragraph_format.space_before=Pt(0);paragraph.paragraph_format.space_after=Pt(0)
+  else:
+   paragraph.paragraph_format.line_spacing=1.0;paragraph.paragraph_format.space_after=Pt(2)
+   if paragraph.style.name.startswith('Heading'):paragraph.paragraph_format.space_before=Pt(3)
+ s.d=CellWriter(outer.cell(0,1),4.5);s.pic(native.compact_readings(m,lang,'D'),'extension-readings-'+lang,4.23);s.d=doc
  s.h(T('7. 光強度與紅色水跡上移速度','7. Light intensity and water-trace speed'))
  s.p(T('根據自己的計算標出A／B／C／D；以平滑趨勢線連接帶葉A／B／C，D獨立標示。','Plot setup A, setup B, setup C and setup D from your calculations. Join setup A, setup B and setup C with a smooth trend line; keep setup D separate.'))
  s.p(T('裝置A: 1200 lux　裝置B: 300 lux　裝置C: 133 lux　裝置D: 300 lux','Setup A: 1200 lux   Setup B: 300 lux   Setup C: 133 lux   Setup D: 300 lux'),11,after=0)
