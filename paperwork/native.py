@@ -58,7 +58,7 @@ def anatomy(m,lang):
   if card.get('class')=='process-card':
    kind=card.get('data-process-group');token=card.find('.//'+Q('g')).get('data-process','')
    colour=COLOURS[0] if kind=='evaporation' else COLOURS[1] if token in ['pull-1','pull-2'] else COLOURS[2]
-   el.set('fill','#'+colour);el.set('font-weight','600');card.find(Q('rect')).set('height','135')
+   el.set('fill','#'+colour);el.set('font-weight','600');card.find(Q('rect')).set('height','160')
   if y==150:el.set('y','153');y=153
   if y==193:el.set('y','199');y=199
   if y==372:el.set('y','380');y=380
@@ -76,9 +76,9 @@ def anatomy(m,lang):
   el.set('font-size',str(size));el.text=None
   for child in list(el):el.remove(child)
   for i,line in enumerate(lines):
-   sp=E.SubElement(el,Q('tspan'));sp.set('x',str(x));sp.set('dy','0' if i==0 else str(size+2));sp.text=line
- r.set('viewBox','0 0 1080 810')
- r.find(Q('rect')).set('height','808')
+   sp=E.SubElement(el,Q('tspan'));sp.set('x',str(x));sp.set('dy','0' if i==0 else str(28 if card.get('class')=='process-card' else size+2));sp.text=line
+ r.set('viewBox','0 0 1080 835')
+ r.find(Q('rect')).set('height','833')
  return E.tostring(r).decode()
 
 def specimen(asset,lang,view=None):
@@ -89,14 +89,17 @@ def specimen(asset,lang,view=None):
  return r
 
 def scene(m,lang):
- r=E.Element(Q('svg'),nsmap={None:NS});r.set('viewBox','0 0 510 100');r.set('width','510pt');r.set('height','100pt')
+ r=E.Element(Q('svg'),nsmap={None:NS});r.set('viewBox','0 0 510 128');r.set('width','510pt');r.set('height','128pt')
+ for x,label in [(4,'觀察：' if lang=='zh' else 'Observation:'),(215,'實驗設計：' if lang=='zh' else 'Experimental design:')]:
+  t=E.SubElement(r,Q('text'),x=str(x),y='12',**{'font-family':'Noto Sans CJK TC','font-size':'11','font-weight':'700','fill':'#206B73'});t.text=label
+ E.SubElement(r,Q('path'),d='M204 0V128',stroke='#718986',**{'stroke-width':'1'})
  sources=[m['native']['sceneBefore'],m['native']['sceneAfter']]+m['native']['setups'][:3]
  for i,a in enumerate(sources):
-  x=i*85;n=specimen(a,lang);n.set('x',str(x+23));n.set('y','18');n.set('width','38');n.set('height','64.92');r.append(n)
-  top=(['開始時','一段時間後'] if lang=='zh' else ['At the start','After some time'])[i] if i<2 else a['id']+' · '+str(m['experiment']['setups'][i-2]['distance'])+' cm'
-  t=E.SubElement(r,Q('text'),x=str(x+42),y='12',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle','fill':'#206B73'});t.text=top
+  x=i*102;n=specimen(a,lang);n.set('x',str(x+27.5));n.set('y','33');n.set('width','47');n.set('height','80.29');r.append(n)
+  top=(['開始時','一段時間後'] if lang=='zh' else ['At the start','After some time'])[i] if i<2 else ('裝置' if lang=='zh' else 'Setup ')+a['id']+' · '+str(m['experiment']['setups'][i-2]['distance'])+' cm'
+  t=E.SubElement(r,Q('text'),x=str(x+51),y='29',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle','fill':'#206B73'});t.text=top
   if i>=2:
-   t=E.SubElement(r,Q('text'),x=str(x+42),y='96',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle'});t.text=str(m['experiment']['setups'][i-2]['light'])+' lux'
+   t=E.SubElement(r,Q('text'),x=str(x+51),y='125',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle'});t.text=str(m['experiment']['setups'][i-2]['light'])+' lux'
  return E.tostring(r).decode()
 
 def apparatus(m,lang):
@@ -135,12 +138,13 @@ def readings(m,lang):
  return E.tostring(r).decode()
 
 def compact_readings(m,lang,ids):
+ if ids=='ABC':return main_readings(m,lang)
  """Native xylem/ruler paths, with a shared readable scale for each group."""
  r=E.Element(Q('svg'),nsmap={None:NS});w=120*len(ids)
  r.set('viewBox',f'0 0 {w} 132');r.set('width',f'{w}pt');r.set('height','132pt')
  for j,id in enumerate(ids):
   original_index='ABCD'.index(id);x=j*120
-  t=E.SubElement(r,Q('text'),x=str(x+60),y='12',**{'font-family':'Noto Sans CJK TC','font-size':'12','text-anchor':'middle','fill':'#206B73'});t.text=id
+  t=E.SubElement(r,Q('text'),x=str(x+60),y='12',**{'font-family':'Noto Sans CJK TC','font-size':'12','text-anchor':'middle','fill':'#206B73'});t.text=('裝置' if lang=='zh' else 'Setup ')+id
   a=m['native']['frames'][0]['diagrams'][original_index];raw=root(a,lang);g=next(el for el in raw.iter(Q('g')) if el.get('class')=='ruler')
   ruler=E.SubElement(r,Q('svg'),x=str(x),y='24',width='39',height='83.46',viewBox='188 28 150 321',overflow='visible');ruler.append(copy.deepcopy(g));g=ruler[0]
   for el in list(g.iter(Q('text'))):
@@ -158,4 +162,31 @@ def compact_readings(m,lang,ids):
    n.set('x',str(x+43+i*18));n.set('y','27.64');n.set('width','13');n.set('height','74.88');r.append(n)
    t=E.SubElement(r,Q('text'),x=str(x+49.5+i*18),y='116',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle'});t.text=str(f['time'])
  t=E.SubElement(r,Q('text'),x=str(w/2),y='130',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle'});t.text='時間（min）' if lang=='zh' else 'Time (min)'
+ return E.tostring(r).decode()
+
+def main_readings(m,lang):
+ """Enlarged native xylem frames, three individually labelled scales/time axes."""
+ r=E.Element(Q('svg'),nsmap={None:NS});r.set('viewBox','0 0 510 175');r.set('width','510pt');r.set('height','175pt')
+ for j,id in enumerate('ABC'):
+  x=j*170
+  def label(xx,yy,text,**attrs):
+   t=E.SubElement(r,Q('text'),x=str(xx),y=str(yy),**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle',**attrs});t.text=text;return t
+  label(x+88,13,('裝置' if lang=='zh' else 'Setup ')+id,fill='#206B73')
+  label(x+9,79,'長度(cm)' if lang=='zh' else 'Length (cm)',transform=f'rotate(-90 {x+9} 79)')
+  raw=root(m['native']['frames'][0]['diagrams'][j],lang);g=next(el for el in raw.iter(Q('g')) if el.get('class')=='ruler')
+  ruler=E.SubElement(r,Q('svg'),x=str(x+17),y='24',width='57',height='121.98',viewBox='188 28 150 321',overflow='visible');ruler.append(copy.deepcopy(g))
+  for el in list(ruler[0].iter(Q('text'))):
+   value=''.join(el.itertext())
+   if value not in ['0','4','8','12','16']:el.getparent().remove(el);continue
+   el.set('font-size',str(11/.38));el.set('x','210');el.text=value
+   for child in list(el):el.remove(child)
+  for i,f in enumerate(m['native']['frames']):
+   n=specimen(f['diagrams'][j],lang,'100 42 50 288')
+   for child in list(n):
+    stem=child.tag==Q('path') and (child.get('fill','').startswith('url(') or child.get('opacity')=='.5')
+    dye=child.tag==Q('g') and child.get('clip-path')
+    if child.tag!=Q('defs') and not stem and not dye:n.remove(child)
+   n.set('x',str(x+67+i*24));n.set('y','29.32');n.set('width','19');n.set('height','109.44');r.append(n)
+   label(x+76.5+i*24,153,str(f['time']))
+  label(x+97,171,'時間(mins)' if lang=='zh' else 'Time (mins)')
  return E.tostring(r).decode()

@@ -13,7 +13,7 @@ for lang in ['zh','en']:
     assert z.testzip() is None
     xml=E.fromstring(z.read('word/document.xml'));text=''.join(xml.xpath('//w:t/text()',namespaces=ns))
     # Paragraphs, options, tables and answer lines remain actual Word elements.
-    assert len(xml.xpath('//w:tbl',namespaces=ns))==6
+    assert len(xml.xpath('//w:tbl',namespaces=ns))==5
     assert len(xml.xpath('//w:p',namespaces=ns))>40
     assert '□\u00a0' in text or '☑\u00a0' in text
     assert xml.xpath('//w:rPr/w:color[@w:val="BC2927"]',namespaces=ns)
@@ -33,9 +33,17 @@ for lang in ['zh','en']:
      assert '帶葉的裝置B的水跡平均上移速度比不帶葉的裝置D' in text
      assert '但無法代表葉片的蒸騰速率（即水分由氣孔散失的速度）' in text
      assert '下圖顯示3個帶葉裝置中植物木質部在不同時間點的吸水情況' in text
+    main_table=xml.xpath('(//w:tbl)[2]',namespaces=ns)[0]
+    assert len(main_table.xpath('./w:tr',namespaces=ns))==4 and len(main_table.xpath('./w:tr[1]/w:tc',namespaces=ns))==5
+    assert ('時間(mins)' if lang=='zh' else 'Time (mins)') in ''.join(main_table.xpath('.//w:t/text()',namespaces=ns))
+    if lang=='zh':
+     assert not re.search(r'(?<!裝置)(?<![A-Za-z0-9])(?:A|B|C)(?![A-Za-z0-9])',text)
+     assert '裝置A、裝置B、裝置C的植物的紅色水跡高度變化' in text
     # No tiny visible text in document XML.
     assert all(int(x.get('{'+ns['w']+'}val'))>=22 for x in xml.xpath('//w:sz',namespaces=ns))
     if lang=='en':
+     assert 'A celery stalk is a petiole.' in text and 'setup A celery' not in text
+     if key=='answersWord':assert 'leafy setup B' in text and 'leafless setup D' in text
      for q in src[lang]['conclusions']['questions']:
       assert not re.search('[\u3400-\u9fff]',re.sub(r'\([^()]*\)','',q['sentence'])),q['sentence']
    continue
@@ -48,6 +56,11 @@ for lang in ['zh','en']:
    assert all(s['size']>=10.9 for s in spans),(p,[(s['text'],s['size']) for s in spans if s['size']<10.9])
    assert all(12<=s['bbox'][0]<=584 and s['bbox'][2]<=585 and s['bbox'][3]<=836 for s in spans),(p,'overflow')
   if key!='D':
+   main_image=next(b for b in d[1].get_text('dict')['blocks'] if b['type']==1)
+   assert main_image['bbox'][2]-main_image['bbox'][0]>500 and main_image['bbox'][3]-main_image['bbox'][1]>170
+   table_label='時間(mins)' if lang=='zh' else 'Time (mins)'
+   main_table_blocks=[b for b in d[1].get_text('blocks') if table_label in b[4]]
+   assert len(main_table_blocks)==1 and main_table_blocks[0][1]>=main_image['bbox'][3]-1
    target='葉片的存在' if lang=='zh' else 'presence of leaves'
    assert any(target in s['text'] and s['color']==0xBC2927 for block in d[2].get_text('dict')['blocks'] if 'lines' in block for line in block['lines'] for s in line['spans']), (p,'red leaves heading')
    first=d[0];needle='姓名' if lang=='zh' else 'Name:';blocks=[b for b in first.get_text('blocks') if needle in b[4]];assert len(blocks)==1
@@ -96,5 +109,22 @@ for lang in ["zh","en"]:
   assert len(diagram.xpath("//s:rect[@class='dye-column']",namespaces=ns2))==8*len(ids)
   rulers=diagram.xpath("./s:svg[s:g[@class='ruler']]",namespaces=ns2)
   assert len(rulers)==len(ids) and all(r.get("overflow")=="visible" for r in rulers)
-  assert sum("16 cm" in "".join(r.itertext()) for r in rulers)==len(ids)
+  if ids=='ABC':
+   text_labels=diagram.xpath('./s:text/text()',namespaces=ns2)
+   assert text_labels.count('長度(cm)' if lang=='zh' else 'Length (cm)')==3
+   assert text_labels.count('時間(mins)' if lang=='zh' else 'Time (mins)')==3
+   assert all(('裝置' if lang=='zh' else 'Setup ')+id in text_labels for id in ids)
+   assert all(float(frame.get('height'))>100 for frame in diagram.xpath('./s:svg[not(s:g[@class="ruler"])]',namespaces=ns2))
+  else:assert sum("16 cm" in "".join(r.itertext()) for r in rulers)==len(ids)
 print("PASS: current ABC and D native print frames, readable centimetre labels and unclipped ruler tops")
+
+for lang in ['zh','en']:
+ scene=E.fromstring(native.scene(src[lang],lang).encode());labels=scene.xpath('./s:text/text()',namespaces=ns2)
+ assert ('觀察：' if lang=='zh' else 'Observation:') in labels
+ assert ('實驗設計：' if lang=='zh' else 'Experimental design:') in labels
+ assert scene.xpath('./s:path[@d="M204 0V128"]',namespaces=ns2)
+ assert len(scene.xpath('./s:svg',namespaces=ns2))==5
+ assert all(float(el.get('height'))>80 for el in scene.xpath('./s:svg',namespaces=ns2))
+ anatomy=E.fromstring(native.anatomy(src[lang],lang).encode())
+ assert anatomy.xpath('//s:g[@class="process-card"]/s:text/s:tspan[@dy="28"]',namespaces=ns2)
+print('PASS: enlarged native rulers with per-setup axes; editable table below; explicit setup names; larger five-frame scene with group headings/divider; wider process-card leading')

@@ -4,7 +4,7 @@
   "materialVersion": 5,
   "questionVersion": "VL2-Q4",
   "rubricVersion": "VL2-R4",
-  "revision": "8fca663407",
+  "revision": "ea22d481dd",
   "sourceDigest": "0b1a4963100fa412344f50a1366e867e934e69abfecc9c4c9a26d58332f18aff",
   "inputs": {
     "index.html": "abc49aa89fdfaa65fcce5bfd01c8aa865b6114ebdc9940e238a67022c333d09b",
@@ -16,8 +16,8 @@
     "paperwork/source.js": "2bf7678ec6c19f08acdc51665968de414c2f056a3b23ef0bd2d90715a6f9e3ea",
     "paperwork/client.js": "d0948b62ea7a8a6d0c153e72dccf2a44e81677ba4337b8e887e313d656121d67",
     "paperwork/build.cjs": "8b9b5037814f18fcd7fcfaaad3bc63a384256b8c0215e9eb958b9c8ee3ef5ab0",
-    "paperwork/worksheet.py": "172ac0d93593a0849c4201c268578a58cf056afe17dd72637659d7c409828cfe",
-    "paperwork/native.py": "00b3391564d52213130e1c61bd948dc387d25d2a98711e38ad71b2e0814ab0d3",
+    "paperwork/worksheet.py": "40bc7494bac1ce146133f2973c363feaf031cc85530ec22297bf33b51378e934",
+    "paperwork/native.py": "b756b3e4a3285fac7af861e0efe1a57bffd3b0269f83c929d04ad37dd46381aa",
     "paperwork/reflection.json": "318f3b18f7517546633fe78b7bb1c544efcb3d2fa1f992d6edc28ef99215fc40",
     "paperwork/requirements.txt": "ed183d2d731a750ab3a778a62eadd5669328a0f91786a0140f8b20b36c02be6a"
   },
@@ -25,38 +25,38 @@
     "zh": {
       "files": {
         "studentPDF": {
-          "path": "paperwork/generated/VL2_studentPDF_zh_v5_8fca663407.pdf",
+          "path": "paperwork/generated/VL2_studentPDF_zh_v5_ea22d481dd.pdf",
           "name": "WS2_student_zh_v5.pdf",
-          "bytes": 1009246,
-          "sha256": "73b049dea88e4e31a92bd03532177122b90368116aac5c2553893e7499eb0e94",
+          "bytes": 1162839,
+          "sha256": "29474a55a708fbc2d63e77c89b608c489d7479c7a55f787dfa6e7d452aea5595",
           "mime": "application/pdf"
         },
         "studentWord": {
-          "path": "paperwork/generated/VL2_studentWord_zh_v5_8fca663407.docx",
+          "path": "paperwork/generated/VL2_studentWord_zh_v5_ea22d481dd.docx",
           "name": "WS2_student_zh_v5.docx",
-          "bytes": 1512478,
-          "sha256": "8a3b9748cfb6003c33249473aa189d024fc09b08a09df65e64852ba6c715c516",
+          "bytes": 1592384,
+          "sha256": "77c16361e45d9d86439056e89faa6d30dda4be121ce89cb55c8211e4052a01b7",
           "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         },
         "answersPDF": {
-          "path": "paperwork/generated/VL2_answersPDF_zh_v5_8fca663407.pdf",
+          "path": "paperwork/generated/VL2_answersPDF_zh_v5_ea22d481dd.pdf",
           "name": "WS2_answers_zh_v5.pdf",
-          "bytes": 1063416,
-          "sha256": "5374b23d5207c64d89ce57eb58a113843a65e2744f6284ec63ecfd8148063d29",
+          "bytes": 1222384,
+          "sha256": "0745f661f7a8cebc936821602c7cc1c1d8162f1d0a84590e8303b323264b0c98",
           "mime": "application/pdf"
         },
         "answersWord": {
-          "path": "paperwork/generated/VL2_answersWord_zh_v5_8fca663407.docx",
+          "path": "paperwork/generated/VL2_answersWord_zh_v5_ea22d481dd.docx",
           "name": "WS2_answers_zh_v5.docx",
-          "bytes": 1532478,
-          "sha256": "33b63b0439b2786b8eceeb7ca1d3d18e83adeeca2cbaf9588a34aa8c17f1bbb5",
+          "bytes": 1625708,
+          "sha256": "72792f0c33e192f62433eeba9b275c8f442ed5ebe70ce31a728079bde1d27dcc",
           "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         },
         "D": {
-          "path": "paperwork/generated/VL2_D_zh_v5_8fca663407.pdf",
+          "path": "paperwork/generated/VL2_D_zh_v5_ea22d481dd.pdf",
           "name": "D_zh_v5.pdf",
-          "bytes": 330482,
-          "sha256": "62a62fa69f35a02fa934eb1c16b98d5ca21d6e8367af6d5bcebcf5f736305b9e",
+          "bytes": 330489,
+          "sha256": "f2b20b246bfa56fb912406804ad75f711e4a48ec660c78f3f2d0c3f3292999f5",
           "mime": "application/pdf"
         }
       }
@@ -64,38 +64,38 @@
     "en": {
       "files": {
         "studentPDF": {
-          "path": "paperwork/generated/VL2_studentPDF_en_v5_8fca663407.pdf",
+          "path": "paperwork/generated/VL2_studentPDF_en_v5_ea22d481dd.pdf",
           "name": "WS2_student_en_v5.pdf",
-          "bytes": 961827,
-          "sha256": "6df47f49d78d1ab5b51ebb7d0a53fc62ea6ba1e626e8b87095ebce5d92adfcb6",
+          "bytes": 1115276,
+          "sha256": "6a9fb71e31aebad1699ef3c979030ffad6701cec231d28aa2fbb4d36735175a7",
           "mime": "application/pdf"
         },
         "studentWord": {
-          "path": "paperwork/generated/VL2_studentWord_en_v5_8fca663407.docx",
+          "path": "paperwork/generated/VL2_studentWord_en_v5_ea22d481dd.docx",
           "name": "WS2_student_en_v5.docx",
-          "bytes": 1463116,
-          "sha256": "7ce3b6478a3229df176cc12132f6f8aee1cc4d4d39baa83690c00206491585c1",
+          "bytes": 1554623,
+          "sha256": "8695a862bc457da173545af45d4189ea024cd6ab8fe5dbdc77b6fa3471627fb6",
           "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         },
         "answersPDF": {
-          "path": "paperwork/generated/VL2_answersPDF_en_v5_8fca663407.pdf",
+          "path": "paperwork/generated/VL2_answersPDF_en_v5_ea22d481dd.pdf",
           "name": "WS2_answers_en_v5.pdf",
-          "bytes": 986970,
-          "sha256": "56ccf4954cac2b7df7985447acec7a93b94034d4ae952bd3dc19a6d7d4da8851",
+          "bytes": 1149667,
+          "sha256": "41d5c16fec8aff039d166d2f7401f65eba4fc96f21972d0133aae22fc6a230c4",
           "mime": "application/pdf"
         },
         "answersWord": {
-          "path": "paperwork/generated/VL2_answersWord_en_v5_8fca663407.docx",
+          "path": "paperwork/generated/VL2_answersWord_en_v5_ea22d481dd.docx",
           "name": "WS2_answers_en_v5.docx",
-          "bytes": 1483950,
-          "sha256": "f6700fb9304477e794684ccaa9cea5461bec6286075b49c6afbca4ed779312c9",
+          "bytes": 1595088,
+          "sha256": "e8e43902de63b367a798c5dc44478d4d447ca4c67e7f58ee5b5e2d39b1266e9d",
           "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         },
         "D": {
-          "path": "paperwork/generated/VL2_D_en_v5_8fca663407.pdf",
+          "path": "paperwork/generated/VL2_D_en_v5_ea22d481dd.pdf",
           "name": "D_en_v5.pdf",
           "bytes": 113914,
-          "sha256": "e80623886527f5304cef75275fe3fefd1930461b195721d61e065026655c05d5",
+          "sha256": "ac8069343ef105f74dac272a425de33d7f4aa4a21e28f63769d9611a8587d685",
           "mime": "application/pdf"
         }
       }
