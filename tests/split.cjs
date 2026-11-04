@@ -19,12 +19,21 @@ const {chromium}=require('playwright'),{localServer}=require('../paperwork/build
   await page.locator('#setupDescription').fill('Three leafy setups A 10 cm B 20 cm C 30 cm; equal leaf area and water depth; zero scales at water level and time together.');await page.locator('#saveSetup').click();await page.locator('#designNext').click();
   assert.equal(await page.evaluate(()=>state.phase),3);assert.equal(await page.locator('#labBench .specimen-card').count(),3);assert.equal(await page.locator('#experimentNext').isDisabled(),true);assert.equal(await page.locator('#learningReveal').isVisible(),false);
   async function english(scope){if(lang!=='en')return;const bad=await page.locator(scope).evaluate(root=>{const out=[],w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);for(let n;n=w.nextNode();){if(n.parentElement.closest('script,style,textarea,[data-user-text]'))continue;const t=n.nodeValue.replace(/\([^()]*[\u3400-\u9fff][^()]*\)/g,'');if(/[\u3400-\u9fff]/.test(t))out.push(t.trim());}return out;});assert.deepEqual(bad,[]);}
+  async function reviewMain(viaDesign=false){
+   const saved=await page.evaluate(()=>JSON.stringify({measurements:state.measurements,mainSnapshot:state.mainSnapshot,initialControl:state.initialControl,labStage:state.labStage,currentTime:state.currentTime,unlocked:state.unlocked,graph:state.graph}));
+   if(viaDesign){await page.locator('#phase-3 [data-back="2"]').click();await page.locator('#designNext').click();}else await page.locator('#backToMain').click();
+   assert.equal(await page.locator('#labBench .specimen-card').count(),3);assert.equal(await page.locator('#dataBody tr').count(),4);assert.equal(await page.locator('[data-measure]:enabled').count(),0);assert(await page.locator('#recordMeasurements').isHidden());
+   await english('#phase-3');await page.evaluate(l=>{VL2I18n.setLanguage(l==='en'?'zh':'en');VL2I18n.setLanguage(l);},lang);
+   await page.locator('#experimentNext').click();
+   const after=await page.evaluate(()=>JSON.stringify({measurements:state.measurements,mainSnapshot:state.mainSnapshot,initialControl:state.initialControl,labStage:state.labStage,currentTime:state.currentTime,unlocked:state.unlocked,graph:state.graph}));assert.equal(after,saved,'review navigation preserves both investigations and progress');
+  }
   for(const stage of ['main','extension']){
    if(stage==='extension'){
-    await page.locator('#experimentNext').click();assert.equal(await page.evaluate(()=>state.unlocked),3);assert(await page.locator('#extensionDesign').isVisible());assert(await page.locator('#labBench').isHidden());
+    await page.locator('#experimentNext').click();assert.equal(await page.evaluate(()=>state.unlocked),3);assert(await page.locator('#extensionDesign').isVisible());assert(await page.locator('#labBench').isHidden());await reviewMain();assert(await page.locator('#extensionDesign').isVisible());await reviewMain(true);
     await page.locator('#confirmExtension').click();assert.equal(await page.evaluate(()=>state.labStage),'extensionDesign');
     await page.locator('#controlPlan').fill('Yes. Compare leafy B with leafless D, both at 20 cm; keep all other conditions equal.');await page.locator('#confirmExtension').click();
     assert.equal(await page.locator('#labBench .specimen-card').count(),2);assert(await page.locator('[data-measure=B]').first().isDisabled());
+    const box=await page.locator('#labBench .specimen-card').first().boundingBox();assert(box.height<500);const svg=await page.locator('#labBench .specimen-svg').first().boundingBox();assert(svg.height<=301);await page.locator('#labBench').scrollIntoViewIfNeeded();await page.screenshot({path:'/tmp/vl2-extension-'+lang+'.png'});
    }
    await english('#phase-3');
    for(const t of [0,10,20,30]){
@@ -32,6 +41,7 @@ const {chromium}=require('playwright'),{localServer}=require('../paperwork/build
     if(stage==='main'&&t===30)await page.locator('[data-time="30"][data-measure="B"]').fill('7.4');
     await page.locator('#recordMeasurements').click();
     if(stage==='main'&&t===30){await page.locator('[data-time="30"][data-measure="B"]').fill('7.5');assert(await page.locator('#experimentNext').isDisabled());await page.locator('#recordMeasurements').click();}
+    if(stage==='extension'&&t===10){await reviewMain();await reviewMain(true);}
     if(t<30){await page.locator('#timerButton').click();await page.waitForFunction(t=>state.currentTime===t&&!state.running,t+10);}
    }
   }
@@ -45,6 +55,7 @@ const {chromium}=require('playwright'),{localServer}=require('../paperwork/build
   await page.locator('#connectPoints').click();for(const [id,v]of Object.entries({claim:'increase',leafComparison:'faster',leafConclusion:'promotes',limitations:'indirect'}))await page.locator('#'+id).selectOption(v);
   await page.locator('#submitInvestigation').click();await page.locator('#confirmSubmit').click();assert(await page.locator('#downloadPDF').isDisabled());assert(await page.locator('#controlPlan').isDisabled());
   await page.locator('#reflection').fill('Stronger light usually opens stomata. Water films evaporate; vapour diffuses through stomata. Water potential falls, xylem replenishes water and transpiration pull draws water upwards. Leafy B is faster than leafless D.');await page.locator('#saveReflection').click();assert.equal(await page.locator('#downloadPDF').isDisabled(),false);
+  await page.locator('#phase-4 [data-back="3"]').click();await reviewMain(true);await page.locator('#experimentNext').click();assert.equal(await page.evaluate(()=>state.phase),4);
   await page.evaluate(()=>renderReport(state));await english('#printReport');await page.pdf({path:'/tmp/vl2-split-'+lang+'.pdf',format:'A4',printBackground:true});
   // Real exporter sees Q4 stage provenance, snapshots and original answers.
   const pending=page.waitForEvent('download');await page.evaluate(()=>{activeProfile={name:'Teacher',classInfo:'T',email:TEACHER_EMAIL};writeStored(RECORDS_KEY,[state]);exportExcel();});await(await pending).saveAs('/tmp/vl2-split-'+lang+'.xlsx');

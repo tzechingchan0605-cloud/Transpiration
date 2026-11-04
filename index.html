@@ -9,14 +9,14 @@
   <script src="cloud-config.js?v=5" defer></script>
   <script src="cloud-bridge.js?v=6" defer></script>
   <script src="cloud-sync.js" defer></script>
-  <script src="i18n-static.js?v=32" defer></script>
+  <script src="i18n-static.js?v=33" defer></script>
   <script src="i18n-paper.js?v=2" defer></script>
   <script src="i18n-dynamic.js?v=31" defer></script>
   <script src="i18n-svg.js?v=1" defer></script>
   <script src="i18n.js?v=30" defer></script>
-  <script src="app.js?v=32" defer></script>
-  <script src="paperwork/source.js?v=32" defer></script>
-  <script src="paperwork/client.js?v=32" defer></script>
+  <script src="app.js?v=33" defer></script>
+  <script src="paperwork/source.js?v=33" defer></script>
+  <script src="paperwork/client.js?v=33" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到探究內容</a>
@@ -68,8 +68,8 @@
 
       <section id="phase-3" class="phase" hidden>
         <div class="phase-heading"><span class="phase-index">03</span><div><h2 tabindex="-1">進行探究與收集數據</h2><p>四個裝置同步運行；每 10 分鐘模擬時間進行一次量度。</p></div><span id="measurementProgress" class="trial-pill">0 / 4 個量度時間</span></div>
-        <section id="extensionDesign" hidden><h3>延伸探究：葉片有無會否影響吸水及水分向上運輸？</h3>          <article class="card"><p class="card-kicker">04 · 對照組設計</p><h3>探究的對照組</h3><label class="field">你認為此探究需要對照裝置嗎？如需要，你會如何設計比較裝置？<span class="question-hint control-purpose-hint">（提示：對照裝置提供比較基準；比較時保持所研究因素以外的條件相同。）</span><span class="question-hint">（提示：此對照裝置與實驗裝置有何不同之處？）</span><textarea id="controlPlan" rows="3" maxlength="1000"></textarea></label></article>
-<button id="confirmExtension" class="primary">確認對照設計，開始 B／D 延伸探究 →</button></section>
+        <section id="extensionDesign" hidden><h3>延伸探究：葉片的存在會否影響吸水及水分向上運輸？</h3>          <article class="card"><p class="card-kicker">04 · 對照組設計</p><h3>探究的對照組</h3><label class="field">你認為此探究需要對照裝置嗎？如需要，你會如何設計比較裝置？<span class="question-hint control-purpose-hint">（提示：對照裝置提供比較基準；比較時保持所研究因素以外的條件相同。）</span><span class="question-hint">（提示：此對照裝置與實驗裝置有何不同之處？）</span><textarea id="controlPlan" rows="3" maxlength="1000"></textarea></label></article>
+<button id="confirmExtension" class="primary">開始延伸探究 →</button></section>
         <div class="fair-note"><span>✦</span><p><b>固定條件：</b>溫度 25°C、相同濕度及氣流、相同紅色水濃度、2 cm 浸入深度，以及相近的長柄長度與粗幼。裝置A、裝置B、裝置C 的總葉面積相同；裝置D 沒有葉片。</p></div>
         <p class="experiment-timing-note"><strong>真實實驗提醒：</strong>量度時應讓實驗和計時持續進行，並在預定時間迅速讀取及記錄數據，不應為了量度而停止計時。本模擬暫停畫面，方便你觀察和記錄；這段操作時間不計入模擬的 30 分鐘。</p>
         <div class="timer-bar"><div><span class="card-kicker">模擬時間</span><strong id="timeDisplay">00 <small>分鐘</small></strong></div><div class="timer-track"><div id="timerFill"></div></div><span id="timerStatus" role="status">先記錄 0 分鐘讀數</span><button id="timerButton" class="primary" disabled>繼續實驗 +10 分鐘</button></div>
@@ -77,7 +77,7 @@
         <details class="ruler-guide"><summary>如何使用虛擬尺？</summary><p>按住尺子左右移動到長柄旁。尺子的 0 刻度已固定在水面位置，不能上下移動。讀取紅色水跡頂端的高度，輸入數據並保留一位小數。讀數旁的箭嘴每次增減 0.5 cm。</p><p>每段 10 分鐘模擬時間會加速至約 3 秒。這是教學模型，並非真實實驗的精確預測。</p></details>
         <div id="labBench" class="lab-bench"></div>
         <article class="card data-card"><div class="card-top"><div><p class="card-kicker">原始數據</p><h3>你的量度記錄</h3></div><span class="tag">高度單位：cm</span></div><div class="table-wrap"><table><thead><tr><th rowspan="2" scope="col">模擬時間（min）</th><th colspan="4" scope="colgroup">紅色水跡向上移動的距離（cm）</th></tr><tr><th scope="col">裝置A：10 cm 光照距離<br>帶葉</th><th>裝置B：20 cm 光照距離<br>帶葉</th><th>裝置C：30 cm 光照距離<br>帶葉</th><th>裝置D：20 cm 光照距離<br>不帶葉</th></tr></thead><tbody id="dataBody"></tbody></table></div><p class="muted">輸入讀數後按 Enter 可移到下一格；裝置D 後移到確認按鈕。保留你的首次讀數；修訂亦會記錄。平台不會把數據自動改成參考值。</p><button id="recordMeasurements" class="primary">確認並記錄本輪四項讀數</button><span id="measurementStatus" class="inline-status" role="status"></span></article>
-        <div class="action-row"><button class="secondary" data-back="2">← 查看探究設計</button><button id="experimentNext" class="primary" disabled>計算與分析我的數據 →</button></div>
+        <div class="action-row"><button class="secondary" data-back="2">← 查看探究設計</button><button id="backToMain" class="secondary" data-lab-nav hidden>← 返回主探究</button><button id="experimentNext" class="primary" disabled>計算與分析我的數據 →</button></div>
       </section>
 
       <section id="phase-4" class="phase" hidden>

@@ -136,3 +136,5 @@ v5使用VL原生完整構造圖、情境及裝置SVG；三色文字步驟與圖�
 Q4／R4 分拆探究：主探究只設計及量度三個帶葉裝置 A／B／C（光強度為唯一IV）；完成12個讀數後才呈現 B／D 延伸探究的對照設計。延伸以葉片有無為唯一IV，B沿用並鎖定主探究讀數，動畫顯示B／D，只新增D四個讀數。兩部分完成後才開放原有計算、作圖、分析及結論。無須替主探究另加無光組；延伸D為帶葉B的同距無葉對照。B不是獨立重複實驗。
 
 Q4/R4 separates two investigations. Design and measure leafy A/B/C first, varying light intensity only (12 readings). Next answer the extension control-design question, varying leaf presence only. Replay B/D, retaining locked main-investigation B and recording only four D readings. Complete both before the unchanged calculation, graph and analysis tasks. No extra dark setup is required for the light-level comparison; leafless D controls the equal-distance B/D comparison. B is shared data, not an independent replicate. Main snapshot, extension initial control response and stage-tagged events are retained; the Excel data sheet identifies reused B and extension D. SPS24 + reflection8 remains32; Q3 and older records keep their historical design rubrics.
+
+導覽：主探究標題「光強度與水分向上運輸」；延伸標題「葉片與水分向上運輸」。設計頁可重開已開放的主探究；延伸探究可返回查看主探究，再繼續原來時點及D讀數。延伸開始後主探究讀數只供查看，保留共用B及原快照。B／D圖像高度隨視窗縮放，量尺字體放大。紙本方格與選項首字以不換行空格連接。

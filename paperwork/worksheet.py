@@ -39,6 +39,7 @@ class Sheet:
   fp=sec.footer.paragraphs[0];fp.alignment=2;self.runs(fp,self.t('工作紙二｜','Worksheet 2 | '),11);fp._p.append(xml('w:fldSimple',**{'w:instr':'PAGE'}))
  def t(self,z,e):return z if self.lang=='zh' else e
  def runs(self,p,text,size=12,colour=None,bold=False,concept=False):
+  text=str(text).replace('□ ','□\u00a0').replace('☑ ','☑\u00a0')
   pieces=re.split('('+'|'.join(map(re.escape,sorted(TERMS,key=len,reverse=True)))+')',str(text)) if concept else [str(text)]
   for piece in pieces:
    if not piece:continue
@@ -127,7 +128,7 @@ def worksheet(lang,answers):
   ('水分上運：木質導管內的水被抽出，形成蒸騰拉力。','Upward transport: removing xylem water creates transpiration pull.')]):
   p=s.p(str(n+1)+'. '+T(z,e),colour=native.COLOURS[n],bold=True,after=1);p.paragraph_format.line_spacing=1.5
  s.p(T('供水充足、其他條件相同時，較強光照通常促進氣孔張開。西芹長柄是葉柄。','With adequate water and other conditions equal, stronger light favours stomatal opening. A celery stalk is a petiole.'),concept=True)
- s.h(T('部分 1｜研究情境與公平比較','Part 1 | Context and fair comparison'))
+ s.h(T('部分 1｜主探究：光強度與水分運輸','Part 1 | Light intensity and water transport'))
  s.p(T('園藝小組把帶葉西芹插入紅色水中。他們想知道：光照和葉片會否影響水分運輸？','The gardening club asks: do light and leaves affect upward water transport?'))
  scene(s)
  s.page()
@@ -160,8 +161,8 @@ def worksheet(lang,answers):
  rows=[['min','A','B','C']]+[[str(t)]+[f"{m['experiment']['model'][id][i]:.1f}" if answers else '' for id in 'ABC'] for i,t in enumerate([0,10,20,30])]
  s.table(rows,[1.25]*4,mark={(i,j) for i in range(1,5) for j in range(1,4)} if answers else None);s.d=doc
  s.page()
- s.h(T('部分 2｜B／D 延伸探究及數據分析','Part 2 | B/D extension and data analysis'))
- s.h(T('4. 葉片有無的影響：探究的對照組','4. Presence of leaves: a control setup'))
+ s.h(T('部分 2｜延伸探究：葉片與水分運輸','Part 2 | Leaves and water transport'))
+ s.h(T('4. 葉片的存在會否影響吸水及水分向上運輸？','4. Do leaves affect water uptake and upward water transport?'))
  outer=s.d.add_table(rows=1,cols=2);outer.autofit=False;outer.columns[0].width=Cm(13.5);outer.columns[1].width=Cm(4.5)
  doc=s.d;s.d=CellWriter(outer.cell(0,0),13.5)
  s.p(m['control']['question'])
@@ -206,6 +207,7 @@ def teacher(lang):
  s.p(T('v5依使用者四頁要求採用VL原生完整構造圖及剖視素材；橙色1a／1b、紫色2a／2b、藍色3與需知三段配對。變量與前提為1、2；對照移至延伸探究第4題；最後題逐字取VL同一來源，英文保留VL原有詞彙支援。','v5 keeps four pages and uses the full native VL anatomy and cutaway artwork. Orange 1a/1b, purple 2a/2b and blue 3 match the three note paragraphs. Variables and assumptions are items 1 and 2; control moves to extension item 4. The final question is taken verbatim from the VL source, including existing English vocabulary support.'))
  s.p(T('Q4分兩次量度流程：主探究A／B／C先設計及記錄12個讀數；然後才問B／D延伸對照設計。B沿用主探究，延伸動畫只新增D四個讀數。計算、作圖及結論保持原任務。SPS24＋反思8不變；主探究裝置方案只評三個帶葉裝置，延伸對照獨立評1分，B不重複計量度分。舊Q3及更早版本按原規準。','Q4 collects A/B/C first (12 readings), then asks the B/D extension control design. B is reused; extension animation adds only four D readings. Calculation, graph and conclusions retain their tasks. SPS24 + reflection8 is unchanged. Score only three leafy setups for the main plan; score extension control separately (1). Do not count B twice. Q3 and earlier retain their rubric.'))
  s.p(T('主探究只有光強度一個自變量；A／B／C是不同光強度的比較，無須另設無光組。延伸探究只有葉片有無一個自變量；同距不帶葉D作帶葉B的對照。B為共用比較裝置，並非重新收集的一份獨立重複數據。','The main investigation varies only light intensity; A/B/C compare light levels, without requiring an extra dark setup. The extension varies only leaf presence; leafless D is the equal-distance control for leafy B. B is shared comparison data, not an independent repeat.'))
+ s.p(T('VL可從設計頁進入已開放的主探究，亦可從延伸探究返回查看主探究；延伸開始後主探究讀數只供查看，返回延伸時保留原時點及D讀數，不重設B或覆寫主探究快照。','The VL design page can reopen the unlocked main investigation. The extension can return to the saved main readings for review; once the extension begins, those readings are read-only. Returning preserves the extension time, D readings, reused B and the main snapshot.'))
  s.h(T('派發及共同時限','Distribution and shared time'))
  s.p(T('控制組沒有課前概念講授，不操作VL。開始派發完整學生版，課題需知全程可讀。完成首次答案後先收取／掃描保存，再派完整答案版；保留原答，用另一顏色修正。D只供教師。','The control group receives no prior concept lecture and does not operate the VL. Distribute the complete student worksheet at the start, with topic notes available throughout. Collect or scan first responses before distributing complete answers. Keep original responses and correct in another colour. D is for teachers only.'))
  s.p(T('兩組共同目標15–20分鐘：需知3–4、研究情境與公平比較4–5、量度計算及作圖5–6、分析與整合3–4、保存及核對約1分鐘。須試教核對實際負荷；不是所有學生必定完成的保證。若核對需較長時間，兩組採同一安排並記錄。','Shared target: 15–20 minutes: notes 3–4, context and fair comparison 4–5, measurement/calculation/graph 5–6, analysis/integration 3–4, saving/checking about 1 minute. Pilot the workload; completion by every pupil is not guaranteed. If checking takes longer, apply the same arrangement to both groups and record it.'))

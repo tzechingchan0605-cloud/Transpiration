@@ -15,6 +15,7 @@ for lang in ['zh','en']:
     # Paragraphs, options, tables and answer lines remain actual Word elements.
     assert len(xml.xpath('//w:tbl',namespaces=ns))==6
     assert len(xml.xpath('//w:p',namespaces=ns))>40
+    assert '□\u00a0' in text or '☑\u00a0' in text
     assert xml.xpath('//w:rPr/w:color[@w:val="BC2927"]',namespaces=ns)
     if key=='studentWord':
      borders=xml.xpath('//w:pBdr/w:bottom',namespaces=ns);assert len(borders)==9
@@ -26,7 +27,7 @@ for lang in ['zh','en']:
     for c in src[lang]['assumptions']['choices']:assert c['text'] in text
     assert src[lang]['assumptions']['reminder'] in text
     for h in src[lang]['control']['hints']:assert h in text
-    assert text.index('1. '+('辨識主探究' if lang=='zh' else 'Identify variables')) < text.index('2. '+('選出公平比較' if lang=='zh' else 'Select the assumptions')) < text.index('3. '+('主探究' if lang=='zh' else 'Main investigation')) < text.index('4. '+('葉片有無' if lang=='zh' else 'Presence of leaves'))
+    assert text.index('1. '+('辨識主探究' if lang=='zh' else 'Identify variables')) < text.index('2. '+('選出公平比較' if lang=='zh' else 'Select the assumptions')) < text.index('3. '+('主探究' if lang=='zh' else 'Main investigation')) < text.index('4. '+('葉片的存在' if lang=='zh' else 'Do leaves affect'))
     assert src[lang]['reflection']['question'] in text
     if lang=='zh':
      assert '帶葉的裝置B的水跡平均上移速度比不帶葉的裝置D' in text
@@ -43,6 +44,7 @@ for lang in ['zh','en']:
   for page in d:
    assert abs(page.rect.width-595.28)<1 and abs(page.rect.height-841.89)<1
    spans=[s for b in page.get_text('dict')['blocks'] if 'lines' in b for l in b['lines'] for s in l['spans'] if s['text'].strip()]
+   assert all(not ''.join(s['text'] for s in line['spans']).rstrip().endswith(('□','☑')) for block in page.get_text('dict')['blocks'] if 'lines' in block for line in block['lines']), (p,'orphan checkbox')
    assert all(s['size']>=10.9 for s in spans),(p,[(s['text'],s['size']) for s in spans if s['size']<10.9])
    assert all(12<=s['bbox'][0]<=584 and s['bbox'][2]<=585 and s['bbox'][3]<=836 for s in spans),(p,'overflow')
   if key!='D':

@@ -7,6 +7,16 @@
  * support words consistently to static text, dynamic text and PDF content.
  */
 window.VL2_I18N_STATIC = {
+"主探究｜光強度與水分向上運輸": "Main investigation | Light intensity and upward water transport",
+"延伸探究｜葉片與水分向上運輸": "Extension | Leaves and upward water transport",
+"開始延伸探究 →": "Start the extension →",
+"查看主探究 →": "View the main investigation →",
+"確認設計，開始主探究 →": "Confirm the design and start the main investigation →",
+"← 返回主探究": "← Back to the main investigation",
+"返回延伸探究 →": "Return to the extension →",
+"查看已保存的主探究讀數。B 的數據繼續沿用於延伸探究。": "View the saved main-investigation readings. B remains the shared data for the extension.",
+"請等待本段動畫完成。": "Wait for this animation interval to finish.",
+
 "A／B／C 主探究先完成；延伸沿用 B，只新增 D。": "A/B/C were completed first. The extension reuses B and adds D only.",
 "可補充繪圖標示，或以文字完整描述三個帶葉裝置，作為繪圖的替代。": "Add labels to your drawing, or describe all three leafy setups in words instead.",
 "參考答案／說明：三株帶葉西芹：A 10 cm、B 20 cm、C 30 cm；相同葉面積、紅色水、浸入深度與量尺／計時安排。": "Reference answer / explanation: three leafy celery petioles: A 10 cm, B 20 cm, C 30 cm; equal leaf area, red water, immersion depth, and scale/timing arrangements.",
@@ -23,7 +33,7 @@ window.VL2_I18N_STATIC = {
 "延伸探究：葉片有無（B／D）": "Extension: presence of leaves (B/D)",
 "只改變光強度，三個帶葉裝置同步運行。": "Change only light intensity. The three leafy setups run together.",
 "B 讀數沿用主探究並鎖定；重播 B／D 動畫，只記錄 D。": "B readings are retained and locked. Replay B/D and record D only.",
-"延伸探究：葉片有無會否影響吸水及水分向上運輸？": "Extension: does the presence of leaves affect water uptake and upward transport?",
+"延伸探究：葉片的存在會否影響吸水及水分向上運輸？": "Extension: does the presence of leaves affect water uptake and upward transport?",
 "你認為此探究需要對照裝置嗎？如需要，你會如何設計比較裝置？": "Does this investigation need a control setup? If so, how would you design the comparison?",
 "（提示：對照裝置提供比較基準；比較時保持所研究因素以外的條件相同。）": "(Hint: a control setup provides a comparison baseline. Keep conditions other than the factor being investigated the same.)",
 "確認對照設計，開始 B／D 延伸探究 →": "Confirm the control design and start the B/D extension \u2192",
