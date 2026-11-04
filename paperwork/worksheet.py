@@ -193,15 +193,15 @@ def worksheet(lang,answers):
  s.p(m['control']['question'].replace('? If so','? \nIf so') if lang=='en' else m['control']['question'])
  for h in m['control']['hints']:s.hint(h)
  s.answer(T(m['reference']['texts']['control'],'Compare leafy setup B with leafless setup D at the same 20 cm lamp distance, keeping other conditions equal.'),2)
- outer=s.d.add_table(rows=1,cols=2);outer.autofit=False;outer.columns[0].width=Cm(13.5);outer.columns[1].width=Cm(4.5)
+ outer=s.d.add_table(rows=1,cols=2);outer.autofit=False;outer.columns[0].width=Cm(13);outer.columns[1].width=Cm(5)
  outer.cell(0,1).vertical_alignment=WD_CELL_VERTICAL_ALIGNMENT.CENTER
- doc=s.d;s.d=CellWriter(outer.cell(0,0),13.5)
+ doc=s.d;s.d=CellWriter(outer.cell(0,0),13)
  s.h(T('5. 延伸量度記錄','5. Extension readings'))
- s.p(T('B 沿用第3題的讀數，只讀取及記錄不帶葉 D 的高度（一位小數，cm）。','Reuse setup B from item 3. Read and record only leafless setup D (one decimal place, cm).'))
- s.table([['min','0','10','20','30'],[T('裝置D','Setup D')]+[f"{m['experiment']['model']['D'][i]:.1f}" if answers else '' for i in range(4)]],[2.7]*5,mark={(1,i) for i in range(4+1) if i>0} if answers else None)
+ s.p(T('B 沿用第3題的讀數，只讀取及記錄不帶葉 D 的高度（一位小數，cm）。','Reuse setup B from item 3. Read and record only leafless setup\u00a0D (one decimal place, cm).'))
+ s.table([['min','0','10','20','30'],[T('裝置D','Setup D')]+[f"{m['experiment']['model']['D'][i]:.1f}" if answers else '' for i in range(4)]],[2.6]*5,mark={(1,i) for i in range(4+1) if i>0} if answers else None)
  s.h(T('6. 計算紅色水跡頂的平均上移速度','6. Average upward speed of the red-trace top'))
  s.p(T('（30 min讀數 − 0 min讀數）÷ 30；結果保留兩位小數（cm/min）。','(30 min reading − 0 min reading) ÷ 30; give two decimal places (cm/min).'))
- s.table([[T('裝置'+id,'Setup '+id) for id in 'ABCD'],[m['reference']['rates'][id] if answers else '' for id in 'ABCD']],[3.375]*4,mark={(1,i) for i in range(4)} if answers else None)
+ s.table([[T('裝置'+id,'Setup '+id) for id in 'ABCD'],[m['reference']['rates'][id] if answers else '' for id in 'ABCD']],[3.25]*4,mark={(1,i) for i in range(4)} if answers else None)
  # Required empty paragraphs after nested tables must not consume visible space.
  for paragraph in outer.cell(0,0).paragraphs:
   if not paragraph.text and not paragraph._p.xpath('.//w:drawing'):
@@ -209,7 +209,7 @@ def worksheet(lang,answers):
   else:
    paragraph.paragraph_format.line_spacing=1.0;paragraph.paragraph_format.space_after=Pt(2)
    if paragraph.style.name.startswith('Heading'):paragraph.paragraph_format.space_before=Pt(3)
- s.d=CellWriter(outer.cell(0,1),4.5);s.pic(native.compact_readings(m,lang,'D'),'extension-readings-'+lang,4.23);s.d=doc
+ s.d=CellWriter(outer.cell(0,1),5);s.pic(native.compact_readings(m,lang,'D'),'extension-readings-'+lang,4.76);s.d=doc
  s.h(T('7. 光強度與紅色水跡上移速度','7. Light intensity and water-trace speed'))
  s.p(T('根據自己的計算標出A／B／C／D；以平滑趨勢線連接帶葉A／B／C，D獨立標示。','Plot setup A, setup B, setup C and setup D from your calculations. Join setup A, setup B and setup C with a smooth trend line; keep setup D separate.'))
  s.p(T('裝置A: 1200 lux　裝置B: 300 lux　裝置C: 133 lux　裝置D: 300 lux','Setup A: 1200 lux   Setup B: 300 lux   Setup C: 133 lux   Setup D: 300 lux'),11,after=0)

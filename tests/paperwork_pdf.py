@@ -136,7 +136,13 @@ for lang in ["zh","en"]:
    assert text_labels.count('時間(mins)' if lang=='zh' else 'Time (mins)')==3
    assert all(('裝置' if lang=='zh' else 'Setup ')+id in text_labels for id in ids)
    assert all(float(frame.get('height'))>100 for frame in diagram.xpath('./s:svg[not(s:g[@class="ruler"])]',namespaces=ns2))
-  else:assert sum("16 cm" in "".join(r.itertext()) for r in rulers)==len(ids)
+  else:
+   assert float(diagram.get('height').removesuffix('pt'))>150
+   assert ('長度(cm)' if lang=='zh' else 'Length (cm)') in diagram.xpath('./s:text/text()',namespaces=ns2)
+   assert ('時間(mins)' if lang=='zh' else 'Time (mins)') in diagram.xpath('./s:text/text()',namespaces=ns2)
+   marks=rulers[0].xpath('.//s:path[@class="major-reading-tick"]',namespaces=ns2)
+   assert len(marks)==5 and all(t.get('stroke-width')=='5' and t.get('stroke')=='#333333' for t in marks)
+   assert all(t.get('font-weight')=='700' for t in rulers[0].xpath('.//s:text',namespaces=ns2))
 print("PASS: current ABC and D native print frames, readable centimetre labels and unclipped ruler tops")
 
 for lang in ['zh','en']:

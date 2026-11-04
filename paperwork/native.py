@@ -151,30 +151,37 @@ def petiole_section(n,key):
 
 def compact_readings(m,lang,ids):
  if ids=='ABC':return main_readings(m,lang)
- """Native xylem/ruler paths, with a shared readable scale for each group."""
- r=E.Element(Q('svg'),nsmap={None:NS});w=120*len(ids)
- r.set('viewBox',f'0 0 {w} 132');r.set('width',f'{w}pt');r.set('height','132pt')
- for j,id in enumerate(ids):
-  original_index='ABCD'.index(id);x=j*120
-  t=E.SubElement(r,Q('text'),x=str(x+60),y='12',**{'font-family':'Noto Sans CJK TC','font-size':'12','text-anchor':'middle','fill':'#206B73'});t.text=('裝置' if lang=='zh' else 'Setup ')+id
-  a=m['native']['frames'][0]['diagrams'][original_index];raw=root(a,lang);g=next(el for el in raw.iter(Q('g')) if el.get('class')=='ruler')
-  ruler=E.SubElement(r,Q('svg'),x=str(x),y='24',width='39',height='83.46',viewBox='188 28 150 321',overflow='visible');ruler.append(copy.deepcopy(g));g=ruler[0]
-  for el in list(g.iter(Q('text'))):
-   value=''.join(el.itertext())
-   if value not in ['0','4','8','12','16']:el.getparent().remove(el);continue
-   el.set('font-size',str(11/.26));el.set('x','210');el.text=None
-   for c in list(el):el.remove(c)
-   el.text=value+(' cm' if value=='16' else '')
-  for i,f in enumerate(m['native']['frames']):
-   n=specimen(f['diagrams'][original_index],lang,'100 42 50 288')
-   for child in list(n):
-    stem=child.tag==Q('path') and (child.get('fill','').startswith('url(') or child.get('opacity')=='.5')
-    dye=child.tag==Q('g') and child.get('clip-path')
-    if child.tag!=Q('defs') and not stem and not dye:n.remove(child)
-   petiole_section(n,id+'-'+str(i))
-   n.set('x',str(x+43+i*18));n.set('y','27.64');n.set('width','13');n.set('height','74.88');r.append(n)
-   t=E.SubElement(r,Q('text'),x=str(x+49.5+i*18),y='116',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle'});t.text=str(f['time'])
- t=E.SubElement(r,Q('text'),x=str(w/2),y='130',**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle'});t.text='時間（min）' if lang=='zh' else 'Time (min)'
+ if ids=='D':return d_readings(m,lang)
+ raise ValueError('Unknown printed reading group')
+
+def d_readings(m,lang):
+ """A slightly larger D section, using the same axis style as A/B/C."""
+ r=E.Element(Q('svg'),nsmap={None:NS});r.set('viewBox','0 0 135 157');r.set('width','135pt');r.set('height','157pt')
+ def label(x,y,text,**attrs):
+  t=E.SubElement(r,Q('text'),x=str(x),y=str(y),**{'font-family':'Noto Sans CJK TC','font-size':'11','text-anchor':'middle',**attrs});t.text=text
+ label(70,12,'裝置D' if lang=='zh' else 'Setup D',fill='#206B73')
+ label(70,25,'（局部）' if lang=='zh' else '(section)',fill='#54746c')
+ label(8,76,'長度(cm)' if lang=='zh' else 'Length (cm)',transform='rotate(-90 8 76)')
+ raw=root(m['native']['frames'][0]['diagrams'][3],lang);g=next(el for el in raw.iter(Q('g')) if el.get('class')=='ruler')
+ ruler=E.SubElement(r,Q('svg'),x='15',y='24',width='45',height='96.3',viewBox='188 28 150 321',overflow='visible');ruler.append(copy.deepcopy(g))
+ for tick in ruler[0].iter(Q('path')):
+  match=re.fullmatch(r'M190 (\d+)h17',tick.get('d',''))
+  if match and int(match[1]) in [330,258,186,114,42]:
+   tick.set('stroke-width','5');tick.set('stroke','#333333');tick.set('class','major-reading-tick')
+ for el in list(ruler[0].iter(Q('text'))):
+  value=''.join(el.itertext())
+  if value not in ['0','4','8','12','16']:el.getparent().remove(el);continue
+  el.set('font-size',str(11/.30));el.set('font-weight','700');el.set('fill','#333333');el.set('x','210');el.text=value
+  for child in list(el):el.remove(child)
+ for i,frame in enumerate(m['native']['frames']):
+  n=specimen(frame['diagrams'][3],lang,'100 42 50 288')
+  for child in list(n):
+   stem=child.tag==Q('path') and (child.get('fill','').startswith('url(') or child.get('opacity')=='.5')
+   dye=child.tag==Q('g') and child.get('clip-path')
+   if child.tag!=Q('defs') and not stem and not dye:n.remove(child)
+  petiole_section(n,'D-'+str(i));n.set('x',str(55+i*18));n.set('y','28.2');n.set('width','15');n.set('height','86.4');r.append(n)
+  label(62.5+i*18,130,str(frame['time']))
+ label(90,152,'時間(mins)' if lang=='zh' else 'Time (mins)')
  return E.tostring(r).decode()
 
 def main_readings(m,lang):
