@@ -19,7 +19,7 @@
 
 `source.js`只讀canonical DOM及`VL2InquiryContent()`，不讀學生value/storage。`worksheet.py`以同一雙語來源產生可編輯DOCX，LibreOffice實際開啟後轉PDF，確保Word/PDF內容與頁序一致。`reflection.json`保存雙語最終題／答案；修改時須同步`app.js`和翻譯，測試檢核一致性。生成器不改寫學生資料或呼叫正式雲端。
 
-依賴：Node20+、Playwright1.62.1、Chromium、Python3.12、LibreOffice Writer、Noto Sans CJK TC、libcairo2。支援`CHROMIUM_PATH`／`SOFFICE_PATH`。在需額外網路權限的sandbox中，以環境支援的網路權限執行本機測試伺服器。
+依賴：Node20+、Playwright1.62.1、Chromium、Python3.12、LibreOffice Writer（重算XLSX測試另需Calc）、Noto Sans CJK TC、libcairo2。支援`CHROMIUM_PATH`／`SOFFICE_PATH`。在需額外網路權限的sandbox中，以環境支援的網路權限執行本機測試伺服器。
 
 ```sh
 npm install --no-save --package-lock=false playwright@1.62.1

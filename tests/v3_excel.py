@@ -25,7 +25,8 @@ s['AC10']='ignored current N/A'
 s['AC15']=None
 work=Path('/tmp/vl2-xlsx-recalc');work.mkdir(exist_ok=True);src=work/'input.xlsx';w.save(src)
 out=work/'recalculated';out.mkdir(exist_ok=True)
-subprocess.run([os.environ.get('SOFFICE_PATH','soffice'),'-env:UserInstallation=file:///tmp/vl2-v3-lo','--headless','--convert-to','xlsx','--outdir',str(out),str(src)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=60)
+result=subprocess.run([os.environ.get('SOFFICE_PATH','soffice'),'-env:UserInstallation=file:///tmp/vl2-v3-lo','--headless','--convert-to','xlsx','--outdir',str(out),str(src)],capture_output=True,text=True,timeout=60)
+assert result.returncode==0, 'Install LibreOffice Calc for XLSX recalculation: '+result.stdout+result.stderr
 z=load_workbook(out/'input.xlsx',data_only=True)['教師評分']
 # New leaf column AD, knowledge AE, overall AF, marking AG.
 for row in [2,4,5,6,7,8,9,13,15]:
