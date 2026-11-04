@@ -4,6 +4,7 @@
 // never use this dictionary. Named placeholders are resolved by i18n.js.
 (() => {
   const exact = {
+"紅色水跡可作為植物吸水及水分向上運輸的線索，但無法代表葉片的蒸騰速率（即水分由氣孔散失的速度）。": "The red water trace indicates water uptake and upward water transport, but does not represent leaf transpiration rate (the rate of water loss through stomata).",
     '光強度': 'Light intensity',
     '光照強度': 'Light intensity',
     '紅色水跡上升高度／平均上移速度': 'Height / average upward speed of the red water trace',

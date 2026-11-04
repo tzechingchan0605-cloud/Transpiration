@@ -26,6 +26,12 @@ for lang in ['zh','en']:
     for c in src[lang]['assumptions']['choices']:assert c['text'] in text
     assert src[lang]['assumptions']['reminder'] in text
     for h in src[lang]['control']['hints']:assert h in text
+    assert text.index('1. '+('辨識實驗變量' if lang=='zh' else 'Identify the variables')) < text.index('2. '+('選出公平比較' if lang=='zh' else 'Select the assumptions')) < text.index('3. '+('探究的對照組' if lang=='zh' else 'A comparison setup'))
+    assert src[lang]['reflection']['question'] in text
+    if lang=='zh':
+     assert '帶葉的裝置B的水跡平均上移速度比不帶葉的裝置D' in text
+     assert '但無法代表葉片的蒸騰速率（即水分由氣孔散失的速度）' in text
+     assert '下圖顯示4個裝置中植物木質部在不同時間點的吸水情況' in text
     # No tiny visible text in document XML.
     assert all(int(x.get('{'+ns['w']+'}val'))>=22 for x in xml.xpath('//w:sz',namespaces=ns))
     if lang=='en':
@@ -48,7 +54,7 @@ for lang in ['zh','en']:
     rules=[(i,dr) for i,page in enumerate(d) for dr in page.get_drawings() if dr.get('color') and all(abs(c-.2)<.01 for c in dr['color']) and dr.get('width',0)>=.9 and dr['rect'].width>500 and dr['rect'].height<2]
     positions=sorted(set((i,round(dr['rect'].y0,1)) for i,dr in rules))
     assert len(positions)==9,(lang,positions)
-    for page in [0,3]:
+    for page in [1,3]:
      ys=[y for i,y in positions if i==page]
      assert all(25<ys[k+1]-ys[k]<27 for k in range(len(ys)-1)),ys
    full=''.join(x.get_text() for x in d)
@@ -60,3 +66,21 @@ assert src['zh']['reflection']['question']==ref['question']
 assert ref['question'] in (root/'app.js').read_text()
 assert ref['answer'] in (root/'app.js').read_text()
 print('PASS: four actual A4 Word-rendered pages per student/answer edition; real editable Word elements and exact original options/hints; >=11pt PDF text; red bold concepts; one-line identity; dark 1pt rules; ten valid files; versioned shared final question')
+
+# Original native botanical geometry is preserved, not replaced by simplified art.
+import sys
+sys.path.insert(0,str(root/'paperwork'))
+import native
+for lang in ['zh','en']:
+ ns2={'s':'http://www.w3.org/2000/svg'}
+ raw=E.fromstring(src[lang]['native']['anatomy']['svg'].encode());printed=E.fromstring(native.anatomy(src[lang],lang).encode())
+ assert raw.xpath('//@data-anatomy')==printed.xpath('//@data-anatomy')
+ assert raw.xpath('//s:path/@d',namespaces=ns2)==printed.xpath('//s:path/@d',namespaces=ns2)
+ markers=printed.xpath('//s:g[@class="process-marker"]/s:circle/@fill',namespaces=ns2)
+ assert set(markers)=={'#'+c for c in native.COLOURS}
+ reading=E.fromstring(native.readings(src[lang],lang).encode())
+ y=reading.xpath('//s:rect[@class="dye-column"]/@y',namespaces=ns2)
+ expected=[str(330-src[lang]['experiment']['model'][id][i]*18) for id in 'ABCD' for i in range(4) for _ in range(2)]
+ assert list(map(float,y))==list(map(float,expected))
+ assert len(y)==32 and sum('cm' in ''.join(e.itertext()) for e in reading.xpath('./s:svg/s:g/s:text',namespaces=ns2))==4
+ print('PASS:',lang,'full native anatomy/path provenance, three matched step colours, 16 native xylem frames and cm labels')

@@ -7,6 +7,7 @@ from docx.shared import Pt,Cm,RGBColor
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 import cairosvg
+import native
 ROOT=Path(__file__).resolve().parent; OUT=ROOT/'generated'; WORK=ROOT.parent/'work'/'paper-build';WORK.mkdir(parents=True,exist_ok=True)
 SRC=json.loads((OUT/'source.json').read_text());REF=json.loads((ROOT/'reflection.json').read_text())
 TEAL='206B73';RED='BC2927';BLUE='165CA5';FONT='Noto Sans CJK TC'
@@ -18,11 +19,11 @@ def xml(tag,**attrs):
  return e
 class Sheet:
  def __init__(self,lang,answers=False,teacher=False):
-  self.lang=lang;self.answers=answers;self.teacher=teacher;self.m=SRC[lang];self.d=Document();sec=self.d.sections[0]
+  self.pending_break=False;self.lang=lang;self.answers=answers;self.teacher=teacher;self.m=SRC[lang];self.d=Document();sec=self.d.sections[0]
   sec.page_width=Cm(21);sec.page_height=Cm(29.7);sec.top_margin=Cm(1.25);sec.bottom_margin=Cm(1.25);sec.left_margin=Cm(1.5);sec.right_margin=Cm(1.5)
   sec.header_distance=Cm(.5);sec.footer_distance=Cm(.5)
   st=self.d.styles['Normal'];st.font.name=FONT;st.font.size=Pt(12);st.element.rPr.rFonts.set(qn('w:eastAsia'),FONT)
-  st.paragraph_format.line_spacing=Pt(18);st.paragraph_format.space_after=Pt(3)
+  st.paragraph_format.line_spacing=1.5;st.paragraph_format.space_after=Pt(4)
   for sn in ['Heading 1','Heading 2','Heading 3']:
    sty=self.d.styles[sn];sty.font.name=FONT;sty.font.size=Pt(15 if sn=='Heading 1' else 12);sty.font.color.rgb=RGBColor.from_string(TEAL);sty.paragraph_format.space_before=Pt(5);sty.paragraph_format.space_after=Pt(3)
   hp=sec.header.paragraphs[0];self.runs(hp,self.t('生物科｜蒸騰與水分運輸','Biology | Transpiration and water transport')+(self.t('｜參考答案',' | Reference answers') if answers else ''),11)
@@ -36,15 +37,23 @@ class Sheet:
    if colour or (concept and piece in TERMS):r.font.color.rgb=RGBColor.from_string(RED if concept and piece in TERMS else colour)
   return p
  def p(self,text='',size=12,colour=None,bold=False,concept=False,after=3):
-  p=self.d.add_paragraph();p.paragraph_format.space_after=Pt(after);p.paragraph_format.line_spacing=Pt(size*1.5);self.runs(p,text,size,colour,bold,concept);return p
- def h(self,text,level=2):return self.d.add_paragraph(text,'Heading '+str(level))
- def hint(self,text):self.p(text,11,'607D85')
+  p=self.d.add_paragraph();self.apply_break(p);p.paragraph_format.space_after=Pt(after);p.paragraph_format.line_spacing=1.15;self.runs(p,text,size,colour,bold,concept);return p
+ def h(self,text,level=2):
+  p=self.d.add_paragraph(text,'Heading '+str(level));self.apply_break(p)
+  if text.startswith(('部分','Part ')):
+   for r in p.runs:r.font.size=Pt(13)
+  return p
+ def hint(self,text):
+  p=self.p(text,11,'607D85');p.paragraph_format.line_spacing=Pt(16.5)
  def answer(self,text,lines=2):
-  if self.answers:self.p(self.t('參考答案：','Reference answer: ')+text,12,BLUE,True)
+  if self.answers:
+   p=self.p(self.t('參考答案：','Reference answer: ')+text,12,BLUE,True);p.paragraph_format.line_spacing=1.0
   else:
    for _ in range(lines):
     p=self.p('',after=0);p.paragraph_format.line_spacing=Pt(23);p.paragraph_format.space_before=Pt(0);p.add_run(' ');pr=p._p.get_or_add_pPr();b=xml('w:pBdr');b.append(xml('w:bottom',**{'w:val':'single','w:sz':'8','w:color':'333333','w:space':'1'}));b.append(xml('w:between',**{'w:val':'single','w:sz':'8','w:color':'333333','w:space':'1'}));pr.append(b)
  def table(self,rows,widths=None,mark=None):
+  if rows[0][0] in ['題','Item']:rows=[rows[0]]+sorted(rows[1:],key=lambda row:int(row[0].split('–')[0]))
+  self.table_numeric=rows[0][0] in ['時間（min）','Time (min)','A']
   t=self.d.add_table(rows=0,cols=len(rows[0]));t.autofit=False
   if widths:
    for c,w in zip(t.columns,widths):c.width=Cm(w)
@@ -53,7 +62,8 @@ class Sheet:
    if widths:
     for c,w in zip(cells,widths):c.width=Cm(w)
    for j,txt in enumerate(row):
-    p=cells[j].paragraphs[0];p.paragraph_format.space_after=Pt(2);p.paragraph_format.space_before=Pt(1);p.paragraph_format.line_spacing=Pt(18)
+    p=cells[j].paragraphs[0];p.paragraph_format.space_after=Pt(1);p.paragraph_format.space_before=Pt(0);p.paragraph_format.line_spacing=Pt(20)
+    if self.table_numeric:p.paragraph_format.line_spacing=Pt(16);p.paragraph_format.space_before=Pt(0);p.paragraph_format.space_after=Pt(0)
     self.runs(p,txt,12,BLUE if mark and (i,j) in mark else TEAL if i==0 else None,bool(i==0 or mark and (i,j) in mark))
     tcpr=cells[j]._tc.get_or_add_tcPr();b=xml('w:tcBorders')
     for edge in ['top','left','bottom','right']:b.append(xml('w:'+edge,**{'w:val':'single','w:sz':'4','w:color':'BED0D2'}))
@@ -64,63 +74,29 @@ class Sheet:
  def pic(self,svg,key,width=18):
   path=WORK/(key+'.png');cairosvg.svg2png(bytestring=svg.encode(),write_to=str(path),scale=4)
   (WORK/(key+'.svg')).write_text(svg)
-  p=self.p('',after=3);p.paragraph_format.line_spacing=1;p.add_run().add_picture(str(path),width=Cm(width))
- def page(self):self.d.add_page_break()
+  p=self.p('',after=0);p.alignment=1;p.paragraph_format.line_spacing=1;p.add_run().add_picture(str(path),width=Cm(width))
+ def apply_break(self,p):
+  if self.pending_break:p.paragraph_format.page_break_before=True;self.pending_break=False
+ def page(self):self.pending_break=True
  def save(self,name):
   path=OUT/name;self.d.save(path);return path
 
 def svg(w,h,body):return f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}pt" height="{h}pt" viewBox="0 0 {w} {h}"><rect width="{w}" height="{h}" rx="5" fill="#F4F8F8"/>{body}</svg>'
 def txt(x,y,s,size=11,col='#206B73',anchor='start'):return f'<text x="{x}" y="{y}" font-family="Noto Sans CJK TC" font-size="{size}" fill="{col}" text-anchor="{anchor}">{s}</text>'
-def flow(s,labels,key):
- w=510;cw=166;body=''
- for i,lines in enumerate(labels):
-  x=i*172;body+=f'<rect x="{x+2}" y="4" width="160" height="50" rx="5" fill="#E3F0EF" stroke="#BDD0D2"/>'
-  for j,line in enumerate(lines):body+=txt(x+82,24+j*18,line,11,anchor='middle')
-  if i<2:body+=f'<path d="M{x+164} 30H{x+172}M{x+169} 27L{x+172} 30L{x+169} 33" fill="none" stroke="#206B73" stroke-width="1"/>'
- s.pic(svg(w,58,body),key)
-def scene(s):
- body=''
- for i,label in enumerate([s.t('開始時','At the start'),s.t('過了一段時間','After some time')]):
-  x=60+i*270
-  body+=txt(x+70,15,label,11,anchor='middle')
-  body+=f'<path d="M{x+8} 34V54H{x+51}V34" fill="#F9DDD8" stroke="#607D85"/><path d="M{x+29} 48V21" stroke="#9BB67A" stroke-width="8"/>'
-  body+=f'<ellipse cx="{x+20}" cy="25" rx="12" ry="4" fill="#77A379"/><ellipse cx="{x+39}" cy="21" rx="12" ry="4" fill="#77A379"/>'
-  if i:body+=f'<path d="M{x+29} 48V31" stroke="#BE302D" stroke-width="2"/>'
- body+=txt(255,42,'→',15,anchor='middle')
- s.pic(svg(510,60,body),'scene-'+s.lang)
-def apparatus(s):
- body=''
- for i,c in enumerate(s.m['experiment']['setups']):
-  x=i*127;body+=txt(x+63,15,c['id']+' · '+s.t('帶葉' if c['leaves'] else '不帶葉','leaves' if c['leaves'] else 'no leaves'),11,anchor='middle')
-  body+=f'<path d="M{x+28} 34V75H{x+67}V34" fill="#FAE7E5" stroke="#607D85"/><path d="M{x+45} 66V28" stroke="#8B9C66" stroke-width="7"/>'
-  if c['leaves']:body+=f'<ellipse cx="{x+37}" cy="29" rx="12" ry="5" fill="#77A379"/><ellipse cx="{x+54}" cy="22" rx="12" ry="5" fill="#77A379"/>'
-  body+=f'<path d="M{x+88} 35L{x+78} 48H{x+100}Z M{x+88} 35V24H{x+105}V64" fill="#F6D98A" stroke="#607D85"/>'
-  body+=txt(x+63,93,f"{c['distance']} cm · {c['light']} lux",11,anchor='middle')
- s.pic(svg(510,101,body),f'apparatus-{s.lang}')
-def rulers(s):
- body=''
- for c,id in enumerate('ABCD'):
-  x=c*127;base=143;sc=7
-  body+=txt(x+63,15,id+' · cm',11,anchor='middle')
-  for half in range(33):
-   v=half/2;y=base-v*sc
-   body+=f'<path d="M{x+28} {y}h{12 if half%8==0 else 8 if half%2==0 else 4}" stroke="#333" stroke-width=".6"/>'
-   if half%8==0:body+=txt(x+24,y+3,str(int(v)),11,'#333','end')
-  for i,t in enumerate([0,10,20,30]):
-   bx=x+46+i*23;h=s.m['experiment']['model'][id][i]
-   body+=f'<rect x="{bx}" y="31" width="8" height="112" fill="#E1E9D7" stroke="#849A75"/><rect x="{bx}" y="{base-h*sc}" width="8" height="{max(h*sc,.4)}" fill="#BD302D"/>'
-   body+=txt(bx+4,160,str(t),11,'#333','middle')
-  body+=f'<path d="M{x+28} {base}H{x+126}" stroke="#333"/>'
-  body+=txt(x+63,178,'min',11,'#333','middle')
- s.pic(svg(510,184,body),'rulers-'+s.lang)
+def anatomy(s):s.pic(native.anatomy(s.m,s.lang),'native-anatomy-'+s.lang,16.8)
+def scene(s):s.pic(native.scene(s.m,s.lang),'native-scene-'+s.lang)
+def apparatus(s):s.pic(native.apparatus(s.m,s.lang),'native-apparatus-'+s.lang)
+def rulers(s):s.pic(native.readings(s.m,s.lang),'native-readings-'+s.lang)
 def graph(s):
- body='';x0=40;y0=143;pw=440;ph=120
+ body='';x0=63;y0=135;pw=420;ph=88
  for i in range(7):
-  x=x0+i*pw/6;body+=f'<path d="M{x} 23V{y0}" stroke="#CDD9DB" stroke-width=".5"/>'+txt(x,y0+16,str(i*200),11,'#333','middle')
+  x=x0+i*pw/6;body+=f'<path d="M{x} 47V{y0}" stroke="#CDD9DB" stroke-width=".5"/>'+txt(x,y0+16,str(i*200),11,'#333','middle')
  for i in range(6):
-  y=y0-i*ph/5;body+=f'<path d="M{x0} {y}H480" stroke="#CDD9DB" stroke-width=".5"/>'+txt(x0-5,y+4,f'{i/10:.1f}',11,'#333','end')
- body+=txt(40,15,s.t('Y：紅色水跡平均上移速度（cm/min）','Y: Average upward speed of red water trace (cm/min)'),11)
- body+=txt(480,177,s.t('X：光強度（lux）','X: Light intensity (lux)'),11,anchor='end')
+  y=y0-i*ph/5;body+=f'<path d="M{x0} {y}H483" stroke="#CDD9DB" stroke-width=".5"/>'+txt(x0-5,y+4,f'{i/10:.1f}',11,'#333','end')
+ body+=txt(255,16,s.t('光強度與紅色水跡平均上移速度','Light intensity and average upward speed of the red water trace'),11,anchor='middle')
+ label=s.t(['紅色水跡頂的平均上移速度','（cm/min）'],['Average upward speed of','the top of the red water trace','(cm/min)'])
+ body+='<text x="25" y="91" transform="rotate(-90 25 91)" font-family="Noto Sans CJK TC" font-size="11" text-anchor="middle" fill="#206B73">'+''.join(f'<tspan x="25" dy="{(-6 if len(label)==2 else -13) if i==0 else 13}">{line}</tspan>' for i,line in enumerate(label))+'</text>'
+ body+=txt(273,172,s.t('光強度（lux）','Light intensity (lux)'),11,anchor='middle')
  if s.answers:
   coords=[]
   for c in s.m['experiment']['setups']:
@@ -128,29 +104,25 @@ def graph(s):
    body+=f'<circle cx="{x}" cy="{y}" r="3" fill="#165CA5"/>'+txt(x+5,y-4,id,11,'#165CA5')
    if id!='D':coords.append((c['light'],x,y))
   coords.sort();(_,xa,ya),(_,xb,yb),(_,xc,yc)=coords;body+=f'<path d="M{xa} {ya} C{xa+15} {ya-18},{xb-15} {yb+4},{xb} {yb} S{xc-90} {yc+2},{xc} {yc}" fill="none" stroke="#165CA5" stroke-width="1.3"/>'
- s.pic(svg(510,184,body),f'graph-{s.lang}-{s.answers}')
+ s.pic(svg(510,180,body),f'graph-{s.lang}-{s.answers}')
 
 def worksheet(lang,answers):
  s=Sheet(lang,answers);m=s.m;T=s.t
  s.h(T('工作紙二：蒸騰與水分運輸','Worksheet 2: Transpiration and water transport'),1)
  s.p(T('姓名：________________　班別：________　學號：________','Name: ________________   Class: ________   No.: ________'))
- s.p(T('請先閱讀「課題需知」，再根據情境及模擬結果作答。','Read the topic notes, then answer using the context and simulated results.'))
  s.h(T('課題需知','Topic notes'))
- s.h(T('01　蒸騰：水分以水汽形式散失','01  Transpiration: water loss as vapour'))
- s.p(T('水從葉肉細胞表面的水膜蒸發，進入氣室。氣室內的水汽沿濃度梯度經氣孔擴散到大氣，形成蒸騰。','Water evaporates from water films on mesophyll cell surfaces into air spaces. Water vapour diffuses down a concentration gradient through stomata into the air: transpiration.'),concept=True)
- flow(s,[[T('葉肉表面水膜','Mesophyll water films'),T('液態水','Liquid water')],[T('蒸發 → 氣室','Evaporation → air spaces'),T('形成水汽','Water vapour forms')],[T('經氣孔擴散','Diffusion via stomata'),T('水汽散失到大氣','Vapour lost to the air')]],'flow1-'+lang)
- s.h(T('02　蒸騰拉力：水分沿木質部上運','02  Transpiration pull: transport through xylem'))
- s.p(T('失水令葉肉細胞水勢下降，水分藉滲透從鄰近細胞補充，水因而從木質導管被移走，形成蒸騰拉力，牽引水分向上運輸。供水充足、其他條件相同時，較強光照通常促進氣孔張開。西芹長柄是葉柄，內含木質部。','Water loss lowers mesophyll water potential. Osmosis draws replacement water from neighbouring cells. Water is removed from xylem vessels, creating transpiration pull and drawing water upwards. With adequate water and other conditions equal, stronger light usually favours stomatal opening. A celery stalk is a petiole containing xylem.'),concept=True)
- flow(s,[[T('水勢下降','Water potential falls'),T('滲透補充水分','Osmosis replaces water')],[T('木質導管水被移走','Water leaves xylem'),T('形成蒸騰拉力','Transpiration pull forms')],[T('水分沿木質導管','Water moves upwards'),T('向上運輸','through xylem vessels')]],'flow2-'+lang)
+ anatomy(s)
+ for n,(z,e) in enumerate([
+  ('蒸騰：葉肉表面水膜蒸發，水汽經氣孔擴散到大氣。','Transpiration: water films evaporate; vapour diffuses through stomata.'),
+  ('失水與補水：葉肉細胞水勢下降，藉滲透吸收水分。','Water replacement: mesophyll water potential falls; osmosis draws in water.'),
+  ('水分上運：木質導管內的水被抽出，形成蒸騰拉力。','Upward transport: removing xylem water creates transpiration pull.')]):
+  p=s.p(str(n+1)+'. '+T(z,e),colour=native.COLOURS[n],bold=True,after=1);p.paragraph_format.line_spacing=1.5
+ s.p(T('供水充足、其他條件相同時，較強光照通常促進氣孔張開。西芹長柄是葉柄。','With adequate water and other conditions equal, stronger light favours stomatal opening. A celery stalk is a petiole.'),concept=True)
  s.h(T('部分 1｜研究情境與公平比較','Part 1 | Context and fair comparison'))
- s.p(T('園藝小組把帶葉西芹插入紅色水中。他們想知道：光照和葉片會否影響水分運輸？','The gardening club puts celery with leaves in red water. Will light and leaves affect water transport?'))
+ s.p(T('園藝小組把帶葉西芹插入紅色水中。他們想知道：光照和葉片會否影響水分運輸？','The gardening club asks: do light and leaves affect upward water transport?'))
  scene(s)
- s.h(T('1. 探究的對照組','1. A comparison setup'))
- s.p(m['control']['question'])
- for h in m['control']['hints']:s.hint(h)
- s.answer(m['reference']['texts']['control'],2)
  s.page()
- s.h(T('2. 辨識實驗變量','2. Identify the variables'))
+ s.h(T('1. 辨識實驗變量','1. Identify the variables'))
  s.p(T('在每列剔選適當的因素；每類可選多於一項。','Tick the appropriate factors in each row. You may choose more than one per type.'))
  rows=[[T('變量類別','Variable type'),T('可選因素','Factors')]]
  for g in m['variables']['groups']:
@@ -164,67 +136,72 @@ def worksheet(lang,answers):
  if answers:
   for i,g in enumerate(m['variables']['groups'],1):
    cell=tab.cell(i,1);cell.text=''
-   p=cell.paragraphs[0];p.paragraph_format.line_spacing=Pt(18);p.paragraph_format.space_after=Pt(2)
+   p=cell.paragraphs[0];p.paragraph_format.line_spacing=Pt(20);p.paragraph_format.space_after=Pt(1)
    for j,c in enumerate(m['variables']['choices']):
     ok=c['id'] in m['reference']['variables'][g['id']];s.runs(p,('☑ ' if ok else '□ ')+c['text']+'  ',12,BLUE if ok else None,ok)
- s.h(T('3. 選出公平比較所需的前提（可選多於一項）','3. Select the assumptions for a fair comparison (select all that apply)'))
+ s.h(T('2. 選出公平比較所需的前提（可選多於一項）','2. Select the assumptions for a fair comparison (select all that apply)'))
  s.hint(m['assumptions']['reminder'])
  for c in m['assumptions']['choices']:
   ok=next(x['valid'] for x in m['reference']['assumptions'] if x['id']==c['id']);s.p(('☑ ' if answers and ok else '□ ')+c['text'],colour=BLUE if answers and ok else None,bold=answers and ok,after=1)
- s.h(T('部分 2.1｜讀尺及計算','Part 2.1 | Read scales and calculate'))
- apparatus(s)
- s.hint(T('各裝置25°C、相同濕度及氣流、染液濃度及2 cm浸入深度、相近葉柄尺寸；A／B／C總葉面積相同。','All setups: 25°C, equal humidity, air movement and dye concentration, 2 cm immersion, similar petiole dimensions; A/B/C have equal total leaf area.'))
+ s.h(T('3. 探究的對照組','3. A comparison setup'))
+ s.p(m['control']['question'])
+ for h in m['control']['hints']:s.hint(h)
+ s.answer(T(m['reference']['texts']['control'],'Compare leafy B with leafless D at the same 20 cm lamp distance, keeping all other conditions equal.'),2)
  s.page()
+ s.h(T('部分 2｜實驗結果與分析','Part 2 | Results and analysis'))
  s.h(T('4. 你的量度記錄','4. Your measurement record'))
- s.p(T('讀取各時點紅色水跡頂端的高度，保留一位小數（cm）。','Read the height of each red trace at each time, to one decimal place (cm).'))
+ s.p(T('下圖顯示4個裝置中植物木質部在不同時間點的吸水情況，請讀取各時間點紅色水跡頂端的高度，並取至一位小數（cm）。','The diagrams show water uptake in the plant xylem of four setups at different times. Read the height of the top of each red water trace at each time, to one decimal place (cm).'))
  rulers(s)
  rows=[[T('時間（min）','Time (min)'),'A','B','C','D']]+[[str(t)]+[f"{m['experiment']['model'][id][i]:.1f}" if answers else '' for id in 'ABCD'] for i,t in enumerate([0,10,20,30])]
  s.table(rows,[3.6]*5,mark={(i,j) for i in range(1,5) for j in range(1,5)} if answers else None)
- s.h(T('5. 計算平均上移速度','5. Calculate average upward speed'))
+ s.h(T('5. 計算紅色水跡頂的平均上移速度','5. Calculate the average upward speed of the top of the red water trace'))
  s.p(T('（30 min讀數 − 0 min讀數）÷ 30；結果保留兩位小數（cm/min）。','(30 min reading − 0 min reading) ÷ 30; give two decimal places (cm/min).'))
  s.table([['A','B','C','D'],[m['reference']['rates'][id] if answers else '' for id in 'ABCD']],[4.5]*4,mark={(1,i) for i in range(4)} if answers else None)
- s.h(T('部分 2.2｜作圖','Part 2.2 | Graph'))
  s.h(T('6. 光強度與紅色水跡上移速度','6. Light intensity and water-trace speed'))
- s.p(T('根據自己的計算標出A／B／C／D；以平滑趨勢線連接帶葉A／B／C，D獨立標示。','Plot A/B/C/D using your calculations. Join A/B/C with a smooth trend line; show D separately.'))
+ s.p(T('根據自己的計算標出A／B／C／D；以平滑趨勢線連接帶葉A／B／C，D獨立標示。','Plot A–D from your calculations. Join A–C with a smooth trend line; keep D separate.'))
+ s.p('A: 1200 lux　B: 300 lux　C: 133 lux　D: 300 lux',11,after=0)
  graph(s)
  s.page()
- s.h(T('部分 2.3｜分析結果','Part 2.3 | Analyse the results'))
+ s.h(T('部分 2｜實驗結果與分析（續）','Part 2 | Results and analysis (continued)'))
  # Retain the native four analysis questions as sentence choices, with no reason fields.
  for i,q in enumerate(m['conclusions']['questions']):
   s.h(str(7+i)+'. '+re.sub(r'^\d+\.\s*','',q['heading']))
   text=q['sentence'];opts=q['options'];correct={'claim':'increase','leafComparison':'faster','leafConclusion':'promotes','limitations':'indirect'}[q['id']]
   if q['id']=='limitations':
-   s.p(text.replace('__________',''))
-   for c in opts:s.p(('☑ ' if answers and c['id']==correct else '□ ')+c['text'],colour=BLUE if answers and c['id']==correct else None,bold=answers and c['id']==correct,after=0)
+   p=s.p(text.replace('__________',''),after=0);p.paragraph_format.line_spacing=1.0
+   for c in opts:
+    p=s.p(('☑ ' if answers and c['id']==correct else '□ ')+c['text'],colour=BLUE if answers and c['id']==correct else None,bold=answers and c['id']==correct,after=0);p.paragraph_format.line_spacing=1.0
   else:
-   p=s.p();pre,post=text.split('__________');s.runs(p,pre+'（')
+   p=s.p(after=0);p.paragraph_format.line_spacing=1.0;pre,post=text.split('__________');s.runs(p,pre+'（')
    for j,c in enumerate(opts):
     if j:s.runs(p,' / ')
     s.runs(p,c['text'],12,BLUE if answers and c['id']==correct else None,answers and c['id']==correct)
    s.runs(p,'）'+post)
  s.h(T('部分 3｜整合解釋','Part 3 | Integrated explanation'))
- s.p('11. '+T(REF['question'].replace('學習重點','課題需知'),REF['question_en'].replace('learning points','topic notes')))
- s.answer(T(REF['answer'],REF['answer_en']),7)
+ s.p('11. '+m['reflection']['question'])
+ s.answer(T(REF['answer'], 'Other conditions equal, stronger light usually opens stomata, increasing transpiration and water transport. Water evaporates from mesophyll water films into air spaces; vapour diffuses down its concentration gradient through stomata: transpiration. Loss lowers mesophyll water potential; xylem replenishes water. Removal creates transpiration pull, drawing water up xylem vessels. Leaves provide the main transpiring surface, so leafy B has a faster trace than leafless D at equal distance.'),7)
  return s.save(f'WS2_{"answers" if answers else "student"}_{lang}.docx')
 
 def teacher(lang):
  s=Sheet(lang,teacher=True);T=s.t;m=s.m
  s.h(T('D · 教師指引、配對及評分','D · Teacher guidance, alignment and marking'),1)
- s.p('WS2 v3 · VL2-Q3 · VL2-R3')
+ s.p('WS2 v4 · VL2-Q3 · VL2-R3')
+ s.p(T('v4依使用者四頁要求採用VL原生完整構造圖及剖視素材；橙色1a／1b、紫色2a／2b、藍色3與需知三段配對。變量、前提、對照依次為1、2、3；最後題逐字取VL同一來源，英文保留VL原有詞彙支援。','v4 keeps four pages and uses the full native VL anatomy and cutaway artwork. Orange 1a/1b, purple 2a/2b and blue 3 match the three note paragraphs. Variables, assumptions and control are items 1, 2 and 3. The final question is taken verbatim from the VL source, including existing English vocabulary support.'))
  s.h(T('派發及共同時限','Distribution and shared time'))
  s.p(T('控制組沒有課前概念講授，不操作VL。開始派發完整學生版，課題需知全程可讀。完成首次答案後先收取／掃描保存，再派完整答案版；保留原答，用另一顏色修正。D只供教師。','The control group receives no prior concept lecture and does not operate the VL. Distribute the complete student worksheet at the start, with topic notes available throughout. Collect or scan first responses before distributing complete answers. Keep original responses and correct in another colour. D is for teachers only.'))
  s.p(T('兩組共同目標15–20分鐘：需知3–4、研究情境與公平比較4–5、量度計算及作圖5–6、分析與整合3–4、保存及核對約1分鐘。須試教核對實際負荷；不是所有學生必定完成的保證。若核對需較長時間，兩組採同一安排並記錄。','Shared target: 15–20 minutes: notes 3–4, context and fair comparison 4–5, measurement/calculation/graph 5–6, analysis/integration 3–4, saving/checking about 1 minute. Pilot the workload; completion by every pupil is not guaranteed. If checking takes longer, apply the same arrangement to both groups and record it.'))
  s.p(T('教師只澄清頁序、圈選、讀尺位置與單位；首次答案保存前不講授概念或提示正確選項。記錄支援、未完成項目及實際用時。VL仍先探究，提交後才顯示學習重點與反思，反思提交後才解鎖學生PDF。','Clarify procedure, choices, scale position and units only. Before saving first responses, give no concept teaching or correct choices. Record support, unfinished items and time. VL learning points and reflection remain locked until investigation submission; student PDF unlocks after reflection submission.'))
  s.h(T('逐題配對、題型與共同內容','Item alignment, format and shared content'))
- mapping=[['WS','VL',T('題型／共同概念技能','Format / shared concept or skill')],['1','controlPlan',T('開放設計：同距帶葉／不帶葉公平比較','Open design: equal-distance leaf comparison')],['2','variableQuiz',T('各列七完整選項複選：IV／DV／CV','Seven full choices per row: IV/DV/CV')],['3','assumptionChoices',T('原四選項複選：公平比較前提','Original four choices: fair-comparison assumptions')],['4','measurements 0/10/20/30',T('16讀尺：觀察與記錄','16 scale readings: observation and recording')],['5','rate-A/B/C/D',T('四計算：按自己的初末數據','Four calculations: own initial/final readings')],['6','graph.points / connected',T('四標點、A/B/C趨勢：溝通','Four points and A/B/C trend: communication')],['7','claim',T('原句圈選：光照趨勢','Original sentence choice: light trend')],['8','leafComparison',T('原句圈選：B/D比較','Original sentence choice: B/D comparison')],['9','leafConclusion',T('原句圈選：葉片作用','Original sentence choice: leaf function')],['10','limitations',T('原三選項：間接指標','Original three choices: indirect indicator')],['11','reflection (Q3)',T('整合解釋：蒸騰及拉力因果','Integrated explanation: transpiration and pull')]]
+ mapping=[['WS','VL',T('題型／共同概念技能','Format / shared concept or skill')],['3','controlPlan',T('開放設計：同距帶葉／不帶葉公平比較','Open design: equal-distance leaf comparison')],['1','variableQuiz',T('各列七完整選項複選：IV／DV／CV','Seven full choices per row: IV/DV/CV')],['2','assumptionChoices',T('原四選項複選：公平比較前提','Original four choices: fair-comparison assumptions')],['4','measurements 0/10/20/30',T('16讀尺：觀察與記錄','16 scale readings: observation and recording')],['5','rate-A/B/C/D',T('四計算：按自己的初末數據','Four calculations: own initial/final readings')],['6','graph.points / connected',T('四標點、A/B/C趨勢：溝通','Four points and A/B/C trend: communication')],['7','claim',T('原句圈選：光照趨勢','Original sentence choice: light trend')],['8','leafComparison',T('原句圈選：B/D比較','Original sentence choice: B/D comparison')],['9','leafConclusion',T('原句圈選：葉片作用','Original sentence choice: leaf function')],['10','limitations',T('原三選項：間接指標','Original three choices: indirect indicator')],['11','reflection (Q3)',T('整合解釋：蒸騰及拉力因果','Integrated explanation: transpiration and pull')]]
+ mapping=[mapping[0]]+sorted(mapping[1:],key=lambda row:int(row[0]))
  s.table(mapping,[1,5,12])
  s.p(T('紙本沒有原始初步觀察、實驗前預測及理由、自由繪畫／文字裝置方案、移尺、模擬計時及確認操作的作答機會；不把讀靜態圖當完整實作。紙本前置概念使預測表現與VL不同，故不另造「修訂假說」題。','Paper has no response opportunity for original preliminary observation, pre-experiment prediction/reason, free apparatus drawing/written plan, ruler dragging, simulation timing or confirmation actions. Static scale reading is not a full practical investigation. Concept-first study changes prediction opportunities, so no hypothesis-revision question is invented.'))
  s.h(T('紙本分項評分與缺答','Paper item marking and omissions'))
  s.p(T('各項分開記錄，不合成可與VL32分直接換算的活動總分。缺答填0；尚未評留白；沒有作答機會填不適用。計分依概念與因果，接受等義表述，不數關鍵字。','Record item scores separately; do not convert a paper activity total to the VL 32-point scale. Mark an omitted asked item 0, an unmarked item blank, and an unasked item not applicable. Judge concepts and causes; accept equivalent wording rather than counting keywords.'))
- s.table([[T('題','Item'),T('最高分','Max'),T('給分及部分分','Credit and partial credit')],['1','1',T('同燈距、帶葉／不帶葉、其他條件相同，三者齊得1。','1 for equal lamp distance, leaves versus no leaves, and other conditions equal.')],['2','4',T('IV全對1；DV全對1；CV每正確0.4，誤選IV/DV則CV為0。','IV exact 1; DV exact 1; CV 0.4 each; including IV/DV in CV gives CV 0.')],['3','1',T('只選第1、2、4項得1；不另給部分分。','Select only choices 1, 2 and 4: 1; otherwise 0.')],['4','2',T('2×正確數÷16，容差±0.25cm，保留兩位小數。','2 × correct/16; tolerance ±0.25 cm; two decimals.')],['5','2',T('每組0.5；自己的末−初再÷30，±0.0051cm/min。','0.5 each; own (final−initial)/30; ±0.0051 cm/min.')],['6','2',T('各點0.375，按自己的計算標點；A/B/C正確趨勢0.5，D不連入。','0.375 per point against own calculations; correct A/B/C trend 0.5, D separate.')],['7–10','2',T('7、8、9、10各0.5；8依學生B/D計算比較。','0.5 each for 7, 8, 9, 10; judge 8 against own B/D rates.')],['11','8',T('依以下Q3機制規準，不要求修訂原假說。','Use the Q3 mechanism rubric below; no hypothesis revision required.')]], [1.5,1.5,15])
+ s.table([[T('題','Item'),T('最高分','Max'),T('給分及部分分','Credit and partial credit')],['3','1',T('同燈距、帶葉／不帶葉、其他條件相同，三者齊得1。','1 for equal lamp distance, leaves versus no leaves, and other conditions equal.')],['1','4',T('IV全對1；DV全對1；CV每正確0.4，誤選IV/DV則CV為0。','IV exact 1; DV exact 1; CV 0.4 each; including IV/DV in CV gives CV 0.')],['2','1',T('只選第1、2、4項得1；不另給部分分。','Select only choices 1, 2 and 4: 1; otherwise 0.')],['4','2',T('2×正確數÷16，容差±0.25cm，保留兩位小數。','2 × correct/16; tolerance ±0.25 cm; two decimals.')],['5','2',T('每組0.5；自己的末−初再÷30，±0.0051cm/min。','0.5 each; own (final−initial)/30; ±0.0051 cm/min.')],['6','2',T('各點0.375，按自己的計算標點；A/B/C正確趨勢0.5，D不連入。','0.375 per point against own calculations; correct A/B/C trend 0.5, D separate.')],['7–10','2',T('7、8、9、10各0.5；8依學生B/D計算比較。','0.5 each for 7, 8, 9, 10; judge 8 against own B/D rates.')],['11','8',T('依以下Q3機制規準，不要求修訂原假說。','Use the Q3 mechanism rubric below; no hypothesis revision required.')]], [1.5,1.5,15])
  s.h(T('完整參考答案及可接受表述','Full answers and acceptable equivalents'))
- s.p(T('1：','1: ')+m['reference']['texts']['control'])
- s.p(T('2：IV光強度；DV紅色水跡上升高度／平均上移速度；CV為餘下五項。3：第1、2、4項。','2: IV light intensity; DV height/average upward speed of red trace; CV the remaining five factors. 3: choices 1, 2, 4.'))
+ s.p(T('3：','3: ')+m['reference']['texts']['control'])
+ s.p(T('1：IV光強度；DV紅色水跡上升高度／平均上移速度；CV為餘下五項。2：第1、2、4項。','1: IV light intensity; DV height/average upward speed of red trace; CV the remaining five factors. 2: choices 1, 2, 4.'))
  s.table([[T('時點 min','Time min'),'A','B','C','D']]+[[str(t)]+[f"{m['experiment']['model'][id][i]:.1f}" for id in 'ABCD'] for i,t in enumerate([0,10,20,30])],[3.6]*5)
  s.p(T('5：A 0.40、B 0.25、C 0.15、D 0.05 cm/min。接受依學生自己讀數正確計算，量度誤差不重複扣計算及作圖分。','5: A 0.40, B 0.25, C 0.15, D 0.05 cm/min. Accept correct calculation from own readings; do not penalise the same scale error again in calculation or plotting.'))
  s.p(T('6：A(1200,0.40)、B(300,0.25)、C(133,0.15)、D(300,0.05)，D獨立。7增加；8快（按學生數據）；9有助水分向上運輸；10第一項。','6: A(1200,0.40), B(300,0.25), C(133,0.15), D(300,0.05), with D separate. 7 increase; 8 faster (follow own data); 9 help water move upwards; 10 first choice.'))

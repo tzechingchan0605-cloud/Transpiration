@@ -1,10 +1,10 @@
-# WS2 v3 ↔ VL2-Q3
+# WS2 v4 ↔ VL2-Q3
 
 | WS | VL | 題型 / Format |
 | --- | --- | --- |
-| 1 | controlPlan | Open control design |
-| 2 | variableQuiz | Seven choices per variable row |
-| 3 | assumptionChoices | Four original assumptions |
+| 1 | variableQuiz | Seven choices per variable row |
+| 2 | assumptionChoices | Four original assumptions |
+| 3 | controlPlan | Open control design |
 | 4 | measurements 0/10/20/30 | 16 static scale readings |
 | 5 | rate-A/B/C/D | Calculation from own data |
 | 6 | graph.points / connected | Four points and A/B/C trend |

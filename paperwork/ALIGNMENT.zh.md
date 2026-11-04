@@ -1,10 +1,10 @@
-# WS2 v3 ↔ VL2-Q3
+# WS2 v4 ↔ VL2-Q3
 
 | WS | VL | 題型 / Format |
 | --- | --- | --- |
-| 1 | controlPlan | 對照開放題 |
-| 2 | variableQuiz | 七選項逐列複選 |
-| 3 | assumptionChoices | 原四項前提複選 |
+| 1 | variableQuiz | 七選項逐列複選 |
+| 2 | assumptionChoices | 原四項前提複選 |
+| 3 | controlPlan | 對照開放題 |
 | 4 | measurements 0/10/20/30 | 16靜態讀尺 |
 | 5 | rate-A/B/C/D | 自己的數據計算 |
 | 6 | graph.points / connected | 四點及A/B/C趨勢 |

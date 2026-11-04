@@ -8,10 +8,21 @@
   const question=id=>{const e=document.createElement('div');e.innerHTML=VL2I18n.sourceHTML(document.querySelector('#'+id).closest('label'));e.querySelectorAll('textarea,span').forEach(n=>n.remove());return t(e.textContent.trim());};
   const options=id=>[...clone('#'+id).options].filter(o=>o.value).map(o=>({id:o.value,text:t(o.textContent)}));
   const sentence=id=>{const e=document.createElement('div');e.innerHTML=VL2I18n.sourceHTML(document.querySelector('#'+id).closest('label'));const walker=document.createTreeWalker(e,NodeFilter.SHOW_TEXT);for(let node;node=walker.nextNode();)node.nodeValue=t(node.nodeValue);e.querySelector('select').replaceWith('__________');return e.textContent.trim();};
-  return {moduleId:core.moduleId,version:'VL2-WS2-v3',sharedVersion:core.version,language:lang,
+  const native=html=>{
+   const host=document.createElement('div');host.innerHTML=html;
+   const svg=host.querySelector('svg'),labels={};
+   svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
+   svg.querySelectorAll('text').forEach(el=>{
+    const original=el.hasAttribute('data-i18n-svg')?JSON.parse(el.dataset.i18nLines).join(''):el.textContent;
+    labels[original]=t(original);
+   });
+   return {svg:svg.outerHTML,labels};
+  };
+  return {moduleId:core.moduleId,version:'VL2-WS2-v4',sharedVersion:core.version,language:lang,
    variables:{groups:core.variableGroups.map(([id,title,definition])=>({id,title:t(title),definition:t(definition)})),choices:core.variableNames.map(id=>({id,text:t(id)}))},
    assumptions:{reminder:t(clone('#assumptionReminder').textContent),choices:core.assumptions.map(o=>({id:o.id,text:t(o.text)}))},
    control:{question:question('controlPlan'),hints:[...document.querySelector('#controlPlan').closest('article').querySelectorAll('.question-hint')].map(e=>t(VL2I18n.sourceHTML(e).replace(/<[^>]*>/g,'')))},
+   native:{anatomy:native(core.anatomy()),sceneBefore:native(core.specimen('ws-before',0,true)),sceneAfter:native(core.specimen('ws-after',7,true)),setups:core.ids.map(id=>({id,...native(core.specimen('ws-setup-'+id,0,core.conditions[id].leaves,true))})),frames:core.times.map((time,i)=>({time,diagrams:core.ids.map(id=>({id,...native(core.specimen('ws-'+id+'-'+time,core.model[id][i],core.conditions[id].leaves,true))}))}))},
    experiment:{model:core.model,setups:core.ids.map(id=>({...core.conditions[id],id}))},
    conclusions:{questions:['claim','leafComparison','leafConclusion','limitations'].map(id=>({id,heading:(()=>{const e=document.createElement('div');e.innerHTML=VL2I18n.sourceHTML(document.querySelector('#'+id).closest('.conclusion-question').querySelector('h4'));return t(e.textContent);})(),sentence:sentence(id),options:options(id)}))},
    reflection:{question:question('reflection')},

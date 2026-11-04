@@ -10,9 +10,9 @@ VL retains investigation-first stages and post-submission learning points/reflec
 
 模型：帶葉A 10cm/1200lux、B 20cm/300lux、C 30cm/133lux；無葉D 20cm/300lux。固定25°C、濕度、氣流、染液濃度及2cm浸入深度、相近葉柄尺寸，A/B/C葉面積相同。四時點0/10/20/30min，水跡模型A[0,4,8,12]、B[0,2.5,5,7.5]、C[0,1.5,3,4.5]、D[0,0.5,1,1.5]cm。模型未經實驗校準。
 
-最後題改為綜合實驗結果與學習重點／課題需知，解釋光強度、葉片、蒸騰與拉力，不要求修訂原假說。配分機制及逐題機會詳見D和[配對表](paperwork/ALIGNMENT.zh.md)。VL內部SPS24＋反思8保留，Q3改以葉片領域取代舊修訂領域；歷史版本依當時規準。Q3不再自動把完成四輪當SPS能力分，改由記錄品質評分。紙本分項獨立記錄，不直接與VL活動總分互換。
+WS及VL最後題逐字同用「綜合實驗結果與學習重點」的共同題幹，解釋光強度、葉片、蒸騰與拉力，不要求修訂原假說。配分機制及逐題機會詳見D和[配對表](paperwork/ALIGNMENT.zh.md)。VL內部SPS24＋反思8保留，Q3改以葉片領域取代舊修訂領域；歷史版本依當時規準。Q3不再自動把完成四輪當SPS能力分，改由記錄品質評分。紙本分項獨立記錄，不直接與VL活動總分互換。
 
-The final task integrates results with learning points/topic notes to explain light, leaves, transpiration and pull, without hypothesis revision. VL retains SPS24 + reflection8; Q3 replaces the revision domain with leaves. Historical versions retain their rubric. Q3 assesses measurement-record quality rather than automatically scoring round completion as ability. Paper item scores are recorded separately and are not interchangeable with VL totals.
+WS and VL share the final prompt verbatim; it integrates results with learning points to explain light, leaves, transpiration and pull, without hypothesis revision. VL retains SPS24 + reflection8; Q3 replaces the revision domain with leaves. Historical versions retain their rubric. Q3 assesses measurement-record quality rather than automatically scoring round completion as ability. Paper item scores are recorded separately and are not interchangeable with VL totals.
 
 課程依repo既有課本第11.1節、頁11-3至11-8的引用及原有學習重點核對。原課本及正式syllabus本次未提供，不能獨立核實官方要求。共同測驗、評分者一致性及構念效度仍需另外研究；點擊、用時及完成率不直接作能力分。
 
