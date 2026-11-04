@@ -1,4 +1,4 @@
-name: Verify VL2 paper materials
+name: Verify VL2 WS2 materials
 on:
   push:
     branches: [main]
@@ -16,15 +16,20 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y libreoffice-writer fonts-noto-cjk libcairo2
       - run: npm install --no-save --package-lock=false playwright@1.62.1
       - run: npx playwright install --with-deps chromium
-      - run: python -m pip install PyMuPDF==1.26.6
+      - run: python -m pip install -r paperwork/requirements.txt openpyxl pypdf
       - run: echo "CHROMIUM_PATH=$(node -p 'require("playwright").chromium.executablePath()')" >> "$GITHUB_ENV"
       - run: node paperwork/build.cjs --check
-      - run: node tests/paperwork.cjs
       - run: python tests/paperwork_pdf.py
+      - run: node tests/paperwork.cjs
+      - run: node tests/v3.cjs
+      - run: python tests/v3_excel.py
+      - run: node tests/language.cjs
       - run: node paperwork/build.cjs
+      - run: python tests/paperwork_pdf.py
       - uses: actions/upload-artifact@v4
         with:
-          name: VL2-bilingual-paper-materials
+          name: VL2-bilingual-WS2
           path: paperwork/generated/

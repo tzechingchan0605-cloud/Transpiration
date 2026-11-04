@@ -7,6 +7,22 @@
  * support words consistently to static text, dynamic text and PDF content.
  */
 window.VL2_I18N_STATIC = {
+"參考答案：其他條件相同且供水充足時，較強光照通常有利氣孔張開。葉肉細胞表面的水膜蒸發，水汽進入氣室，再經氣孔沿濃度梯度擴散離開葉片，形成蒸騰。失水使葉肉細胞水勢下降，水分由木質導管補充；水從導管被移走形成蒸騰拉力，帶動水分沿木質導管向上運輸。葉片提供蒸騰的主要表面；帶葉裝置通常比同距不帶葉裝置呈現較快的水跡上移。水跡速度是間接指標，不能直接等同蒸騰速率。": "Reference answer: With other conditions equal and an adequate water supply, stronger light usually favours stomatal opening. Water evaporates from the water films on mesophyll cell surfaces into the air spaces. Water vapour then diffuses through stomata down a concentration gradient and leaves the leaf, producing transpiration. Water loss lowers the water potential of mesophyll cells, and water from xylem vessels replaces it. Removal of water from the vessels creates transpiration pull, drawing water upwards through xylem vessels. Leaves provide the main surface for transpiration; a setup with leaves usually shows faster upward movement of the water trace than a leafless setup at the same lamp distance. Water-trace speed is an indirect indicator and is not the transpiration rate.",
+"參考答案／說明：其他條件相同且供水充足時，較強光照通常有利氣孔張開。葉肉細胞表面的水膜蒸發，水汽進入氣室，再經氣孔沿濃度梯度擴散離開葉片，形成蒸騰。失水使葉肉細胞水勢下降，水分由木質導管補充；水從導管被移走形成蒸騰拉力，帶動水分沿木質導管向上運輸。葉片提供蒸騰的主要表面；帶葉裝置通常比同距不帶葉裝置呈現較快的水跡上移。水跡速度是間接指標，不能直接等同蒸騰速率。": "Reference answer / explanation: With other conditions equal and an adequate water supply, stronger light usually favours stomatal opening. Water evaporates from the water films on mesophyll cell surfaces into the air spaces. Water vapour then diffuses through stomata down a concentration gradient and leaves the leaf, producing transpiration. Water loss lowers the water potential of mesophyll cells, and water from xylem vessels replaces it. Removal of water from the vessels creates transpiration pull, drawing water upwards through xylem vessels. Leaves provide the main surface for transpiration; a setup with leaves usually shows faster upward movement of the water trace than a leafless setup at the same lamp distance. Water-trace speed is an indirect indicator and is not the transpiration rate.",
+"下載 WS2 教材": "Download WS2 materials",
+"WS2 · 蒸騰與水分運輸": "WS2 \u00b7 Transpiration and water transport",
+"完整學生版 PDF": "Complete student PDF",
+"完整學生版 Word": "Complete student Word",
+"完整連參考答案 PDF": "Complete worksheet with answers PDF",
+"完整連參考答案 Word": "Complete worksheet with answers Word",
+"D · 教師指引、配對及評分 PDF": "D \u00b7 Teacher guidance, alignment and marking PDF",
+"下載": "Download",
+"教材已準備好。": "Materials are ready.",
+"教材已下載。": "Materials downloaded.",
+"教材下載失敗，請重試。": "Material download failed. Please retry.",
+"綜合實驗結果與學習重點，解釋光強度及葉片如何影響水分運輸，並說明蒸騰與蒸騰拉力的形成。": "Using the experimental results and learning points, explain how light intensity and leaves affect water transport, and explain how transpiration and transpiration pull arise.",
+"其他條件相同且供水充足時，較強光照通常有利氣孔張開。葉肉細胞表面的水膜蒸發，水汽進入氣室，再經氣孔沿濃度梯度擴散離開葉片，形成蒸騰。失水使葉肉細胞水勢下降，水分由木質導管補充；水從導管被移走形成蒸騰拉力，帶動水分沿木質導管向上運輸。葉片提供蒸騰的主要表面；帶葉裝置通常比同距不帶葉裝置呈現較快的水跡上移。水跡速度是間接指標，不能直接等同蒸騰速率。": "With other conditions equal and an adequate water supply, stronger light usually favours stomatal opening. Water evaporates from the water films on mesophyll cell surfaces into the air spaces. Water vapour then diffuses through stomata down a concentration gradient and leaves the leaf, producing transpiration. Water loss lowers the water potential of mesophyll cells, and water from xylem vessels replaces it. Removal of water from the vessels creates transpiration pull, drawing water upwards through xylem vessels. Leaves provide the main surface for transpiration; a setup with leaves usually shows faster upward movement of the water trace than a leafless setup at the same lamp distance. Water-trace speed is an indirect indicator and is not the transpiration rate.",
+"整合解釋": "Integrated explanation",
   "西芹的紅色水跡｜探究實驗室": "Celery's Red Water Trace | Inquiry Lab",
   "跳到探究內容": "Skip to the investigation",
   "探究實驗室": "Inquiry Lab",

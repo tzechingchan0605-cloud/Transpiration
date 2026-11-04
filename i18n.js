@@ -140,6 +140,7 @@ window.VL2I18n = (() => {
     document.documentElement.lang=language==='en'?'en':'zh-Hant-HK';
     document.title=translate('西芹的紅色水跡｜探究實驗室');
     apply();
+    document.dispatchEvent(new CustomEvent('vl2-language-change',{detail:{language}}));
   }
   function requestSwitch(){setLanguage(language==='zh'?'en':'zh');}
   for(const id of ['languageButton','loginLanguageButton','teacherLanguageButton'])document.querySelector('#'+id).addEventListener('click',requestSwitch);

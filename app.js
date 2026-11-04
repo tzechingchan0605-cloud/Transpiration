@@ -5,6 +5,11 @@ const RECORDS_KEY = 'transpirationLab.records.v1';
 const PROFILE_KEY = 'transpirationLab.profile.v1';
 const TEACHER_EMAIL = 'tzechingchan0605@gmail.com';
 const MODULE_ID = 'VL_BIO_TRANSPIRATION';
+const QUESTION_VERSION='VL2-Q3';
+const RUBRIC_VERSION='VL2-R3';
+const REFLECTION_QUESTION='綜合實驗結果與學習重點，解釋光強度及葉片如何影響水分運輸，並說明蒸騰與蒸騰拉力的形成。';
+const REFLECTION_REFERENCE='其他條件相同且供水充足時，較強光照通常有利氣孔張開。葉肉細胞表面的水膜蒸發，水汽進入氣室，再經氣孔沿濃度梯度擴散離開葉片，形成蒸騰。失水使葉肉細胞水勢下降，水分由木質導管補充；水從導管被移走形成蒸騰拉力，帶動水分沿木質導管向上運輸。葉片提供蒸騰的主要表面；帶葉裝置通常比同距不帶葉裝置呈現較快的水跡上移。水跡速度是間接指標，不能直接等同蒸騰速率。';
+const isCurrentQuestion=r=>r.questionVersion===QUESTION_VERSION;
 const PAGE_TITLE=document.title;
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -67,7 +72,7 @@ function freshState(profile = null) {
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
   const model = structuredClone(SIMULATION_HEIGHTS);
   return {
-    schemaVersion:1, uiVersion:2, rateDecimals:2, moduleId:MODULE_ID, id:crypto.randomUUID(), profile,
+    schemaVersion:1, uiVersion:2, questionVersion:QUESTION_VERSION, rubricVersion:RUBRIC_VERSION, rateDecimals:2, moduleId:MODULE_ID, id:crypto.randomUUID(), profile,
     createdAt:new Date().toISOString(), savedAt:null, submittedAt:null, reflectionSubmittedAt:null,
     phase:1, unlocked:1, submitted:false, seed, model,
     form:defaults(),
@@ -783,7 +788,7 @@ function renderReport(record) {
     <section class="report-section"><h2>02 · 設計探究</h2><div class="report-card"><p class="card-kicker">我的假說</p>${reportAnswer('實驗前的原始假說',hypothesisText(record),REFERENCE_TEXT.hypothesis)}${freeAnswer('原始假說理由',initial.reason,REFERENCE_TEXT.reason)}</div><div class="report-card"><p class="card-kicker">我的公平測試設計</p>${variables}</div><div class="report-card"><p class="card-kicker">此探究的假設是什麼？</p>${assumptions}</div><div class="report-card">${freeAnswer('探究的對照組',f.controlPlan,REFERENCE_TEXT.control)}${freeAnswer('我的實驗裝置設計',f.setupDescription,REFERENCE_TEXT.design)}${setupImage}</div></section>
     <section class="report-section"><h2>03 · 進行探究與收集數據</h2><div class="report-card"><p>你的量度記錄（cm）</p><table><thead><tr><th>時間（min）</th>${IDS.map(id=>`<th>裝置${id} · ${CONDITIONS[id].leaves?'帶葉':'不帶葉'}<br>${CONDITIONS[id].distance} cm（光強度：${CONDITIONS[id].light} lux）</th>`).join('')}</tr></thead><tbody>${measurements}</tbody></table></div></section>
     <section class="report-section"><h2>04 · 分析與結論</h2><div class="report-card"><p class="card-kicker">計算平均上移速度</p><p>參考計算方法：平均上移速度＝（30 分鐘高度 − 0 分鐘高度）÷ 30 分鐘</p>${calculations}</div><div class="report-card"><p class="card-kicker">我的圖表：光照與紅色水跡上移速度</p><div class="report-graph"><svg viewBox="0 0 760 460" role="img" aria-label="學生圖表">${graphMarkup(record)}</svg></div>${points}<p>標點按你的計算檢核；計算是否正確另列於上方。曲線呈現三點之間的趨勢，並不能證明其間所有光強度的精確結果。</p></div><div class="report-card">${choice('claim','主張：光照與水跡上移速度有甚麼關係？','increase')}${choice('leafComparison','相同光照距離下，裝置B（帶葉）與裝置D（不帶葉）的速度比較',comparable?comparison:null,comparable?`按你計算的數值：裝置B ${(+b).toFixed(rateDigits(record))}、裝置D ${(+d).toFixed(rateDigits(record))} cm/min。${ANSWER_LABELS.leafComparison[comparison]}`:'先完成裝置B 和裝置D 的平均上移速度計算，再比較兩者。')}${choice('leafConclusion','帶葉與不帶葉的比較顯示葉片有何作用？','promotes')}${choice('limitations','這些數據還不能直接證明甚麼？','indirect')}</div></section>
-    <section class="report-section"><h2>學習重點：葉與莖的內部構造</h2><div class="report-card">${structureDiagram('report')}${window.VL2I18n.sourceHTML($('.learning-points'))}</div></section><section class="report-section"><h2>學習反思</h2><div class="report-card">${reportAnswer('你的原始假說',hypothesisText(record))}${freeAnswer('原始假說是否獲數據支持？請運用學習重點修訂或完善假說解釋，並連結你的數據。',f.reflection,'比較原始預測與量度結果，指出支持或不支持的數據，再修訂解釋。例如：若原先預測光強度增加會令水跡變慢，但帶葉組在較強光照下上移較快，則原始預測不獲支持；可修訂為光照通常促進氣孔開啟及蒸騰，並促進水分沿木質部向上運輸。水跡仍只是間接線索。')}</div></section><footer class="report-footer">✓／✕ 為有標準答案項目的檢核；開放題只附參考答案，不自動評分。這些檢核不等同 SPS 評分。學習重點參照課本第 11.1 節（頁 11-3 至 11-8）。水跡為教學模擬，不是直接蒸騰速率量度。紀錄識別碼：${esc(record.id)}</footer>`;
+    <section class="report-section"><h2>學習重點：葉與莖的內部構造</h2><div class="report-card">${structureDiagram('report')}${window.VL2I18n.sourceHTML($('.learning-points'))}</div></section><section class="report-section"><h2>學習反思</h2><div class="report-card">${reportAnswer('你的原始假說',hypothesisText(record))}${freeAnswer(isCurrentQuestion(record)?REFLECTION_QUESTION:'原始假說是否獲數據支持？請運用學習重點修訂或完善假說解釋，並連結你的數據。',f.reflection,isCurrentQuestion(record)?REFLECTION_REFERENCE:'比較原始預測與量度結果，指出支持或不支持的數據，再修訂解釋。例如：若原先預測光強度增加會令水跡變慢，但帶葉組在較強光照下上移較快，則原始預測不獲支持；可修訂為光照通常促進氣孔開啟及蒸騰，並促進水分沿木質部向上運輸。水跡仍只是間接線索。')}</div></section><footer class="report-footer">✓／✕ 為有標準答案項目的檢核；開放題只附參考答案，不自動評分。這些檢核不等同 SPS 評分。學習重點參照課本第 11.1 節（頁 11-3 至 11-8）。水跡為教學模擬，不是直接蒸騰速率量度。紀錄識別碼：${esc(record.id)}</footer>`;
   window.VL2I18n.apply($('#printReport'));
 }
 
@@ -858,10 +863,10 @@ function scoringWorkbook(records){
     ['observation','觀察｜初步觀察・教師評分（0–2）','observing',2],['measure','觀察｜量尺讀數・自動（0–2）','observing'],['observing','SPS 觀察（0–4）','observing'],
     ['iv','分類｜獨立變量・自動（0–1）','classifying'],['dv','分類｜因變量・自動（0–1）','classifying'],['cv','分類｜控制變量・自動（0–2）','classifying'],['classifying','SPS 分類（0–4）','classifying'],
     ['hypothesis','設計｜可測試假說及理由・教師評分（0–2）','designing',2],['assumptions','設計｜假設選擇・自動（0–1）','designing'],['control','設計｜對照裝置・教師評分（0–1）','designing',1],['designing','SPS 設計探究（0–4）','designing'],
-    ['rounds','實作｜四輪完整量度・自動（0–2）','conducting'],['setup','實作｜裝置方案・教師評分（0–2）','conducting',2],['conducting','SPS 進行實驗（0–4）','conducting'],
+    ['rounds','實作｜量度記錄品質 Q3人工／歷史四輪自動（0–2）','conducting',2],['setup','實作｜裝置方案・教師評分（0–2）','conducting',2],['conducting','SPS 進行實驗（0–4）','conducting'],
     ['rates','推論｜平均速度計算・自動（0–2）','inferring'],['conclusions','推論｜四項結論・自動（0–2）','inferring'],['inferring','SPS 推論（0–4）','inferring'],
     ['graph','溝通｜標點及連線・自動（0–2）','communicating'],['communication','溝通｜書面表達・教師評分（0–2）','communicating',2],['communicating','SPS 溝通（0–4）','communicating'],['sps','SPS 總分（0–24）','score'],
-    ['evaporation','新知識｜蒸騰與氣孔・教師評分（0–2）','knowledge',2],['transport','新知識｜木質部及蒸騰拉力・教師評分（0–2）','knowledge',2],['light','新知識｜光強度影響・教師評分（0–2）','knowledge',2],['revision','新知識｜運用概念修訂原始解釋・教師評分（0–2）','knowledge',2],['knowledge','新知識學習分數（0–8）','knowledge'],['overall','整體分數（0–32）','score'],['marking','評分狀態','score']
+    ['evaporation','新知識｜蒸騰與氣孔・教師評分（0–2）','knowledge',2],['transport','新知識｜木質部及蒸騰拉力・教師評分（0–2）','knowledge',2],['light','新知識｜光強度影響・教師評分（0–2）','knowledge',2],['revision','歷史反思｜修訂原始解釋 Q1–2（0–2）','knowledge',2],['leaf','新反思｜葉片與同距比較 Q3（0–2）','knowledge',2],['knowledge','新知識學習分數（0–8）','knowledge'],['overall','整體分數（0–32）','score'],['marking','評分狀態','score'],['questionVersion','題目版本','identity'],['rubricVersion','評分規準版本','identity']
   ];
   const col=Object.fromEntries(columns.map(([id],i)=>[id,colName(i)])),rows=[columns.map(([,label,group])=>excelCell(label,group))];
   const round=n=>Math.round(n*100)/100;
@@ -874,12 +879,15 @@ function scoringWorkbook(records){
     const pointCorrect=IDS.map(id=>{const p=r.graph.points[id],v=r.calculations[id];return p&&v!==undefined&&v!==''&&Number.isFinite(+v)&&p.x===CONDITIONS[id].light&&Math.abs(p.y-(+v))<.00051;});
     const graphConnected=r.graph.connected&&['A','B','C'].every(id=>pointCorrect[IDS.indexOf(id)]);
     const values={id:r.id,name:r.profile?.name,class:r.profile?.classInfo,status:reflectionComplete(r)?'已完成':r.submitted?'待提交反思':'進行中',measure:round(readings.filter(Boolean).length/16*2),iv:sameChoices(vars.iv,[VARIABLE_NAMES[0]])?1:0,dv:sameChoices(vars.dv,[VARIABLE_NAMES[1]])?1:0,cv:round(VARIABLE_NAMES.slice(2).filter(v=>vars.cv.includes(v)).length/5*2*(vars.cv.some(v=>!VARIABLE_NAMES.slice(2).includes(v))?0:1)),assumptions:sameChoices(r.assumptions,ASSUMPTIONS.filter(a=>a.valid).map(a=>a.id))?1:0,rounds:MEASUREMENT_TIMES.filter(t=>r.measurements[t]?.confirmed&&IDS.every(id=>{const v=r.measurements[t].values?.[id];return v!==undefined&&v!==''&&Number.isFinite(+v)&&+v>=0&&+v<=16;})).length*.5,rates:rateCorrect.filter(Boolean).length*.5,conclusions:conclusionCorrect.filter(Boolean).length*.5,graph:round(pointCorrect.filter(Boolean).length*.375+(graphConnected?.5:0))};
-    const manual=columns.filter(c=>c[3]!==undefined).map(([id])=>ref(id));
-    const sum=(ids,required)=>`IF(COUNT(${required.map(ref).join(',')})=${required.length},ROUND(SUM(${ids.map(ref).join(',')}),2),"待評")`;
-    const formulas={observing:sum(['observation','measure'],['observation']),classifying:`SUM(${ref('iv')},${ref('dv')},${ref('cv')})`,designing:sum(['hypothesis','assumptions','control'],['hypothesis','control']),conducting:sum(['rounds','setup'],['setup']),inferring:`SUM(${ref('rates')},${ref('conclusions')})`,communicating:sum(['graph','communication'],['communication']),sps:`IF(COUNT(${['observing','classifying','designing','conducting','inferring','communicating'].map(ref).join(',')})=6,ROUND(SUM(${['observing','classifying','designing','conducting','inferring','communicating'].map(ref).join(',')}),2),"待評")`,knowledge:sum(['evaporation','transport','light','revision'],['evaporation','transport','light','revision']),overall:`IF(AND(COUNT(${ref('sps')},${ref('knowledge')})=2,${ref('status')}="已完成"),ROUND(SUM(${ref('sps')},${ref('knowledge')}),2),"待評／未完成")`,marking:`IF(AND(COUNT(${manual.join(',')})=${manual.length},${ref('status')}="已完成"),"評分完成","待教師評分／學生未完成")`};
-    rows.push(columns.map(([id,,group,max])=>formulas[id]?excelFormula(formulas[id],group):excelCell(max!==undefined?'':values[id],group)));
+    const applicable=id=>id==='revision'?!isCurrentQuestion(r):id==='leaf'||id==='rounds'?isCurrentQuestion(r):true;
+    const manual=columns.filter(c=>c[3]!==undefined&&applicable(c[0])).map(([id,,,max])=>({cell:ref(id),max}));
+    const valid=(cell,max)=>`IFERROR(AND(ISNUMBER(${cell}),${cell}>=0,${cell}<=${max},MOD(${cell},1)=0),FALSE)`;
+    const validManual=required=>required.map(id=>valid(ref(id),columns.find(c=>c[0]===id)[3])).join(',');
+    const sum=(ids,required)=>`IF(AND(${validManual(required)}),ROUND(SUM(${ids.map(ref).join(',')}),2),"待評")`;
+    const formulas={observing:sum(['observation','measure'],['observation']),classifying:`SUM(${ref('iv')},${ref('dv')},${ref('cv')})`,designing:sum(['hypothesis','assumptions','control'],['hypothesis','control']),conducting:sum(['rounds','setup'],isCurrentQuestion(r)?['rounds','setup']:['setup']),inferring:`SUM(${ref('rates')},${ref('conclusions')})`,communicating:sum(['graph','communication'],['communication']),sps:`IF(COUNT(${['observing','classifying','designing','conducting','inferring','communicating'].map(ref).join(',')})=6,ROUND(SUM(${['observing','classifying','designing','conducting','inferring','communicating'].map(ref).join(',')}),2),"待評")`,knowledge:sum(['evaporation','transport','light',isCurrentQuestion(r)?'leaf':'revision'],['evaporation','transport','light',isCurrentQuestion(r)?'leaf':'revision']),overall:`IF(AND(COUNT(${ref('sps')},${ref('knowledge')})=2,${ref('status')}="已完成"),ROUND(SUM(${ref('sps')},${ref('knowledge')}),2),"待評／未完成")`,marking:`IF(AND(AND(${manual.map(({cell,max})=>valid(cell,max)).join(',')}),${ref('status')}="已完成"),"評分完成","待教師評分／學生未完成")`};
+    rows.push(columns.map(([id,,group,max])=>formulas[id]?excelFormula(formulas[id],group):excelCell(id==='questionVersion'?(r.questionVersion||'VL2-Q1–2'):id==='rubricVersion'?(r.rubricVersion||'VL2-R1–2'):max!==undefined?(applicable(id)?'':id==='rounds'?values.rounds:'不適用'):values[id],group)));
   });
-  const validations=columns.flatMap(([id,,group,max])=>max===undefined?[]:[{range:`${col[id]}2:${col[id]}${records.length+1}`,max}]);
+  const validations=records.flatMap((r,i)=>columns.flatMap(([id,,,max])=>max===undefined||(id==='revision'&&isCurrentQuestion(r))||(['leaf','rounds'].includes(id)&&!isCurrentQuestion(r))?[]:[{range:`${col[id]}${i+2}`,max}]));
   const rubric=[['類別／題目','最高分','評分方式','滿分準則','部分得分準則','零分準則']];
   const add=(group,title,max,method,full,partial,zero)=>rubric.push([excelCell(title,group),max,method,full,partial,zero]);
   add('observing','初步觀察',2,'教師填寫','描述紅色水跡沿長柄內部分區域向上延伸；能分開觀察與解釋。','1：提及紅色水跡或顏色改變，但缺少位置／方向。','未回答、無關或把未觀察到的機制當作直接觀察。');
@@ -888,17 +896,23 @@ function scoringWorkbook(records){
   add('designing','可測試假說及理由',2,'教師填寫','明確預測改變光強度後水跡速度如何改變，並給出與現象相關的理由；不要求預測結果正確。','1：假說可測試，但理由缺漏或不清晰。','沒有可測試的假說；只抄結論而無實驗前預測。');
   add('designing','實驗假設選擇',1,'自動','只選溫度不改變、帶葉組總葉面積相同、濕度及氣流相同三項。','全組正確才給分；不另計部分分。','錯選、漏選或未作答。');
   add('designing','對照裝置設計',1,'教師填寫','帶葉／不帶葉裝置使用相同燈距，其餘條件保持相同。','此項只給 0 或 1 分。','沒有控制葉片以外的因素，或未作答。');
-  add('conducting','四輪完整量度',2,'自動','0、10、20、30 min 各有四個有效、已確認讀數。','每輪 0.5；量度準確度另計於觀察，不重複計。','沒有完整確認的量度輪次。');
+  add('conducting','歷史 Q1–2：四輪完整量度',2,'自動','0、10、20、30 min 各有四個有效、已確認讀數。','每輪 0.5；量度準確度另計於觀察，不重複計。','沒有完整確認的量度輪次。');
   add('conducting','實驗裝置方案',2,'教師填寫','圖像／文字顯示四株、三種帶葉燈距及同距不帶葉對照、紅色水及量尺／時間量度安排。','1：方案基本可操作，但缺少一項主要安排。','不能操作、無關或未完成。');
   add('inferring','平均上移速度計算',2,'自動','四組（30 min 高度 − 0 min 高度）÷ 30；每組正確 0.5。','依學生最後確認讀數計算，新紀錄保留兩位小數，允許 0.0051 cm/min 捨入差異；舊紀錄依原有三位小數及 0.00051 容差檢核。','無正確計算；不使用模型高度取代學生讀數評算術。');
   add('inferring','四項結論',2,'自動','光強度增加速度通常增加；B/D 比較與學生計算相符；葉片促進運輸；水跡為間接線索。','每個正確選項 0.5。B/D 資料不足不得分。','錯誤／未回答。');
   add('communicating','圖表標點及連線',2,'自動','四點 X = 各組 lux、Y = 學生自己計算速度（每點 0.375）；正確 A/B/C 三點已連線（0.5）。','以未四捨五入的點數計分再保留兩位小數；不把 D 連入帶葉曲線。','無正確標點或連線。計算錯誤另計於推論，圖表以其計算檢核。');
   add('communicating','書面表達',2,'教師填寫','觀察、裝置方案及反思能清楚傳達想法，數據／裝置名稱／單位使用清晰；評表達而非概念正確性。','1：可理解，但描述含糊或缺乏必要標示。','無法理解或未提供可評的表達。');
-  add('knowledge','學習反思：蒸騰與氣孔',2,'教師填寫','修訂解釋中正確說明葉肉細胞表面水膜蒸發，水汽經氣孔擴散離開葉。','1：正確提及葉片蒸發／氣孔散失水汽，但機制不完整。','未用此概念或有核心錯誤。');
-  add('knowledge','學習反思：木質部及蒸騰拉力',2,'教師填寫','修訂解釋中連結蒸騰產生蒸騰拉力，使水份沿木質導管向上運輸。','1：正確提及木質部運輸或蒸騰拉力，但沒有連結。','未用此概念或有核心錯誤。');
-  add('knowledge','學習反思：光強度影響',2,'教師填寫','修訂解釋中連結較強光照通常促進氣孔開啟、蒸騰及水分向上運輸，避免稱水跡速度就是蒸騰速率。','1：正確描述較強光照與較快水跡的關係，但沒有機制。','關係相反、直接等同蒸騰速率或未運用概念。');
-  add('knowledge','學習反思：運用概念修訂原始解釋',2,'教師填寫','指出原始假說是否獲自己數據支持，以數據及學習重點修訂／完善解釋；原始假說正確也可得滿分。','1：有判斷或修訂，但欠缺數據／概念連結。','只抄學習重點，未檢驗原始假說，或未提交反思。');
-  add('score','配分與完成條件',32,'公式彙總','六項 SPS 各 4 分，共 24；新知識四項各 2，共 8；整體 32。教師填完九個評分格及學生完成反思，整體分數才顯示。','人工評分格空白＝待評，與填 0 分不同。公式由 Excel 開啟時重算；教師在此檔填分後請保存。','新下載 Excel 不會讀取之前檔案內的人工分數；分數只存於教師保存的 Excel。');
+  add('knowledge','歷史 Q1–2：蒸騰與氣孔',2,'教師填寫','修訂解釋中正確說明葉肉細胞表面水膜蒸發，水汽經氣孔擴散離開葉。','1：正確提及葉片蒸發／氣孔散失水汽，但機制不完整。','未用此概念或有核心錯誤。');
+  add('knowledge','歷史 Q1–2：木質部及蒸騰拉力',2,'教師填寫','修訂解釋中連結蒸騰產生蒸騰拉力，使水份沿木質導管向上運輸。','1：正確提及木質部運輸或蒸騰拉力，但沒有連結。','未用此概念或有核心錯誤。');
+  add('knowledge','歷史 Q1–2：光強度影響',2,'教師填寫','修訂解釋中連結較強光照通常促進氣孔開啟、蒸騰及水分向上運輸，避免稱水跡速度就是蒸騰速率。','1：正確描述較強光照與較快水跡的關係，但沒有機制。','關係相反、直接等同蒸騰速率或未運用概念。');
+  add('knowledge','歷史 Q1–2：運用概念修訂原始解釋',2,'教師填寫','指出原始假說是否獲自己數據支持，以數據及學習重點修訂／完善解釋；原始假說正確也可得滿分。','1：有判斷或修訂，但欠缺數據／概念連結。','只抄學習重點，未檢驗原始假說，或未提交反思。');
+  add('knowledge','Q3：蒸騰與氣孔',2,'教師填寫','水膜蒸發進入氣室（1）；水汽沿濃度梯度經氣孔擴散（1）。','每個獨立因果點 1 分，接受等義表述。','無關或核心錯誤；不按關鍵字數目。');
+  add('knowledge','Q3：木質部及蒸騰拉力',2,'教師填寫','失水令葉肉水勢下降而由木質部補水（1）；水移走形成拉力，沿木質導管上運（1）。','每個獨立因果點 1 分；不重複計分。','主動泵水、韌皮部上運或無關。');
+  add('knowledge','Q3：光強度影響',2,'教師填寫','其他條件相同，較強光通常促進氣孔張開（1）；連結較快水汽散失／蒸騰及水分上運（1）。','只正確說明一環節得 1 分。','未回答或核心錯誤。');
+  add('knowledge','Q3：葉片與同距比較',2,'教師填寫','帶葉比同距不帶葉水跡上移較快（1）；葉片提供蒸騰主要表面，失水有助牽引水分（1）。','此處只評葉片作用，不重複給蒸騰機制分。','無關；不能僅憑無葉比較證明氣孔機制。');
+  add('conducting','Q3：量度記錄品質',2,'教師填寫','各時點與裝置辨識、單位及可追溯記錄清楚（1）；使用水面零點及一致讀尺方法（1）。','依記錄、初末讀數及實驗方案判斷；資料不足留待評，缺答經教師判斷填0。','不得把點擊、完成率或用時當能力分；讀數準確度另評。');
+  add('reference','混合版本',0,'逐列版本','Q3 使用葉片欄，修訂原始解釋為不適用；Q1–2 相反，保留舊規準及四輪自動分。','空白待評；0已評零分；不適用不阻擋總分。貼入負數、超上限、小數或文字會令總分待評。','歷史學生原文、快照、研究ID及事件不改寫。');
+  add('score','配分與完成條件',32,'公式彙總','六項 SPS 各 4 分，共 24；新知識四項各 2，共 8；整體 32。教師填完該列所有適用評分格及學生完成反思，整體分數才顯示。','人工評分格空白＝待評，與填 0 分不同。公式由 Excel 開啟時重算；教師在此檔填分後請保存。','新下載 Excel 不會讀取之前檔案內的人工分數；分數只存於教師保存的 Excel。');
   add('reference','色彩與研究使用',0,'說明','底色區分 SPS 類別及新知識；綠字正確／滿分，紅字錯誤／零分，橙字部分得分，未評中性色。','人工答案在填分後依公式變色。PDF 不顯示任何分數；活動紀錄不是 SPS 分數。','本 rubric 為 VL2 初稿；正式縱向比較前需對四個模組統一準則、配分及評分者校準。');
   return {sheet:{name:'教師評分',rows,validations},rubric:{name:'評分準則',rows:rubric},col};
 }
@@ -908,7 +922,7 @@ async function exportExcel(){
   if(cloudSync.enabled&&!await refreshCloudRecords())return;
   save();const records=teacherRecords();
   if(!records.length){toast('目前沒有可匯出的研究紀錄。');return;}
-  const headings=['紀錄識別碼','姓名','班別及學號','電郵','狀態','建立時間','遞交時間','初步觀察','原始預測','原始理由','目前預測','目前理由','獨立變量－學生答案','獨立變量－參考答案','因變量－學生答案','因變量－參考答案','控制變量－學生答案','控制變量－參考答案','假設－學生答案','假設－參考答案','對照裝置設計－學生答案','對照裝置設計－參考答案','裝置文字設計','X軸','Y軸','光強度關係－學生答案','光強度關係－參考答案','葉片比較－學生答案','葉片作用－學生答案','葉片作用－參考答案','實驗限制－學生答案','實驗限制－參考答案','反思','總有效秒數','階段一有效秒數','階段二有效秒數','階段三有效秒數','階段四有效秒數','記錄量度次數','計算作答次數','標點次數','結論作答次數'];
+  const headings=['紀錄識別碼','姓名','班別及學號','電郵','狀態','建立時間','遞交時間','初步觀察','原始預測','原始理由','目前預測','目前理由','獨立變量－學生答案','獨立變量－參考答案','因變量－學生答案','因變量－參考答案','控制變量－學生答案','控制變量－參考答案','假設－學生答案','假設－參考答案','對照裝置設計－學生答案','對照裝置設計－參考答案','裝置文字設計','X軸','Y軸','光強度關係－學生答案','光強度關係－參考答案','葉片比較－學生答案','葉片作用－學生答案','葉片作用－參考答案','實驗限制－學生答案','實驗限制－參考答案','反思','總有效秒數','階段一有效秒數','階段二有效秒數','階段三有效秒數','階段四有效秒數','記錄量度次數','計算作答次數','標點次數','結論作答次數','題目版本','評分規準版本'];
   const rows=[headings],data=[['紀錄識別碼','姓名','模擬時間（min）','裝置','光照距離（cm）','光強度（lux）','葉片','首次讀數（cm）','最後讀數（cm）','模型參考高度（cm）','學生平均速度（cm/min）','依學生數據計算的速度（cm/min）','圖點 X坐標','圖點 Y坐標']];
   const events=[['紀錄識別碼','姓名','事件','時間（香港）','階段','事件詳情']];
   const designs=[['姓名','班別及學號','電郵','文字設計','裝置設計圖']];
@@ -916,7 +930,7 @@ async function exportExcel(){
   records.forEach(r=>{
     const f=r.form,initial=r.initialDesign?.form||f;
     const count=type=>r.events.filter(e=>e.type===type).length;
-    rows.push([r.id,r.profile?.name,r.profile?.classInfo,r.profile?.email,r.submitted?'已遞交':'進行中',dateText(r.createdAt),dateText(r.submittedAt),f.observation,PREDICTIONS[initial.prediction],initial.reason,PREDICTIONS[f.prediction],f.reason,r.variables.iv.join('、'),'光強度',r.variables.dv.join('、'),'紅色水跡上升高度／平均上移速度',r.variables.cv.join('、'),VARIABLE_NAMES.slice(2).join('、'),r.assumptions.map(id=>ASSUMPTIONS.find(a=>a.id===id)?.text||id).join('；'),ASSUMPTIONS.filter(a=>a.valid).map(a=>a.text).join('；'),f.controlPlan,'同一光照距離，帶葉與不帶葉比較，其餘條件相同。',f.setupDescription,'光強度（lux）','紅色水跡平均上移速度（cm/min）',answerText('claim',f.claim),ANSWER_LABELS.claim.increase,answerText('leafComparison',f.leafComparison),answerText('leafConclusion',f.leafConclusion),ANSWER_LABELS.leafConclusion.promotes,answerText('limitations',f.limitations),ANSWER_LABELS.limitations.indirect,f.reflection,Math.round(Object.values(r.phaseDurations).reduce((a,b)=>a+b,0)),...[1,2,3,4].map(p=>Math.round(r.phaseDurations[p])),count('measurements_recorded')+count('measurements_reconfirmed'),count('rate_calculated'),count('graph_point_plotted'),r.events.filter(e=>e.type==='answer_changed'&&['claim','leafComparison','leafConclusion','limitations'].includes(e.field)).length]);
+    rows.push([r.id,r.profile?.name,r.profile?.classInfo,r.profile?.email,r.submitted?'已遞交':'進行中',dateText(r.createdAt),dateText(r.submittedAt),f.observation,PREDICTIONS[initial.prediction],initial.reason,PREDICTIONS[f.prediction],f.reason,r.variables.iv.join('、'),'光強度',r.variables.dv.join('、'),'紅色水跡上升高度／平均上移速度',r.variables.cv.join('、'),VARIABLE_NAMES.slice(2).join('、'),r.assumptions.map(id=>ASSUMPTIONS.find(a=>a.id===id)?.text||id).join('；'),ASSUMPTIONS.filter(a=>a.valid).map(a=>a.text).join('；'),f.controlPlan,'同一光照距離，帶葉與不帶葉比較，其餘條件相同。',f.setupDescription,'光強度（lux）','紅色水跡平均上移速度（cm/min）',answerText('claim',f.claim),ANSWER_LABELS.claim.increase,answerText('leafComparison',f.leafComparison),answerText('leafConclusion',f.leafConclusion),ANSWER_LABELS.leafConclusion.promotes,answerText('limitations',f.limitations),ANSWER_LABELS.limitations.indirect,f.reflection,Math.round(Object.values(r.phaseDurations).reduce((a,b)=>a+b,0)),...[1,2,3,4].map(p=>Math.round(r.phaseDurations[p])),count('measurements_recorded')+count('measurements_reconfirmed'),count('rate_calculated'),count('graph_point_plotted'),r.events.filter(e=>e.type==='answer_changed'&&['claim','leafComparison','leafConclusion','limitations'].includes(e.field)).length,r.questionVersion||'VL2-Q1–2',r.rubricVersion||'VL2-R1–2']);
     MEASUREMENT_TIMES.forEach(t=>IDS.forEach(id=>{const c=CONDITIONS[id];data.push([r.id,r.profile?.name,t,`裝置${id}`,c.distance,c.light,c.leaves?'帶葉':'不帶葉',r.measurements[t]?.firstValues?.[id]??'',r.measurements[t]?.values?.[id]??'',r.model[id][t/10].toFixed(1),r.calculations[id]??'',r.measurements[30]?.confirmed?expectedRate(r,id).toFixed(rateDigits(r)):'',r.graph.points[id]?.x??'',r.graph.points[id]?.y??'']);}));
     r.events.forEach(e=>events.push([r.id,r.profile?.name,e.type,dateText(e.at),e.phase,JSON.stringify(e)]));
     designs.push([r.profile?.name,r.profile?.classInfo,r.profile?.email,f.setupDescription,r.setup.image?'圖像如下':'文字設計']);
@@ -943,13 +957,13 @@ async function exportExcel(){
     return excelCell(value,group,correct);
   }));
   const conditional=[];
-  const colourRule=(cell,score,max)=>({cell,formulas:[`AND(ISNUMBER(${score}),${score}=${max})`,`AND(ISNUMBER(${score}),${score}=0)`,`AND(ISNUMBER(${score}),${score}>0,${score}<${max})`]});
+  const colourRule=(cell,score,max,integer=false)=>{const valid=integer?`IFERROR(AND(ISNUMBER(${score}),${score}>=0,${score}<=${max},MOD(${score},1)=0),FALSE)`:`ISNUMBER(${score})`;return {cell,formulas:[`AND(${valid},${score}=${max})`,`AND(${valid},${score}=0)`,`AND(${valid},${score}>0,${score}<${max})`]};};
   records.forEach((r,i)=>{
     const row=i+2,ref=id=>`INDIRECT("'教師評分'!${scoring.col[id]}${row}")`;
-    [[7,'observation',2],[8,'hypothesis',2],[9,'hypothesis',2],[10,'hypothesis',2],[11,'hypothesis',2],[20,'control',1],[22,'setup',2],[32,'knowledge',8]].forEach(([c,key,max])=>conditional.push(colourRule(colName(c)+row,ref(key),max)));
-    const maxById={observation:2,measure:2,observing:4,iv:1,dv:1,cv:2,classifying:4,hypothesis:2,assumptions:1,control:1,designing:4,rounds:2,setup:2,conducting:4,rates:2,conclusions:2,inferring:4,graph:2,communication:2,communicating:4,sps:24,evaporation:2,transport:2,light:2,revision:2,knowledge:8,overall:32};
+    [[7,'observation',2],[8,'hypothesis',2],[9,'hypothesis',2],[10,'hypothesis',2],[11,'hypothesis',2],[20,'control',1],[22,'setup',2],[32,'knowledge',8]].forEach(([c,key,max])=>conditional.push(colourRule(colName(c)+row,ref(key),max,true)));
+    const maxById={leaf:2,observation:2,measure:2,observing:4,iv:1,dv:1,cv:2,classifying:4,hypothesis:2,assumptions:1,control:1,designing:4,rounds:2,setup:2,conducting:4,rates:2,conclusions:2,inferring:4,graph:2,communication:2,communicating:4,sps:24,evaporation:2,transport:2,light:2,revision:2,knowledge:8,overall:32};
     scoring.sheet.conditional??=[];
-    Object.entries(maxById).forEach(([key,max])=>{const cell=scoring.col[key]+row;scoring.sheet.conditional.push(colourRule(cell,cell,max));});
+    Object.entries(maxById).forEach(([key,max])=>{const cell=scoring.col[key]+row;scoring.sheet.conditional.push(colourRule(cell,cell,max,['observation','hypothesis','control','rounds','setup','communication','evaporation','transport','light','revision','leaf'].includes(key)));});
   });
   download(workbook([{name:'學生探究答案',rows:styledAnswers,conditional},{name:'量度計算與圖點',rows:styledData},scoring.sheet,scoring.rubric,{name:'操作事件紀錄',rows:events},{name:'裝置設計圖',rows:designs}],images),'VL2_蒸騰探究_全班學習紀錄.xlsx');
 }
@@ -1160,7 +1174,7 @@ $('#studentGraph').addEventListener('keydown',event=>{
 
 // Read-only curriculum source. No profile, freshState(), save(), clock or events.
 window.VL2InquiryContent=()=>({
-  moduleId:MODULE_ID,version:'VL2-ui2-paper1',fields:FIELD_IDS.filter(id=>!['xAxis','yAxis','graphMax'].includes(id)),
+  moduleId:MODULE_ID,version:'VL2-Q3-R3',fields:FIELD_IDS.filter(id=>!['xAxis','yAxis','graphMax'].includes(id)),
   ids:[...IDS],times:[...MEASUREMENT_TIMES],conditions:structuredClone(CONDITIONS),model:structuredClone(SIMULATION_HEIGHTS),
   variableNames:[...VARIABLE_NAMES],variableGroups:structuredClone(VARIABLE_GROUPS),assumptions:structuredClone(ASSUMPTIONS),
   references:structuredClone(REFERENCE_TEXT),answers:{claim:'increase',leafComparison:'faster',leafConclusion:'promotes',limitations:'indirect'},

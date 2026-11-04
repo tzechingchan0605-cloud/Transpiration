@@ -138,7 +138,7 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   assert.equal(await page.evaluate(()=>window.titleAtPrint),'VL2_S4X1_陳小明');
   const report=await page.locator('#printReport').innerText();assert(!report.includes('描述可見變化，並把觀察與解釋分開'));assert(!report.includes('探究時的假說與理由'));assert(report.includes('不能代表葉片蒸發水分的速度，即蒸騰速率'));assert.match(await page.locator('#submitDialog').innerText(),/填寫並遞交學習反思/);for(const t of ['此探究的假設是什麼','葉面積','原始預測不獲支持','水膜','氣室','當光強度增加時'])assert(report.includes(t));assert(!report.includes('我的假設解釋'));assert(!report.includes('undefined'));assert(!report.includes('參考回饋'));assert(!report.includes('整體分數'));assert(!report.includes('新知識學習分數'));assert(!report.includes('SPS 總分'));
   assert.match(report,/✓/);assert.match(report,/✕/);
-  for(const title of ['你的初步觀察','探究的對照組','原始假說理由','原始假說是否獲數據支持']){const card=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:title})}).first();assert.equal(await card.getAttribute('data-graded'),'false');assert.equal(await card.locator('.answer-mark').count(),0);assert.equal(await card.locator('.report-reference').count(),1);}
+  for(const title of ['你的初步觀察','探究的對照組','原始假說理由','綜合實驗結果與學習重點']){const card=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:title})}).first();assert.equal(await card.getAttribute('data-graded'),'false');assert.equal(await card.locator('.answer-mark').count(),0);assert.equal(await card.locator('.report-reference').count(),1);}
   const dCard=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:'裝置D · 平均上移速度'})});assert.equal(await dCard.locator('.incorrect').count(),1);
   const ivCard=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:'獨立變量'})});assert.equal(await ivCard.locator('.correct').count(),1);
   await page.emulateMedia({media:'print'});await page.pdf({path:'/tmp/vl2-report.pdf',format:'A4',printBackground:true});await page.emulateMedia({media:'screen'});await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')));assert.equal(await page.title(),'西芹的紅色水跡｜探究實驗室');
@@ -160,8 +160,8 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
     for(const id of IDS){perfect.calculations[id]=expectedRate(perfect,id).toFixed(2);perfect.graph.points[id]={x:CONDITIONS[id].light,y:+perfect.calculations[id]};}
     const score=scoringWorkbook([perfect]),row=score.sheet.rows[1];
     const get=id=>row[score.sheet.rows[0].findIndex(c=>c.value.startsWith(id))].value;
-    for(const [heading,max] of [['觀察｜量尺',2],['分類｜獨立',1],['分類｜因變',1],['分類｜控制',2],['設計｜假設',1],['實作｜四輪',2],['推論｜平均',2],['推論｜四項',2],['溝通｜標點',2]])if(get(heading)!==max)throw new Error('Perfect score mismatch: '+heading);
-    const old=structuredClone(perfect);delete old.rateDecimals;
+    for(const [heading,max] of [['觀察｜量尺',2],['分類｜獨立',1],['分類｜因變',1],['分類｜控制',2],['設計｜假設',1],['推論｜平均',2],['推論｜四項',2],['溝通｜標點',2]])if(get(heading)!==max)throw new Error('Perfect score mismatch: '+heading);
+    const old=structuredClone(perfect);delete old.rateDecimals;delete old.questionVersion;delete old.rubricVersion;
     for(const id of IDS)old.calculations[id]=expectedRate(old,id).toFixed(3);
     if(rateTolerance(old)!==.00051||rateTolerance(perfect)!==.0051)throw new Error('Legacy precision changed');
     if(rateReference(old,'A')!==expectedRate(old,'A').toFixed(3)+' cm/min')throw new Error('Legacy rate formatting changed');

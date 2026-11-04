@@ -1,0 +1,6 @@
+{
+  "question": "綜合實驗結果與學習重點，解釋光強度及葉片如何影響水分運輸，並說明蒸騰與蒸騰拉力的形成。",
+  "answer": "其他條件相同且供水充足時，較強光照通常有利氣孔張開。葉肉細胞表面的水膜蒸發，水汽進入氣室，再經氣孔沿濃度梯度擴散離開葉片，形成蒸騰。失水使葉肉細胞水勢下降，水分由木質導管補充；水從導管被移走形成蒸騰拉力，帶動水分沿木質導管向上運輸。葉片提供蒸騰的主要表面；帶葉裝置通常比同距不帶葉裝置呈現較快的水跡上移。水跡速度是間接指標，不能直接等同蒸騰速率。",
+  "question_en": "Using the experimental results and learning points, explain how light intensity and leaves affect water transport, and explain how transpiration and transpiration pull arise.",
+  "answer_en": "With other conditions equal and an adequate water supply, stronger light usually favours stomatal opening. Water evaporates from the water films on mesophyll cell surfaces into the air spaces. Water vapour then diffuses through stomata down a concentration gradient and leaves the leaf, producing transpiration. Water loss lowers the water potential of mesophyll cells, and water from xylem vessels replaces it. Removal of water from the vessels creates transpiration pull, drawing water upwards through xylem vessels. Leaves provide the main surface for transpiration; a setup with leaves usually shows faster upward movement of the water trace than a leafless setup at the same lamp distance. Water-trace speed is an indirect indicator and is not the transpiration rate."
+}
