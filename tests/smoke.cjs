@@ -141,7 +141,7 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
   assert.match(report,/✓/);assert.match(report,/✕/);
   for(const title of ['你的初步觀察','探究的對照組','原始假說理由','綜合實驗結果與學習重點']){const card=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:title})}).first();assert.equal(await card.getAttribute('data-graded'),'false');assert.equal(await card.locator('.answer-mark').count(),0);assert.equal(await card.locator('.report-reference').count(),1);}
   const dCard=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:'裝置D · 平均上移速度'})});assert.equal(await dCard.locator('.incorrect').count(),1);
-  const ivCard=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:'獨立變量'})});assert.equal(await ivCard.locator('.correct').count(),1);
+  const ivCard=page.locator('#printReport .report-answer').filter({has:page.locator('b').filter({hasText:'自變項'})});assert.equal(await ivCard.locator('.correct').count(),1);
   await page.emulateMedia({media:'print'});await page.pdf({path:'/tmp/vl2-report.pdf',format:'A4',printBackground:true});await page.emulateMedia({media:'screen'});await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')));assert.equal(await page.title(),'西芹的紅色水跡｜探究實驗室');
   const parsed=await page.evaluate(()=>state);await fs.writeFile('/tmp/vl2-record.json',JSON.stringify(parsed));assert.equal(parsed.uiVersion,2);assert(parsed.reflectionSubmittedAt);
   const mobile=await context.newPage();await mobile.setViewportSize({width:390,height:844});await mobile.goto(LAB_URL);assert.equal(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
@@ -161,7 +161,7 @@ async function dye(p,selector){assert.equal(await p.locator(selector).evaluate(s
     for(const id of IDS){perfect.calculations[id]=expectedRate(perfect,id).toFixed(2);perfect.graph.points[id]={x:CONDITIONS[id].light,y:+perfect.calculations[id]};}
     const score=scoringWorkbook([perfect]),row=score.sheet.rows[1];
     const get=id=>row[score.sheet.rows[0].findIndex(c=>c.value.startsWith(id))].value;
-    for(const [heading,max] of [['觀察｜量尺',2],['分類｜獨立',1],['分類｜因變',1],['分類｜控制',2],['設計｜假設',1],['推論｜平均',2],['推論｜四項',2],['溝通｜標點',2]])if(get(heading)!==max)throw new Error('Perfect score mismatch: '+heading);
+    for(const [heading,max] of [['觀察｜量尺',2],['分類｜自變項',1],['分類｜因變',1],['分類｜控制',2],['設計｜假設',1],['推論｜平均',2],['推論｜四項',2],['溝通｜標點',2]])if(get(heading)!==max)throw new Error('Perfect score mismatch: '+heading);
     const old=structuredClone(perfect);delete old.rateDecimals;delete old.questionVersion;delete old.rubricVersion;
     for(const id of IDS)old.calculations[id]=expectedRate(old,id).toFixed(3);
     if(rateTolerance(old)!==.00051||rateTolerance(perfect)!==.0051)throw new Error('Legacy precision changed');

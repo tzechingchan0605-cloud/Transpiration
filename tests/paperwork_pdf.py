@@ -27,7 +27,7 @@ for lang in ['zh','en']:
     for c in src[lang]['assumptions']['choices']:assert c['text'] in text
     assert src[lang]['assumptions']['reminder'] in text
     for h in src[lang]['control']['hints']:assert h in text
-    assert text.index('1. '+('辨識主探究' if lang=='zh' else 'Identify variables')) < text.index('2. '+('選出公平比較' if lang=='zh' else 'Select the assumptions')) < text.index('3. '+('主探究' if lang=='zh' else 'Main investigation')) < text.index('4. '+('葉片的存在' if lang=='zh' else 'Do leaves affect'))
+    assert text.index('1. '+('辨識主探究' if lang=='zh' else 'Identify variables')) < text.index('2. '+('選出公平比較' if lang=='zh' else 'Select the assumptions')) < text.index('3. '+('主探究' if lang=='zh' else 'Main investigation')) < text.index('4. '+('葉片的存在' if lang=='zh' else 'Does the presence of leaves'))
     assert src[lang]['reflection']['question'] in text
     if lang=='zh':
      assert '帶葉的裝置B的水跡平均上移速度比不帶葉的裝置D' in text
@@ -48,6 +48,8 @@ for lang in ['zh','en']:
    assert all(s['size']>=10.9 for s in spans),(p,[(s['text'],s['size']) for s in spans if s['size']<10.9])
    assert all(12<=s['bbox'][0]<=584 and s['bbox'][2]<=585 and s['bbox'][3]<=836 for s in spans),(p,'overflow')
   if key!='D':
+   target='葉片的存在' if lang=='zh' else 'presence of leaves'
+   assert any(target in s['text'] and s['color']==0xBC2927 for block in d[2].get_text('dict')['blocks'] if 'lines' in block for line in block['lines'] for s in line['spans']), (p,'red leaves heading')
    first=d[0];needle='姓名' if lang=='zh' else 'Name:';blocks=[b for b in first.get_text('blocks') if needle in b[4]];assert len(blocks)==1
    identity=blocks[0][4];assert ('班別' if lang=='zh' else 'Class:') in identity and ('學號' if lang=='zh' else 'No.:') in identity;assert len(identity.strip().splitlines())==1
    spans=[s for b in first.get_text('dict')['blocks'] if 'lines' in b for l in b['lines'] for s in l['spans']]

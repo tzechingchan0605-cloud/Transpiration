@@ -1,6 +1,6 @@
 # VL2／WS2 教學大綱與研究安排 · Q4／R4
 
-學習目標：辨識光強度探究的獨立、因及控制變量；設計同距帶葉／不帶葉公平比較；讀取水跡尺度、按自己的初末數據計算平均速度及作圖；理解間接指標與直接蒸騰量度的分別；以蒸發、擴散、滲透、水勢下降、木質部運輸及蒸騰拉力建立因果解釋。
+學習目標：辨識光強度探究的自變項、因變量及控制變量；設計同距帶葉／不帶葉公平比較；讀取水跡尺度、按自己的初末數據計算平均速度及作圖；理解間接指標與直接蒸騰量度的分別；以蒸發、擴散、滲透、水勢下降、木質部運輸及蒸騰拉力建立因果解釋。
 
 Learning objectives: identify IV/DV/CVs; design a fair equal-distance leaf comparison; read scales, calculate from own initial/final values and graph; distinguish indirect water-transport evidence from direct transpiration measurement; explain evaporation, diffusion, osmosis, falling water potential, xylem transport and transpiration pull.
 

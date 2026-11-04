@@ -40,7 +40,7 @@ const SIMULATION_HEIGHTS = {
   D: [0,0.5,1,1.5]
 };
 const VARIABLE_NAMES = ['光強度','紅色水跡上升高度／平均上移速度','溫度','濕度及氣流','紅色水濃度及浸入深度','帶葉組的總葉面積','西芹長柄的長度及粗幼'];
-const VARIABLE_GROUPS = [['iv','獨立變量','主動改變的因素'],['dv','因變量','量度的結果'],['cv','控制變量','保持相同的因素']];
+const VARIABLE_GROUPS = [['iv','自變項','主動改變的因素'],['dv','因變量','量度的結果'],['cv','控制變量','保持相同的因素']];
 const ASSUMPTIONS = [
   {id:'temperature', text:'改變燈距不會造成各裝置溫度不同。', valid:true, reference:'溫度亦可能影響蒸騰。此模擬維持各裝置 25°C，避免光照與溫度同時改變。'},
   {id:'equalArea', text:'裝置A、裝置B、裝置C 的總葉面積相同。', valid:true, reference:'葉面積可能影響水分散失，因此帶葉組裝置A、裝置B、裝置C 應保持相同總葉面積；不帶葉的裝置D 是另一項比較。'},
@@ -553,10 +553,13 @@ function selectPlotDevice(id,edit=false){
 }
 function placeGraphPoint(id,x,y,method){
   if(state.submitted||!IDS.includes(id)||!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>graphXMax()||y<0||y>+$('#graphMax').value)return false;
+  const firstPlacement=!state.graph.points[id];
   state.graph.points[id]={x,y};selectPlotDevice(id);
   $('#point-x-'+id).value=x;$('#point-y-'+id).value=y.toFixed(2);
   $(`[data-plot="${id}"]`).textContent='確認／更新標點';
-  log('graph_point_plotted',{id,point:{x,y},method});renderGraph();save();return true;
+  log('graph_point_plotted',{id,point:{x,y},method});renderGraph();save();
+  if(firstPlacement&&['mouse','touch'].includes(method)){const next=IDS.find(device=>!state.graph.points[device]);if(next)selectPlotDevice(next);}
+  return true;
 }
 function renderPoints() {
   $('#pointControls').innerHTML=IDS.map(id=>{
@@ -903,7 +906,7 @@ function scoringWorkbook(records){
   const columns=[
     ['id','紀錄識別碼','identity'],['name','姓名','identity'],['class','班別及學號','identity'],['status','完成狀態','identity'],
     ['observation','觀察｜初步觀察・教師評分（0–2）','observing',2],['measure','觀察｜量尺讀數・自動（0–2）','observing'],['observing','SPS 觀察（0–4）','observing'],
-    ['iv','分類｜獨立變量・自動（0–1）','classifying'],['dv','分類｜因變量・自動（0–1）','classifying'],['cv','分類｜控制變量・自動（0–2）','classifying'],['classifying','SPS 分類（0–4）','classifying'],
+    ['iv','分類｜自變項・自動（0–1）','classifying'],['dv','分類｜因變量・自動（0–1）','classifying'],['cv','分類｜控制變量・自動（0–2）','classifying'],['classifying','SPS 分類（0–4）','classifying'],
     ['hypothesis','設計｜可測試假說及理由・教師評分（0–2）','designing',2],['assumptions','設計｜假設選擇・自動（0–1）','designing'],['control','設計｜延伸對照裝置 Q4／歷史對照・教師評分（0–1）','designing',1],['designing','SPS 設計探究（0–4）','designing'],
     ['rounds','實作｜量度記錄品質 Q3–4人工／歷史四輪自動（0–2）','conducting',2],['setup','實作｜Q4主探究三裝置／歷史四裝置・教師評分（0–2）','conducting',2],['conducting','SPS 進行實驗（0–4）','conducting'],
     ['rates','推論｜平均速度計算・自動（0–2）','inferring'],['conclusions','推論｜四項結論・自動（0–2）','inferring'],['inferring','SPS 推論（0–4）','inferring'],
@@ -967,7 +970,7 @@ async function exportExcel(){
   if(cloudSync.enabled&&!await refreshCloudRecords())return;
   save();const records=teacherRecords();
   if(!records.length){toast('目前沒有可匯出的研究紀錄。');return;}
-  const headings=['紀錄識別碼','姓名','班別及學號','電郵','狀態','建立時間','遞交時間','初步觀察','原始預測','原始理由','目前預測','目前理由','獨立變量－學生答案','獨立變量－參考答案','因變量－學生答案','因變量－參考答案','控制變量－學生答案','控制變量－參考答案','假設－學生答案','假設－參考答案','對照裝置設計－學生答案','對照裝置設計－參考答案','裝置文字設計','X軸','Y軸','光強度關係－學生答案','光強度關係－參考答案','葉片比較－學生答案','葉片作用－學生答案','葉片作用－參考答案','實驗限制－學生答案','實驗限制－參考答案','反思','總有效秒數','階段一有效秒數','階段二有效秒數','階段三有效秒數','階段四有效秒數','記錄量度次數','計算作答次數','標點次數','結論作答次數','題目版本','評分規準版本'];
+  const headings=['紀錄識別碼','姓名','班別及學號','電郵','狀態','建立時間','遞交時間','初步觀察','原始預測','原始理由','目前預測','目前理由','自變項－學生答案','自變項－參考答案','因變量－學生答案','因變量－參考答案','控制變量－學生答案','控制變量－參考答案','假設－學生答案','假設－參考答案','對照裝置設計－學生答案','對照裝置設計－參考答案','裝置文字設計','X軸','Y軸','光強度關係－學生答案','光強度關係－參考答案','葉片比較－學生答案','葉片作用－學生答案','葉片作用－參考答案','實驗限制－學生答案','實驗限制－參考答案','反思','總有效秒數','階段一有效秒數','階段二有效秒數','階段三有效秒數','階段四有效秒數','記錄量度次數','計算作答次數','標點次數','結論作答次數','題目版本','評分規準版本'];
   const rows=[headings],data=[['紀錄識別碼','姓名','模擬時間（min）','裝置','光照距離（cm）','光強度（lux）','葉片','首次讀數（cm）','最後讀數（cm）','模型參考高度（cm）','學生平均速度（cm/min）','依學生數據計算的速度（cm/min）','圖點 X坐標','圖點 Y坐標','探究／沿用來源']];
   const events=[['紀錄識別碼','姓名','事件','時間（香港）','階段','事件詳情']];
   const designs=[['姓名','班別及學號','電郵','文字設計','裝置設計圖']];
@@ -1224,7 +1227,12 @@ $('#studentGraph').addEventListener('click',event=>{
   if(state.submitted)return;
   const mark=event.target.closest('[data-graph-point]');
   if(mark){selectPlotDevice(mark.dataset.graphPoint,true);return;}
-  const point=pointerGraphPoint(event);if(point){placeGraphPoint(selectedPlotId,point.x,point.y,event.pointerType==='touch'?'touch':'mouse');showGraphCursor(point);}
+  const point=pointerGraphPoint(event);if(point){
+    const id=selectedPlotId;
+    if(placeGraphPoint(id,point.x,point.y,event.pointerType==='touch'?'touch':'mouse')){
+      showGraphCursor(null);$('#graphCoordinates').textContent=selectedPlotId!==id?`裝置${id} 圖點已保存；下一個標點：裝置${selectedPlotId}。`:`裝置${id} 圖點已保存。`;
+    }
+  }
 });
 $('#studentGraph').addEventListener('keydown',event=>{
   if(state.submitted||!['Enter',' '].includes(event.key))return;

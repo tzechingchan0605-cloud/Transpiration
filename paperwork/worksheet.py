@@ -12,7 +12,7 @@ ROOT=Path(__file__).resolve().parent; OUT=ROOT/'generated'; WORK=ROOT.parent/'wo
 SRC=json.loads((OUT/'source.json').read_text());REF=json.loads((ROOT/'reflection.json').read_text())
 TEAL='206B73';RED='BC2927';BLUE='165CA5';FONT='Noto Sans CJK TC'
 # Only pedagogical concepts are red; answers use blue separately.
-TERMS=['蒸騰拉力','木質導管','水勢下降','水膜','氣室','蒸發','擴散','滲透','氣孔','葉柄','蒸騰','光強度','evaporates','diffuses','Osmosis','stomatal opening','transpiration pull','xylem vessels','xylem','water potential','water films','air spaces','evaporation','diffusion','osmosis','stomata','petiole','transpiration','light intensity']
+TERMS=['葉片的存在','presence of leaves','蒸騰拉力','木質導管','水勢下降','水膜','氣室','蒸發','擴散','滲透','氣孔','葉柄','蒸騰','光強度','evaporates','diffuses','Osmosis','stomatal opening','transpiration pull','xylem vessels','xylem','water potential','water films','air spaces','evaporation','diffusion','osmosis','stomata','petiole','transpiration','light intensity']
 def xml(tag,**attrs):
  e=OxmlElement(tag)
  for k,v in attrs.items():e.set(qn(k),str(v))
@@ -50,6 +50,8 @@ class Sheet:
   p=self.d.add_paragraph();self.apply_break(p);p.paragraph_format.space_after=Pt(after);p.paragraph_format.line_spacing=1.15;self.runs(p,text,size,colour,bold,concept);return p
  def h(self,text,level=2):
   p=self.d.add_paragraph(text,'Heading '+str(level));self.apply_break(p)
+  if '葉片的存在' in text or 'presence of leaves' in text:
+   p.clear();self.runs(p,text,12,TEAL,True,concept=True)
   if text.startswith(('部分','Part ')):
    for r in p.runs:r.font.size=Pt(13)
   return p
@@ -162,7 +164,7 @@ def worksheet(lang,answers):
  s.table(rows,[1.25]*4,mark={(i,j) for i in range(1,5) for j in range(1,4)} if answers else None);s.d=doc
  s.page()
  s.h(T('部分 2｜延伸探究：葉片與水分運輸','Part 2 | Leaves and water transport'))
- s.h(T('4. 葉片的存在會否影響吸水及水分向上運輸？','4. Do leaves affect water uptake and upward water transport?'))
+ s.h(T('4. 葉片的存在會否影響吸水及水分向上運輸？','4. Does the presence of leaves affect water uptake and upward water transport?'))
  outer=s.d.add_table(rows=1,cols=2);outer.autofit=False;outer.columns[0].width=Cm(13.5);outer.columns[1].width=Cm(4.5)
  doc=s.d;s.d=CellWriter(outer.cell(0,0),13.5)
  s.p(m['control']['question'])

@@ -7,6 +7,10 @@
  * support words consistently to static text, dynamic text and PDF content.
  */
 window.VL2_I18N_STATIC = {
+"延伸探究：": "Extension: does ",
+"葉片的存在": "the presence of leaves",
+"會否影響吸水及水分向上運輸？": " affect water uptake and upward water transport?",
+
 "主探究｜光強度與水分向上運輸": "Main investigation | Light intensity and upward water transport",
 "延伸探究｜葉片與水分向上運輸": "Extension | Leaves and upward water transport",
 "開始延伸探究 →": "Start the extension →",
@@ -34,7 +38,7 @@ window.VL2_I18N_STATIC = {
 "只改變光強度，三個帶葉裝置同步運行。": "Change only light intensity. The three leafy setups run together.",
 "B 讀數沿用主探究並鎖定；重播 B／D 動畫，只記錄 D。": "B readings are retained and locked. Replay B/D and record D only.",
 "延伸探究：葉片的存在會否影響吸水及水分向上運輸？": "Extension: does the presence of leaves affect water uptake and upward transport?",
-"你認為此探究需要對照裝置嗎？如需要，你會如何設計比較裝置？": "Does this investigation need a control setup? If so, how would you design the comparison?",
+"你認為此延伸探究需要對照裝置嗎？如需要，你會如何設計比較裝置？": "Does this extension investigation need a control setup? If so, how would you design the comparison?",
 "（提示：對照裝置提供比較基準；比較時保持所研究因素以外的條件相同。）": "(Hint: a control setup provides a comparison baseline. Keep conditions other than the factor being investigated the same.)",
 "確認對照設計，開始 B／D 延伸探究 →": "Confirm the control design and start the B/D extension \u2192",
 "完成主探究，進入延伸探究 →": "Finish the main investigation and begin the extension \u2192",
@@ -137,7 +141,7 @@ window.VL2_I18N_STATIC = {
   "04 · 對照組設計": "04 · Plan a control setup",
   "探究的對照組": "The control setup",
   "若想知道葉片是否參與水分運輸，你會如何設計比較裝置？": "How would you plan a comparison setup to find out whether leaves help with water transport?",
-  "（提示：對照組主要功能是作為比較的基準，用來確認實驗中的改變是由獨立變量所引起，而非其他外在因素的干擾，因此對照組不包含獨立變量的處理條件）": "(Hint: the control group provides a basis for comparison. It helps check whether the change in the experiment is caused by the independent variable rather than other external factors. The control group therefore does not receive the treatment being tested.)",
+  "（提示：對照組主要功能是作為比較的基準，用來確認實驗中的改變是由自變項所引起，而非其他外在因素的干擾，因此對照組不包含自變項的處理條件）": "(Hint: the control group provides a basis for comparison. It helps check whether the change in the experiment is caused by the independent variable rather than other external factors. The control group therefore does not receive the treatment being tested.)",
   "（提示：此對照裝置與實驗裝置有何不同之處？）": "(Hint: how is the control setup different from the experiment setup?)",
   "05 · 實驗裝置設計": "05 · Plan the experiment setups",
   "繪畫並標示你的四個裝置": "Draw and label your four setups",
@@ -207,7 +211,7 @@ window.VL2_I18N_STATIC = {
   "在圖內移動滑鼠查看 X、Y 坐標；手機可輕觸標點。": "Move the pointer over the graph to see X and Y coordinates. On a phone, tap to plot a point.",
   "帶葉組：裝置A、裝置B、裝置C": "With leaves: Setups A, B and C",
   "不帶葉組：裝置D（獨立比較點）": "Without leaves: Setup D (a separate comparison point)",
-  "在圖內移動滑鼠，游標旁會即時顯示（X, Y）坐標。先選擇裝置，再在圖內點擊標點。點擊已有圖點，可在下方坐標欄精確修訂，按「確認／更新標點」保存；亦可直接輸入坐標標點。Y坐標記錄至小數點後兩位。帶葉組以平滑曲線連接；裝置D 獨立標示。": "Move the pointer over the graph to see its (X, Y) coordinates. Choose a setup, then click the graph to plot its point. Click an existing point to edit its coordinates in the boxes below. Select ‘Confirm / update point’ to save. You can also type coordinates to plot a point. Record Y coordinates to two decimal places. Join the points for setups with leaves with a smooth curve. Show Setup D separately.",
+  "在圖內移動滑鼠，游標旁會即時顯示（X, Y）坐標。先選擇裝置，再在圖內點擊標點；圖點會立即保存，並自動選取下一個尚未標點的裝置。點擊已有圖點，可在下方坐標欄精確修訂，按「確認／更新標點」保存；亦可直接輸入坐標標點。Y坐標記錄至小數點後兩位。帶葉組以平滑曲線連接；裝置D 獨立標示。": "Move the pointer over the graph to see its (X, Y) coordinates. Choose a setup, then click the graph to plot its point. Each new point is saved immediately, and the next unplotted setup is selected automatically. Click an existing point to edit its coordinates in the boxes below. Select ‘Confirm / update point’ to save. You can also type coordinates to plot a point. Record Y coordinates to two decimal places. Join the points for setups with leaves with a smooth curve. Show Setup D separately.",
   "連接裝置A、裝置B、裝置C": "Join Setups A, B and C",
   "清除圖中標點": "Clear graph points",
   "03 · 數據與推論": "03 · Data and explanations",

@@ -8,7 +8,7 @@
       "groups": [
         {
           "id": "iv",
-          "title": "獨立變量",
+          "title": "自變項",
           "definition": "主動改變的因素"
         },
         {
@@ -75,7 +75,7 @@
       ]
     },
     "control": {
-      "question": "你認為此探究需要對照裝置嗎？如需要，你會如何設計比較裝置？",
+      "question": "你認為此延伸探究需要對照裝置嗎？如需要，你會如何設計比較裝置？",
       "hints": [
         "（提示：對照裝置提供比較基準；比較時保持所研究因素以外的條件相同。）",
         "（提示：此對照裝置與實驗裝置有何不同之處？）"
@@ -1208,7 +1208,7 @@
       ]
     },
     "control": {
-      "question": "Does this investigation need a control setup? If so, how would you design the comparison?",
+      "question": "Does this extension investigation need a control setup? If so, how would you design the comparison?",
       "hints": [
         "(Hint: a control setup provides a comparison baseline. Keep conditions other than the factor being investigated the same.)",
         "(Hint: how is the control setup different from the experiment setup?)"

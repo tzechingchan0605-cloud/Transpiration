@@ -1,13 +1,14 @@
 // Exercise real mouse/touch plotting with a disabled live collector.
-const {chromium}=require('playwright'),assert=require('node:assert/strict');
+const {chromium}=require('playwright'),assert=require('node:assert/strict'),{localServer}=require('../paperwork/build.cjs');
 (async()=>{
- const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
+ const server=process.env.LAB_URL?{base:process.env.LAB_URL,close:async()=>{}}:await localServer();
+ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
  const errors=[];
  try{
   async function open(options){
    const context=await browser.newContext(options);
    await context.route('**/cloud-config.js*',r=>r.fulfill({contentType:'application/javascript',body:"window.VL2_CLOUD_CONFIG={endpoint:''};"}));
-   const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(process.env.LAB_URL||'http://127.0.0.1:8000');
+   const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(server.base);
    for(const[id,value]of Object.entries({profileName:'圖表測試',profileClass:'S4-01',profileEmail:'graph-test@example.com'}))await p.locator('#'+id).fill(value);
    await p.locator('#profileForm button[type=submit]').click();
    await p.evaluate(()=>{state.unlocked=4;phase(4);});await p.locator('#studentGraph').scrollIntoViewIfNeeded();return p;
@@ -42,6 +43,15 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
   }
   assert.deepEqual(await p.evaluate(()=>({graph:JSON.stringify(state.graph),events:state.events.length})),before,'hover must not save/log points');
   const margin=await p.locator('#studentGraph').evaluate(svg=>{const pt=new DOMPoint(30,200).matrixTransform(svg.getScreenCTM());return {x:pt.x,y:pt.y};});await p.mouse.click(margin.x,margin.y);assert.equal(await p.evaluate(()=>Object.keys(state.graph.points).length),0,'axis label margins cannot place');
+  // Sequential clicks must save distinct setups without requiring a dropdown change.
+  await p.evaluate(()=>VL2I18n.setLanguage('en'));
+  await clickAt(p,1200,.40);assert.match(await p.locator('#graphCoordinates').innerText(),/Setup A point saved. Next point: setup B/);const firstA=await p.evaluate(()=>structuredClone(state.graph.points.A));
+  await clickAt(p,300,.25);assert.deepEqual(await p.evaluate(()=>state.graph.points.A),firstA,'placing B must retain saved A');
+  assert(await p.evaluate(()=>!!state.graph.points.B),'second mouse click saves B rather than replacing A');
+  await clickAt(p,133,.15);await clickAt(p,300,.05);assert.equal(await p.evaluate(()=>Object.keys(state.graph.points).length),4);
+  const saved=await p.evaluate(()=>readStored(CURRENT_KEY).graph.points);assert.deepEqual(saved.A,firstA);assert.equal(saved.B.y,.25);assert.equal(saved.C.y,.15);assert.equal(saved.D.y,.05);
+  await p.evaluate(()=>VL2I18n.setLanguage('zh'));
+  await p.locator('#clearGraph').click();
   await p.locator('#plotDevice').selectOption('B');await clickAt(p,310,.27);
   let point=await p.evaluate(()=>state.graph.points.B);assert(Math.abs(point.x-310)<=1);assert.equal(point.y,.27);assert.equal(await p.evaluate(()=>Object.keys(state.graph.points).length),1);assert.equal(await p.locator('#point-y-B').inputValue(),'0.27');
   await p.locator('#plotDevice').selectOption('A');const pointsBefore=await p.evaluate(()=>JSON.stringify(state.graph.points));await p.locator('[data-graph-point=B] .plot-mark').click();assert.equal(await p.locator('#plotDevice').inputValue(),'B');assert.equal(await p.locator('#point-x-B').evaluate(el=>el===document.activeElement),true);assert.equal(await p.evaluate(()=>JSON.stringify(state.graph.points)),pointsBefore,'select existing point without moving it');
@@ -55,6 +65,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
   await p.evaluate(()=>{state.submitted=true;applyLock();});assert.equal(await p.locator('#plotDevice').isDisabled(),true);assert.equal(await p.locator('#graphCursorLabel').isVisible(),false,'submission hides the active hover label');const locked=await p.evaluate(()=>JSON.stringify(state.graph));await clickAt(p,550,.32);assert.equal(await p.locator('#graphCursorLabel').isVisible(),false,'submitted graph does not show hover coordinates');await p.evaluate(()=>{placeGraphPoint('A',100,.1,'mouse');document.querySelector('[data-plot=A]').onclick();});assert.equal(await p.evaluate(()=>JSON.stringify(state.graph)),locked);assert.equal(await p.locator('[data-graph-point]').count(),0);
   const mobile=await open({viewport:{width:390,height:844},hasTouch:true,isMobile:true});await mobile.locator('#plotDevice').selectOption('C');pos=await position(mobile,123,.17);await mobile.touchscreen.tap(pos.x,pos.y);point=await mobile.evaluate(()=>state.graph.points.C);assert(point);assert(Math.abs(point.x-123)<6);assert(Math.abs(point.y-.17)<=.01);assert.equal(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await mobile.locator('#point-x-C').fill('133');await mobile.locator('#point-y-C').fill('0.16');await mobile.locator('[data-plot=C]').click();assert.deepEqual(await mobile.evaluate(()=>state.graph.points.C),{x:133,y:.16});
   await mobile.locator('#clearGraph').click();assert.equal(await mobile.locator('#plotDevice').inputValue(),'A');assert.equal(await mobile.evaluate(()=>Object.keys(state.graph.points).length),0);
+  await mobile.locator('#studentGraph').scrollIntoViewIfNeeded();pos=await position(mobile,1200,.40);await mobile.touchscreen.tap(pos.x,pos.y);const touchA=await mobile.evaluate(()=>structuredClone(state.graph.points.A));pos=await position(mobile,300,.25);await mobile.touchscreen.tap(pos.x,pos.y);assert.deepEqual(await mobile.evaluate(()=>state.graph.points.A),touchA);assert.equal(await mobile.evaluate(()=>Object.keys(state.graph.points).length),2);assert.equal(await mobile.locator('#plotDevice').inputValue(),'C');
   assert.deepEqual(errors,[]);console.log('PASS: floating hover coordinate pair before clicking, label follows mouse and stays inside all plot corners without mutation or intercepting clicks, selected-device mouse placement, point selection and precise typing, curve updates, isolated D, clean report markup, leave cleanup, submitted lock and real mobile touch.');
- }finally{await browser.close();}
+ }finally{await browser.close();await server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});

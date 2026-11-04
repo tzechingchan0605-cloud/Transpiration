@@ -13,7 +13,7 @@
     '紅色水濃度及浸入深度': 'Red water concentration and depth of immersion',
     '帶葉組的總葉面積': 'Total leaf area of the setups with leaves',
     '西芹長柄的長度及粗幼': 'Length and thickness of the celery stalks',
-    '獨立變量': 'Independent variable',
+    '自變項': 'Independent variable',
     '因變量': 'Dependent variable',
     '控制變量': 'Controlled variables',
     '主動改變的因素': 'the factor changed on purpose',
@@ -319,6 +319,8 @@
   };
 
   const patterns = [
+    ['裝置{id} 圖點已保存；下一個標點：裝置{next}。', 'Setup {id} point saved. Next point: setup {next}.'],
+    ['裝置{id} 圖點已保存。', 'Setup {id} point saved.'],
     ['{pages} 頁 · 套裝第 {first}–{last} 頁','{pages} pages · pack pages {first}–{last}'],
     ['{pages} 頁','{pages} pages'],
     ['裝置{id} · 帶葉（光距：{distance} cm）', 'Setup {id} · With leaves (lamp distance: {distance} cm)'],

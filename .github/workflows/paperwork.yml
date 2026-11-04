@@ -24,6 +24,7 @@ jobs:
       - run: node paperwork/build.cjs --check
       - run: python tests/paperwork_pdf.py
       - run: node tests/paperwork.cjs
+      - run: node tests/graph.cjs
       - run: node tests/split.cjs
       - run: python tests/split_excel.py
       - run: node tests/v3.cjs

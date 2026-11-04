@@ -17,7 +17,7 @@ const {chromium}=require('playwright'),{localServer}=require('../paperwork/build
   for(const [g,indexes]of Object.entries({iv:[0],dv:[1],cv:[2,3,4,5,6]}))for(const i of indexes)await page.locator(`[data-group=${g}]`).nth(i).click();
   for(const a of ['temperature','equalArea','air'])await page.locator(`#assumptionChoices input[value=${a}]`).check();
   await page.locator('#setupDescription').fill('Three leafy setups A 10 cm B 20 cm C 30 cm; equal leaf area and water depth; zero scales at water level and time together.');await page.locator('#saveSetup').click();await page.locator('#designNext').click();
-  assert.equal(await page.evaluate(()=>state.phase),3);assert.equal(await page.locator('#labBench .specimen-card').count(),3);assert.equal(await page.locator('#experimentNext').isDisabled(),true);assert.equal(await page.locator('#learningReveal').isVisible(),false);
+  assert.equal(await page.evaluate(()=>state.phase),3);assert.equal(await page.locator('#labBench .specimen-card').count(),3);const mainSvgHeight=(await page.locator('#labBench .specimen-svg').first().boundingBox()).height;assert.equal(await page.locator('#experimentNext').isDisabled(),true);assert.equal(await page.locator('#learningReveal').isVisible(),false);
   async function english(scope){if(lang!=='en')return;const bad=await page.locator(scope).evaluate(root=>{const out=[],w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);for(let n;n=w.nextNode();){if(n.parentElement.closest('script,style,textarea,[data-user-text]'))continue;const t=n.nodeValue.replace(/\([^()]*[\u3400-\u9fff][^()]*\)/g,'');if(/[\u3400-\u9fff]/.test(t))out.push(t.trim());}return out;});assert.deepEqual(bad,[]);}
   async function reviewMain(viaDesign=false){
    const saved=await page.evaluate(()=>JSON.stringify({measurements:state.measurements,mainSnapshot:state.mainSnapshot,initialControl:state.initialControl,labStage:state.labStage,currentTime:state.currentTime,unlocked:state.unlocked,graph:state.graph}));
@@ -33,7 +33,7 @@ const {chromium}=require('playwright'),{localServer}=require('../paperwork/build
     await page.locator('#confirmExtension').click();assert.equal(await page.evaluate(()=>state.labStage),'extensionDesign');
     await page.locator('#controlPlan').fill('Yes. Compare leafy B with leafless D, both at 20 cm; keep all other conditions equal.');await page.locator('#confirmExtension').click();
     assert.equal(await page.locator('#labBench .specimen-card').count(),2);assert(await page.locator('[data-measure=B]').first().isDisabled());
-    const box=await page.locator('#labBench .specimen-card').first().boundingBox();assert(box.height<500);const svg=await page.locator('#labBench .specimen-svg').first().boundingBox();assert(svg.height<=301);await page.locator('#labBench').scrollIntoViewIfNeeded();await page.screenshot({path:'/tmp/vl2-extension-'+lang+'.png'});
+    const box=await page.locator('#labBench .specimen-card').first().boundingBox();assert(box.height>300);const svg=await page.locator('#labBench .specimen-svg').first().boundingBox();assert(Math.abs(svg.height-mainSvgHeight)<1,'main and extension animation heights match');await page.locator('#labBench').scrollIntoViewIfNeeded();await page.screenshot({path:'/tmp/vl2-extension-'+lang+'.png'});
    }
    await english('#phase-3');
    for(const t of [0,10,20,30]){
